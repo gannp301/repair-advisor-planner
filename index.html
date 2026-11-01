@@ -10,7 +10,7 @@
 <title>Repair Advisor Planner</title>
 <style>
   /* ============================================================
-     Repair Advisor Planner v1.0 — styles
+     Repair Advisor Planner v1.1 — styles
      Palette: red / white / black. Change colors here only.
      ============================================================ */
   :root {
@@ -25,7 +25,7 @@
     --gray-100: #F3F3F3;
     --white: #FFFFFF;
     --radius: 12px;
-    --tap: 48px; /* minimum tap target height */
+    --tap: 48px; /* minimum tap target height on touch screens */
   }
 
   * { box-sizing: border-box; }
@@ -43,9 +43,10 @@
     line-height: 1.4;
   }
 
-  button, input, select { font: inherit; color: inherit; }
+  button, input, select, textarea { font: inherit; color: inherit; }
 
   button { cursor: pointer; }
+  button:disabled { cursor: default; opacity: 0.5; }
 
   :focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
 
@@ -57,7 +58,7 @@
     border-bottom: 4px solid var(--red);
   }
   .header-inner {
-    max-width: 1100px;
+    max-width: 1680px;
     margin: 0 auto;
     display: flex;
     align-items: center;
@@ -73,19 +74,28 @@
     font-weight: 800; font-size: 18px;
   }
   .brand h1 { margin: 0; font-size: 20px; letter-spacing: 0.2px; }
-  .brand .today-label { display: block; font-size: 13px; color: #BDBDBD; font-weight: 400; }
+  .today-date { font-size: 15px; font-weight: 600; color: #E6E6E6; }
 
   /* ---------- Layout ---------- */
   main {
-    max-width: 1100px;
+    max-width: 1680px;
     margin: 0 auto;
     padding: 16px 16px calc(32px + env(safe-area-inset-bottom));
   }
   .layout { display: grid; gap: 16px; }
-  /* Two columns on iPad (portrait and landscape) and desktop */
+  .main-col { min-width: 0; }
+
+  /* Two columns on iPad and laptop */
   @media (min-width: 760px) {
     .layout { grid-template-columns: minmax(300px, 340px) 1fr; align-items: start; }
-    .side { position: sticky; top: 16px; }
+    .side { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
+  }
+  /* Desktop monitor: wider side panel, three task columns side by side */
+  @media (min-width: 1280px) {
+    main { padding-left: 24px; padding-right: 24px; }
+    .layout { grid-template-columns: 380px 1fr; gap: 24px; }
+    .sections { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start; }
+    .sections .section { margin-bottom: 0; }
   }
 
   .card {
@@ -111,7 +121,7 @@
     padding: 10px 6px;
     text-align: center;
   }
-  .stat .num { display: block; font-size: 28px; font-weight: 800; line-height: 1.1; }
+  .stat .num { display: block; font-size: 28px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
   .stat .lbl { display: block; font-size: 12px; color: var(--gray-700); }
   .stat.alert { border-color: var(--red); background: var(--red-tint); }
   .stat.alert .num { color: var(--red); }
@@ -122,7 +132,7 @@
     display: block; font-size: 14px; font-weight: 600; margin-bottom: 4px;
   }
   .field .hint { font-weight: 400; color: var(--gray-500); }
-  input[type="text"], input[type="date"], input[type="search"], select {
+  input[type="text"], input[type="search"], select, textarea {
     width: 100%;
     min-height: var(--tap);
     padding: 10px 12px;
@@ -131,21 +141,18 @@
     background: var(--white);
     font-size: 17px; /* 16px+ prevents iOS zoom on focus */
   }
-  input:focus, select:focus { border-color: var(--black); outline: none; }
-  input[type="date"] { -webkit-appearance: none; appearance: none; }
+  input:focus, select:focus, textarea:focus { border-color: var(--black); outline: none; }
+  textarea { min-height: 120px; line-height: 1.4; resize: vertical; }
 
   .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row-2 > .field { min-width: 0; }
 
-  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .seg button {
-    min-height: var(--tap);
-    border: 1.5px solid var(--gray-300);
-    background: var(--white);
-    border-radius: 10px;
-    font-weight: 600;
+  .date-line {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    font-size: 14px; color: var(--gray-700);
+    border-top: 1px solid var(--gray-300); padding-top: 10px; margin-bottom: 12px;
   }
-  .seg button[aria-pressed="true"] { background: var(--black); border-color: var(--black); color: var(--white); }
-  .seg button[data-value="Urgent"][aria-pressed="true"] { background: var(--red); border-color: var(--red); }
+  .date-line strong { color: var(--ink); }
 
   .btn {
     min-height: var(--tap);
@@ -158,9 +165,9 @@
   .btn-primary { background: var(--red); border-color: var(--red); color: var(--white); }
   .btn-primary:active { background: var(--red-dark); }
   .btn-dark { background: var(--black); color: var(--white); }
-  .btn-block { width: 100%; }
   .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
   .btn-row .btn { flex: 1 1 auto; }
+  .btn-danger { border-color: var(--red); color: var(--red); }
 
   .form-error { color: var(--red); font-weight: 600; font-size: 14px; margin: 0 0 10px; }
   .editing-banner {
@@ -168,9 +175,48 @@
     border-radius: 8px; padding: 8px 12px; font-size: 14px; margin-bottom: 12px;
   }
 
+  /* ---------- Notes and snippets ---------- */
+  .drop-zone {
+    border: 2px dashed var(--gray-300);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--gray-700);
+    margin-bottom: 10px;
+  }
+  .drop-zone strong { color: var(--ink); }
+  .drop-zone.active { border-color: var(--red); background: var(--red-tint); }
+  .ocr-status {
+    font-size: 14px; font-weight: 600; margin: 0 0 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .ocr-status.error { color: var(--red); }
+  .ocr-bar { flex: 1; height: 6px; background: var(--gray-300); border-radius: 3px; overflow: hidden; }
+  .ocr-bar span { display: block; height: 100%; width: 0; background: var(--red); transition: width 0.2s; }
+
+  .drop-overlay {
+    position: fixed; inset: 0; z-index: 30;
+    background: rgba(17,17,17,0.6);
+    display: grid; place-items: center;
+    pointer-events: none;
+  }
+  .drop-overlay div {
+    background: var(--white);
+    border: 3px dashed var(--red);
+    border-radius: var(--radius);
+    padding: 28px 36px;
+    font-size: 20px; font-weight: 700;
+  }
+
   /* ---------- Filters ---------- */
-  .filters { display: grid; gap: 10px; }
+  .filters { display: grid; gap: 10px; margin-bottom: 16px; }
+  .filter-row { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  @media (min-width: 600px) and (max-width: 759px), (min-width: 1280px) {
+    .filter-row.has-estimators { grid-template-columns: 1fr 220px; }
+  }
   .chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  @media (min-width: 1280px) { .chips { flex-wrap: wrap; overflow: visible; } }
   .chip {
     flex: 0 0 auto;
     min-height: 40px;
@@ -196,13 +242,14 @@
   }
 
   /* ---------- Sections & tasks ---------- */
-  .section { margin-bottom: 20px; }
+  .section { margin-bottom: 20px; min-width: 0; }
   .section-head {
     display: flex; align-items: baseline; gap: 8px;
     border-bottom: 2px solid var(--black);
     padding-bottom: 6px; margin-bottom: 10px;
   }
   .section-head h2 { margin: 0; font-size: 20px; }
+  .section-head .sub { font-size: 13px; color: var(--gray-700); margin-left: auto; }
   .count {
     background: var(--black); color: var(--white);
     border-radius: 999px; font-size: 13px; font-weight: 700;
@@ -225,9 +272,8 @@
     gap: 12px;
     align-items: start;
   }
-  .task.p-High { border-left-color: var(--black); }
-  .task.p-Urgent { border-left-color: var(--red); }
-  .task.overdue { background: var(--red-tint); border-left-color: var(--red); }
+  .task.carried { border-left-color: var(--black); }
+  .task.stale { background: var(--red-tint); border-left-color: var(--red); }
   .task.done { opacity: 0.75; border-left-color: var(--gray-300); }
   .task.done .desc { text-decoration: line-through; color: var(--gray-700); }
 
@@ -242,24 +288,53 @@
   .task.done .check { background: var(--black); color: var(--white); }
 
   .task-body { min-width: 0; }
+  .who { font-weight: 800; font-size: 16px; margin-bottom: 2px; overflow-wrap: anywhere; }
+  .who .sep { color: var(--gray-500); font-weight: 400; }
   .meta-top { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 4px; }
-  .folder { font-weight: 800; font-size: 16px; }
   .badge {
     font-size: 12px; font-weight: 700; letter-spacing: 0.3px;
     border-radius: 6px; padding: 2px 7px;
     border: 1px solid var(--gray-300); color: var(--gray-700);
     text-transform: uppercase;
   }
-  .badge.urgent { background: var(--red); border-color: var(--red); color: var(--white); }
-  .badge.high { background: var(--black); border-color: var(--black); color: var(--white); }
-  .badge.overdue { background: var(--white); border-color: var(--red); color: var(--red); }
+  .badge.estimator { text-transform: none; letter-spacing: 0; }
+  .badge.wait { background: var(--black); border-color: var(--black); color: var(--white); text-transform: none; letter-spacing: 0; }
+  .badge.wait.stale { background: var(--red); border-color: var(--red); }
   .badge.example { border-style: dashed; }
   .desc { margin: 0 0 6px; font-size: 17px; overflow-wrap: anywhere; }
   .meta-bottom { font-size: 14px; color: var(--gray-700); }
-  .meta-bottom .late { color: var(--red); font-weight: 700; }
   .task-actions { display: flex; gap: 8px; margin-top: 10px; }
   .task-actions .btn { min-height: 44px; padding: 8px 14px; font-size: 15px; }
-  .btn-danger { border-color: var(--red); color: var(--red); }
+
+  /* ---------- Review (from notes) ---------- */
+  .review { margin-bottom: 16px; border: 2px solid var(--black); }
+  .review-list { display: grid; gap: 10px; margin-bottom: 14px; }
+  @media (min-width: 1280px) { .review-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .review-item {
+    border: 1.5px solid var(--gray-300);
+    border-radius: 10px;
+    padding: 10px;
+    display: grid;
+    gap: 8px;
+    align-content: start;
+    min-width: 0;
+  }
+  .review-item.off { opacity: 0.5; }
+  .review-top { display: flex; gap: 10px; align-items: center; }
+  .review-top input[type="checkbox"] {
+    flex: none; width: 28px; height: 28px; margin: 0;
+    accent-color: var(--red);
+  }
+  .review-top input[type="text"] { flex: 1; min-width: 0; }
+  .review-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px;
+  }
+  .review-item label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--gray-700); min-width: 0; }
+  .review-item label input, .review-item label select { min-height: 44px; min-width: 0; max-width: 100%; }
+  .review-note { margin: 0; font-size: 14px; color: var(--gray-700); overflow-wrap: anywhere; }
+  .review-note.match { color: var(--ink); }
 
   /* ---------- Backup ---------- */
   .small { font-size: 14px; color: var(--gray-700); margin: 0 0 10px; }
@@ -278,55 +353,14 @@
     max-width: calc(100% - 32px);
     opacity: 0; visibility: hidden; pointer-events: none;
     transition: transform 0.2s ease, opacity 0.2s ease, visibility 0.2s;
-    z-index: 10;
+    z-index: 40;
   }
   .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; visibility: visible; }
   .toast.error { background: var(--red); }
 
-  /* ---------- Add from notes ---------- */
-  textarea {
-    width: 100%;
-    min-height: 130px;
-    padding: 10px 12px;
-    border: 1.5px solid var(--gray-300);
-    border-radius: 10px;
-    background: var(--white);
-    font-size: 17px;
-    line-height: 1.4;
-    resize: vertical;
-  }
-  textarea:focus { border-color: var(--black); outline: none; }
-
-  .review { margin-bottom: 16px; border: 2px solid var(--black); }
-  .review-list { display: grid; gap: 10px; margin-bottom: 14px; }
-  .review-item {
-    border: 1.5px solid var(--gray-300);
-    border-radius: 10px;
-    padding: 10px;
-    display: grid;
-    gap: 8px;
-  }
-  .review-item.off { opacity: 0.5; }
-  .review-top { display: flex; gap: 10px; align-items: center; }
-  .review-top input[type="checkbox"] {
-    flex: none; width: 28px; height: 28px; margin: 0;
-    accent-color: var(--red);
-  }
-  .review-top input[type="text"] { flex: 1; min-width: 0; }
-  .review-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 8px;
-  }
-  .review-item label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--gray-700); }
-  .review-item label input, .review-item label select { min-height: 44px; min-width: 0; max-width: 100%; }
-  .review-grid > label { min-width: 0; }
-  .review-note { margin: 0; font-size: 14px; color: var(--gray-700); overflow-wrap: anywhere; }
-  .review-note.match { color: var(--ink); }
-
   /* ---------- Confirm box ---------- */
   .modal-backdrop {
-    position: fixed; inset: 0; z-index: 20;
+    position: fixed; inset: 0; z-index: 50;
     background: rgba(17,17,17,0.55);
     display: grid; place-items: center;
     padding: 16px;
@@ -341,8 +375,38 @@
   }
   .modal p { margin: 0 0 18px; white-space: pre-line; overflow-wrap: anywhere; }
 
+  /* ---------- Keyboard hint (mouse/keyboard devices only) ---------- */
+  .shortcuts { display: none; font-size: 13px; color: var(--gray-700); margin-top: 16px; text-align: center; }
+  kbd {
+    font: 600 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    border: 1px solid var(--gray-300); border-bottom-width: 2px;
+    border-radius: 4px; padding: 1px 5px; background: var(--white);
+  }
+
+  /* Mouse and keyboard: denser controls, hover feedback */
+  @media (hover: hover) and (pointer: fine) {
+    :root { --tap: 40px; }
+    body { font-size: 16px; }
+    .shortcuts { display: block; }
+    .check { width: 34px; height: 34px; font-size: 18px; }
+    .task { padding: 10px 12px; gap: 10px; }
+    .task:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+    .check:hover { border-color: var(--red); }
+    .desc { font-size: 16px; margin-bottom: 4px; }
+    .task-actions { margin-top: 6px; }
+    .task-actions .btn { min-height: 32px; padding: 4px 12px; font-size: 14px; }
+    .btn:hover { filter: brightness(0.94); }
+    .chip { min-height: 34px; padding: 6px 12px; font-size: 14px; }
+    .chip:hover { border-color: var(--black); }
+    input[type="text"], input[type="search"], select, textarea { font-size: 16px; padding: 8px 10px; }
+  }
+
   @media (max-width: 420px) {
     .summary { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; scroll-behavior: auto !important; }
   }
 </style>
 </head>
@@ -352,23 +416,24 @@
   <div class="header-inner">
     <div class="brand">
       <div class="brand-mark" aria-hidden="true">R</div>
-      <h1>Repair Advisor Planner<span class="today-label" id="todayLabel"></span></h1>
+      <h1>Repair Advisor Planner</h1>
     </div>
+    <div class="today-date" id="todayLabel"></div>
   </div>
 </header>
 
 <main>
   <div class="layout">
 
-    <!-- ===== Left column: summary, add/edit form, backup ===== -->
+    <!-- ===== Left column: summary, add/edit form, notes, backup ===== -->
     <div class="side">
 
       <section class="card" aria-labelledby="summaryTitle">
         <h2 id="summaryTitle">Daily summary</h2>
         <div class="summary">
           <div class="stat" id="statOpen"><span class="num">0</span><span class="lbl">Open</span></div>
-          <div class="stat" id="statUrgent"><span class="num">0</span><span class="lbl">Urgent</span></div>
-          <div class="stat" id="statOverdue"><span class="num">0</span><span class="lbl">Overdue</span></div>
+          <div class="stat" id="statToday"><span class="num">0</span><span class="lbl">Added today</span></div>
+          <div class="stat" id="statStale"><span class="num">0</span><span class="lbl" id="statStaleLabel">Waiting 3+ days</span></div>
           <div class="stat" id="statDone"><span class="num">0</span><span class="lbl">Done today</span></div>
         </div>
       </section>
@@ -379,6 +444,17 @@
         <form id="taskForm" novalidate autocomplete="off">
           <p class="form-error" id="formError" role="alert" hidden></p>
 
+          <div class="row-2">
+            <div class="field">
+              <label for="fCustomer">Customer</label>
+              <input type="text" id="fCustomer" maxlength="60" autocapitalize="words" spellcheck="false" placeholder="Last name">
+            </div>
+            <div class="field">
+              <label for="fFolder">Folder #</label>
+              <input type="text" id="fFolder" maxlength="30" autocapitalize="characters" spellcheck="false" placeholder="e.g. 10452">
+            </div>
+          </div>
+
           <div class="field">
             <label for="fDesc">Task</label>
             <input type="text" id="fDesc" maxlength="300" placeholder="e.g. Call parts on back-ordered bumper" enterkeyhint="done">
@@ -386,27 +462,19 @@
 
           <div class="row-2">
             <div class="field">
-              <label for="fFolder">Folder # <span class="hint">(optional)</span></label>
-              <input type="text" id="fFolder" maxlength="30" inputmode="text" autocapitalize="characters" spellcheck="false" placeholder="e.g. 10452">
+              <label for="fCategory">Category</label>
+              <select id="fCategory"></select>
             </div>
             <div class="field">
-              <label for="fDue">Due date</label>
-              <input type="date" id="fDue">
+              <label for="fEstimator">Estimator <span class="hint">(optional)</span></label>
+              <input type="text" id="fEstimator" list="estimatorList" maxlength="40" autocapitalize="words" spellcheck="false" placeholder="Name">
             </div>
           </div>
+          <datalist id="estimatorList"></datalist>
 
-          <div class="field">
-            <span class="label" id="priorityLabel">Priority</span>
-            <div class="seg" role="group" aria-labelledby="priorityLabel" id="fPriority">
-              <button type="button" data-value="Normal" aria-pressed="true">Normal</button>
-              <button type="button" data-value="High" aria-pressed="false">High</button>
-              <button type="button" data-value="Urgent" aria-pressed="false">Urgent</button>
-            </div>
-          </div>
-
-          <div class="field">
-            <label for="fCategory">Category</label>
-            <select id="fCategory"></select>
+          <div class="date-line">
+            <span id="dateLineLabel">Date added</span>
+            <strong id="dateLineValue"></strong>
           </div>
 
           <div class="btn-row">
@@ -416,12 +484,23 @@
         </form>
       </section>
 
-      <section class="card" aria-labelledby="notesTitle">
-        <h2 id="notesTitle">Add from notes or photo</h2>
-        <p class="small">On iPad or iPhone: open the photo or screenshot, press and hold on the text (or tap the Live Text button), tap <strong>Select All</strong>, then <strong>Copy</strong>. Paste it below, one task per line. A folder # on its own line applies to the lines under it, up to the next blank line. You'll review everything before it's added.</p>
+      <section class="card" aria-labelledby="notesTitle" id="notesCard">
+        <h2 id="notesTitle">Add from notes or snippets</h2>
+        <div class="drop-zone" id="dropZone">
+          <strong>Drop or paste a screenshot or snippet here</strong><br>
+          The text is read on this device and turned into tasks.
+          <div style="margin-top:8px">
+            <button type="button" class="btn" id="chooseImageBtn">Choose image</button>
+          </div>
+        </div>
+        <input type="file" id="imageFile" accept="image/*" multiple class="visually-hidden" tabindex="-1" aria-hidden="true">
+        <div class="ocr-status" id="ocrStatus" role="status" aria-live="polite" hidden>
+          <span id="ocrStatusText"></span>
+          <span class="ocr-bar" id="ocrBar"><span></span></span>
+        </div>
         <div class="field">
-          <label for="notesInput" class="visually-hidden">Notes to turn into tasks</label>
-          <textarea id="notesInput" rows="5" spellcheck="false" placeholder="RO 90452 call adjuster re supplement asap&#10;90461 bumper on backorder, ETA Fri&#10;Sublet alignment for 90470 tomorrow"></textarea>
+          <label for="notesInput">Or type or paste text, one task per line</label>
+          <textarea id="notesInput" rows="5" spellcheck="false" placeholder="RO 90452 Rivera&#10;call adjuster re supplement&#10;bumper on backorder&#10;&#10;90470 sublet alignment"></textarea>
         </div>
         <div class="btn-row">
           <button type="button" class="btn btn-dark" id="readNotesBtn">Read notes</button>
@@ -439,9 +518,12 @@
         <input type="file" id="importFile" accept=".json,application/json" class="visually-hidden" tabindex="-1" aria-hidden="true">
       </section>
 
+      <p class="shortcuts">
+        <kbd>N</kbd> new task · <kbd>/</kbd> search · <kbd>Ctrl</kbd>+<kbd>V</kbd> paste snippet · <kbd>Esc</kbd> cancel
+      </p>
     </div>
 
-    <!-- ===== Right column: filters and task lists ===== -->
+    <!-- ===== Right column: review, filters and task lists ===== -->
     <div class="main-col">
 
       <section class="card review" id="reviewPanel" aria-labelledby="reviewTitle" hidden>
@@ -459,10 +541,16 @@
         <button type="button" class="btn btn-danger" id="deleteExamplesBtn">Delete examples</button>
       </div>
 
-      <section class="card filters" aria-label="Filters" style="margin-bottom:16px">
-        <div>
-          <label for="folderSearch" class="visually-hidden">Find by folder number</label>
-          <input type="search" id="folderSearch" placeholder="Find folder #" inputmode="text" autocapitalize="characters" spellcheck="false">
+      <section class="card filters" aria-label="Filters">
+        <div class="filter-row" id="filterRow">
+          <div>
+            <label for="search" class="visually-hidden">Find by folder number or customer</label>
+            <input type="search" id="search" placeholder="Find folder # or customer" spellcheck="false">
+          </div>
+          <div id="estimatorFilterWrap" hidden>
+            <label for="estimatorFilter" class="visually-hidden">Filter by estimator</label>
+            <select id="estimatorFilter"></select>
+          </div>
         </div>
         <div class="chips" id="categoryChips" role="group" aria-label="Filter by category"></div>
         <div class="filter-note" id="filterNote" hidden>
@@ -471,24 +559,28 @@
         </div>
       </section>
 
-      <section class="section today" aria-labelledby="todayTitle">
-        <div class="section-head"><h2 id="todayTitle">Today</h2><span class="count" id="todayCount">0</span></div>
-        <ul class="task-list" id="todayList"></ul>
-      </section>
+      <div class="sections">
+        <section class="section today" aria-labelledby="todayTitle">
+          <div class="section-head"><h2 id="todayTitle">Today</h2><span class="count" id="todayCount">0</span></div>
+          <ul class="task-list" id="todayList"></ul>
+        </section>
 
-      <section class="section" aria-labelledby="upcomingTitle">
-        <div class="section-head"><h2 id="upcomingTitle">Upcoming</h2><span class="count" id="upcomingCount">0</span></div>
-        <ul class="task-list" id="upcomingList"></ul>
-      </section>
+        <section class="section" aria-labelledby="carriedTitle">
+          <div class="section-head"><h2 id="carriedTitle">Carried over</h2><span class="count" id="carriedCount">0</span><span class="sub">oldest first</span></div>
+          <ul class="task-list" id="carriedList"></ul>
+        </section>
 
-      <section class="section" aria-labelledby="completedTitle">
-        <div class="section-head"><h2 id="completedTitle">Completed</h2><span class="count" id="completedCount">0</span></div>
-        <ul class="task-list" id="completedList"></ul>
-      </section>
+        <section class="section" aria-labelledby="completedTitle">
+          <div class="section-head"><h2 id="completedTitle">Completed</h2><span class="count" id="completedCount">0</span></div>
+          <ul class="task-list" id="completedList"></ul>
+        </section>
+      </div>
 
     </div>
   </div>
 </main>
+
+<div class="drop-overlay" id="dropOverlay" hidden><div>Drop image to read its text</div></div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -504,33 +596,44 @@
 
 <script>
 /* ==============================================================
-   Repair Advisor Planner v1.0
-   Single-file app. No backend, no tracking, no dependencies.
-   All data lives in this browser's localStorage.
+   Repair Advisor Planner v1.1
+   Single-file app. No backend, no accounts, no tracking.
+   All tasks live in this browser's localStorage.
+
+   The only outside code is the free text reader (Tesseract.js),
+   loaded from jsDelivr the first time you drop or paste an image.
+   Images are read inside the browser and are never uploaded.
 
    Sections in this script:
      1. Constants
      2. Date helpers
-     3. Storage (load / save)
-     4. Task helpers (validate, sort, group)
+     3. Storage (load / save, examples)
+     4. Task helpers (validate, sort)
      5. Rendering
      6. Actions (add, edit, complete, delete)
      7. Backup (export / import)
-     7b. Add from notes (text copied from a photo)
-     8. Event wiring and startup
+     8. Add from notes (turn text into tasks)
+     9. Read text from images (snippets, photos)
+    10. Event wiring, keyboard shortcuts and startup
    ============================================================== */
 (function () {
   "use strict";
 
   /* ---------- 1. Constants ---------- */
   var STORAGE_KEY = "repairAdvisorPlanner.tasks.v1";
+  var ESTIMATOR_KEY = "repairAdvisorPlanner.lastEstimator";
   var APP_ID = "repair-advisor-planner";
-  var DATA_VERSION = 1;
-  var PRIORITIES = ["Normal", "High", "Urgent"];
+  var DATA_VERSION = 2;
   var CATEGORIES = ["Parts", "Supplements", "Sublet", "Customer", "Scheduling", "Delivery", "Other"];
-  var PRIORITY_RANK = { Urgent: 0, High: 1, Normal: 2 };
+  var STALE_DAYS = 3;          // open this many days or more = highlighted red
+  var MAX_NOTE_LINES = 50;
 
-  // Words that point a pasted note to a category ("Add from notes").
+  // Text reader, loaded only when an image is dropped or pasted.
+  var OCR_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+  var OCR_LANGUAGE = "eng";
+  var MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+
+  // Words that point a note to a category ("Add from notes").
   // The category with the most matching words wins; ties go to the one
   // listed first. Add your shop's own shorthand here. Lowercase only.
   var CATEGORY_KEYWORDS = {
@@ -541,7 +644,6 @@
     Scheduling: ["schedule", "scheduled", "reschedule", "appointment", "appt", "drop off", "drop-off", "dropoff", "book", "booked", "start date", "booth"],
     Customer: ["call", "called", "text", "texted", "customer", "cust", "owner", "voicemail", "vm", "left message", "email", "update", "rental"]
   };
-  var MAX_NOTE_LINES = 50;
 
   /* ---------- 2. Date helpers (local time, "YYYY-MM-DD") ---------- */
   function pad(n) { return (n < 10 ? "0" : "") + n; }
@@ -552,33 +654,34 @@
 
   function todayKey() { return toDateKey(new Date()); }
 
+  function parseDateKey(key) {
+    var p = key.split("-");
+    return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  }
+
   function addDays(key, days) {
     var d = parseDateKey(key);
     d.setDate(d.getDate() + days);
     return toDateKey(d);
   }
 
-  function parseDateKey(key) {
-    var p = key.split("-");
-    return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
-  }
-
-  function isValidDateKey(key) {
-    if (typeof key !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(key)) return false;
-    return toDateKey(parseDateKey(key)) === key; // rejects 2026-02-31 etc.
-  }
-
   function daysBetween(fromKey, toKey) {
-    var ms = parseDateKey(toKey) - parseDateKey(fromKey);
-    return Math.round(ms / 86400000);
+    return Math.round((parseDateKey(toKey) - parseDateKey(fromKey)) / 86400000);
   }
+
+  function isValidIso(s) { return typeof s === "string" && !isNaN(new Date(s).getTime()); }
+
+  function addedKey(t) { return toDateKey(new Date(t.createdAt)); }
 
   function formatDate(key) {
     var today = todayKey();
     if (key === today) return "Today";
-    if (key === addDays(today, 1)) return "Tomorrow";
     if (key === addDays(today, -1)) return "Yesterday";
     return parseDateKey(key).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  }
+
+  function formatLongDate(key) {
+    return parseDateKey(key).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
   }
 
   /* ---------- 3. Storage ---------- */
@@ -590,12 +693,11 @@
 
   function exampleTasks() {
     // Fictional demonstration data only. No real customers or records.
-    var t = todayKey();
-    var now = new Date().toISOString();
+    function daysAgo(n) { var d = new Date(); d.setDate(d.getDate() - n); return d.toISOString(); }
     return [
-      { id: makeId(), folder: "DEMO-101", desc: "Example: follow up on back-ordered front bumper cover", priority: "Urgent", due: addDays(t, -1), category: "Parts", done: false, completedAt: null, createdAt: now, example: true },
-      { id: makeId(), folder: "DEMO-102", desc: "Example: submit supplement for hidden frame damage", priority: "High", due: t, category: "Supplements", done: false, completedAt: null, createdAt: now, example: true },
-      { id: makeId(), folder: "", desc: "Example: confirm delivery time with vehicle owner", priority: "Normal", due: addDays(t, 2), category: "Delivery", done: false, completedAt: null, createdAt: now, example: true }
+      { id: makeId(), customer: "Example Rivera", folder: "DEMO-101", desc: "Example: follow up on back-ordered front bumper cover", category: "Parts", estimator: "Example Estimator", createdAt: daysAgo(4), done: false, completedAt: null, example: true },
+      { id: makeId(), customer: "Sample Chen", folder: "DEMO-102", desc: "Example: submit supplement for hidden frame damage", category: "Supplements", estimator: "Example Estimator", createdAt: daysAgo(1), done: false, completedAt: null, example: true },
+      { id: makeId(), customer: "Demo Patel", folder: "", desc: "Example: confirm delivery time with vehicle owner", category: "Delivery", estimator: "", createdAt: daysAgo(0), done: false, completedAt: null, example: true }
     ];
   }
 
@@ -608,15 +710,12 @@
       return exampleTasks();
     }
     if (raw === null) {
-      // First run: seed the examples and save them.
-      var seeded = exampleTasks();
-      tasks = seeded;
+      tasks = exampleTasks();  // first run
       saveTasks();
-      return seeded;
+      return tasks;
     }
     try {
-      var parsed = JSON.parse(raw);
-      var result = validateTaskArray(parsed);
+      var result = validateTaskArray(JSON.parse(raw));
       if (result.error) throw new Error(result.error);
       return result.tasks;
     } catch (e) {
@@ -637,26 +736,36 @@
     }
   }
 
+  function loadLastEstimator() {
+    try { return localStorage.getItem(ESTIMATOR_KEY) || ""; } catch (e) { return ""; }
+  }
+
+  function saveLastEstimator(name) {
+    try { localStorage.setItem(ESTIMATOR_KEY, name); } catch (e) { /* not critical */ }
+  }
+
   /* ---------- 4. Task helpers ---------- */
 
+  function cleanText(v, max) { return typeof v === "string" ? v.trim().slice(0, max) : ""; }
+
   // Checks one task from storage or a backup file. Returns a clean task or null.
+  // Older v1.0 tasks (with due date and priority) are accepted; those fields are dropped.
   function normalizeTask(t) {
     if (!t || typeof t !== "object") return null;
-    var desc = typeof t.desc === "string" ? t.desc.trim() : "";
+    var desc = cleanText(t.desc, 300);
     if (!desc) return null;
-    if (PRIORITIES.indexOf(t.priority) === -1) return null;
     if (CATEGORIES.indexOf(t.category) === -1) return null;
-    if (!isValidDateKey(t.due)) return null;
+    var done = t.done === true;
     return {
       id: typeof t.id === "string" && t.id ? t.id : makeId(),
-      folder: typeof t.folder === "string" ? t.folder.trim().slice(0, 30) : "",
-      desc: desc.slice(0, 300),
-      priority: t.priority,
-      due: t.due,
+      customer: cleanText(t.customer, 60),
+      folder: cleanText(t.folder, 30),
+      desc: desc,
       category: t.category,
-      done: t.done === true,
-      completedAt: t.done === true && typeof t.completedAt === "string" ? t.completedAt : (t.done === true ? new Date().toISOString() : null),
-      createdAt: typeof t.createdAt === "string" ? t.createdAt : new Date().toISOString(),
+      estimator: cleanText(t.estimator, 40),
+      createdAt: isValidIso(t.createdAt) ? t.createdAt : new Date().toISOString(),
+      done: done,
+      completedAt: done ? (isValidIso(t.completedAt) ? t.completedAt : new Date().toISOString()) : null,
       example: t.example === true
     };
   }
@@ -664,11 +773,10 @@
   // Validates a whole list. Rejects the list if any task is invalid.
   function validateTaskArray(arr) {
     if (!Array.isArray(arr)) return { error: "No task list found." };
-    var clean = [];
-    var seen = {};
+    var clean = [], seen = {};
     for (var i = 0; i < arr.length; i++) {
       var t = normalizeTask(arr[i]);
-      if (!t) return { error: "Task #" + (i + 1) + " is missing a description, or has an invalid priority, category or date." };
+      if (!t) return { error: "Task #" + (i + 1) + " is missing a description or has an unknown category." };
       if (seen[t.id]) t.id = makeId();
       seen[t.id] = true;
       clean.push(t);
@@ -676,27 +784,24 @@
     return { tasks: clean };
   }
 
-  function byPriorityThenDue(a, b) {
-    var p = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
-    if (p !== 0) return p;
-    return a.due < b.due ? -1 : a.due > b.due ? 1 : 0;
-  }
-
-  function byDueThenPriority(a, b) {
-    if (a.due !== b.due) return a.due < b.due ? -1 : 1;
-    return PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
-  }
-
-  function isOverdue(t, today) { return !t.done && t.due < today; }
+  function daysWaiting(t, today) { return daysBetween(addedKey(t), today); }
 
   function completedToday(t, today) {
     return t.done && t.completedAt && toDateKey(new Date(t.completedAt)) === today;
   }
 
+  function estimatorNames() {
+    var names = {}, list = [];
+    tasks.forEach(function (t) { if (t.estimator) names[t.estimator.toLowerCase()] = names[t.estimator.toLowerCase()] || t.estimator; });
+    var last = loadLastEstimator();
+    if (last && !names[last.toLowerCase()]) names[last.toLowerCase()] = last;
+    Object.keys(names).forEach(function (k) { list.push(names[k]); });
+    return list.sort(function (a, b) { return a.localeCompare(b); });
+  }
+
   /* ---------- 5. Rendering ---------- */
-  var filters = { category: "All", folder: "" };
+  var filters = { category: "All", search: "", estimator: "" };
   var editingId = null;
-  var selectedPriority = "Normal";
 
   function $(id) { return document.getElementById(id); }
 
@@ -708,34 +813,32 @@
 
   function matchesFilters(t) {
     if (filters.category !== "All" && t.category !== filters.category) return false;
-    if (filters.folder) {
-      var q = filters.folder.toLowerCase();
-      if (t.folder.toLowerCase().indexOf(q) === -1) return false;
+    if (filters.estimator && t.estimator.toLowerCase() !== filters.estimator.toLowerCase()) return false;
+    if (filters.search) {
+      var q = filters.search.toLowerCase();
+      if (t.folder.toLowerCase().indexOf(q) === -1 && t.customer.toLowerCase().indexOf(q) === -1) return false;
     }
     return true;
   }
 
   function render() {
     var today = todayKey();
-    $("todayLabel").textContent = parseDateKey(today).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+    $("todayLabel").textContent = formatLongDate(today);
+    if (!editingId) $("dateLineValue").textContent = formatLongDate(today);
 
     renderSummary(today);
+    renderEstimatorControls();
 
     var visible = tasks.filter(matchesFilters);
-    // Today = due today OR overdue. Overdue tasks are carried forward here
-    // visually; their stored due date is never changed.
-    var todayTasks = visible.filter(function (t) { return !t.done && t.due <= today; }).sort(function (a, b) {
-      var ao = isOverdue(a, today), bo = isOverdue(b, today);
-      if (ao !== bo) return ao ? -1 : 1;
-      return byPriorityThenDue(a, b);
-    });
-    var upcoming = visible.filter(function (t) { return !t.done && t.due > today; }).sort(byDueThenPriority);
-    var completed = visible.filter(function (t) { return t.done; }).sort(function (a, b) {
-      return (b.completedAt || "").localeCompare(a.completedAt || "");
-    });
+    var todayTasks = visible.filter(function (t) { return !t.done && addedKey(t) === today; })
+      .sort(function (a, b) { return b.createdAt.localeCompare(a.createdAt); });            // newest first
+    var carried = visible.filter(function (t) { return !t.done && addedKey(t) < today; })
+      .sort(function (a, b) { return a.createdAt.localeCompare(b.createdAt); });            // oldest first
+    var completed = visible.filter(function (t) { return t.done; })
+      .sort(function (a, b) { return (b.completedAt || "").localeCompare(a.completedAt || ""); });
 
-    renderList("todayList", "todayCount", todayTasks, today, "Nothing due today. Nice work.");
-    renderList("upcomingList", "upcomingCount", upcoming, today, "No upcoming tasks.");
+    renderList("todayList", "todayCount", todayTasks, today, "Nothing added today yet.");
+    renderList("carriedList", "carriedCount", carried, today, "Nothing carried over. Nice work.");
     renderList("completedList", "completedCount", completed, today, "No completed tasks yet.");
 
     renderFilterNote(visible.length);
@@ -745,10 +848,9 @@
   function renderSummary(today) {
     var open = tasks.filter(function (t) { return !t.done; });
     setStat("statOpen", open.length, false);
-    var urgent = open.filter(function (t) { return t.priority === "Urgent"; }).length;
-    setStat("statUrgent", urgent, urgent > 0);
-    var overdue = open.filter(function (t) { return isOverdue(t, today); }).length;
-    setStat("statOverdue", overdue, overdue > 0);
+    setStat("statToday", open.filter(function (t) { return addedKey(t) === today; }).length, false);
+    var stale = open.filter(function (t) { return daysWaiting(t, today) >= STALE_DAYS; }).length;
+    setStat("statStale", stale, stale > 0);
     setStat("statDone", tasks.filter(function (t) { return completedToday(t, today); }).length, false);
   }
 
@@ -756,6 +858,21 @@
     var el = $(id);
     el.querySelector(".num").textContent = value;
     el.classList.toggle("alert", alert);
+  }
+
+  function renderEstimatorControls() {
+    var names = estimatorNames();
+    $("estimatorList").innerHTML = names.map(function (n) { return '<option value="' + esc(n) + '"></option>'; }).join("");
+
+    var used = names.filter(function (n) {
+      return tasks.some(function (t) { return t.estimator.toLowerCase() === n.toLowerCase(); });
+    });
+    if (filters.estimator && !used.some(function (n) { return n.toLowerCase() === filters.estimator.toLowerCase(); })) filters.estimator = "";
+    $("estimatorFilterWrap").hidden = used.length === 0;
+    $("filterRow").classList.toggle("has-estimators", used.length > 0);
+    $("estimatorFilter").innerHTML = '<option value="">All estimators</option>' + used.map(function (n) {
+      return '<option value="' + esc(n) + '"' + (n.toLowerCase() === filters.estimator.toLowerCase() ? " selected" : "") + ">" + esc(n) + "</option>";
+    }).join("");
   }
 
   function renderList(listId, countId, list, today, emptyText) {
@@ -769,85 +886,73 @@
   }
 
   function taskHtml(t, today) {
-    var overdue = isOverdue(t, today);
-    var classes = ["task", "p-" + t.priority];
-    if (overdue) classes.push("overdue");
+    var waited = daysWaiting(t, today);
+    var stale = !t.done && waited >= STALE_DAYS;
+    var classes = ["task"];
+    if (!t.done && waited > 0) classes.push("carried");
+    if (stale) classes.push("stale");
     if (t.done) classes.push("done");
 
-    var badges = "";
-    if (t.folder) badges += '<span class="folder">#' + esc(t.folder) + "</span>";
-    if (overdue) badges += '<span class="badge overdue">Overdue</span>';
-    if (t.priority === "Urgent") badges += '<span class="badge urgent">Urgent</span>';
-    if (t.priority === "High") badges += '<span class="badge high">High</span>';
-    badges += '<span class="badge">' + esc(t.category) + "</span>";
+    var who = [];
+    if (t.folder) who.push("#" + esc(t.folder));
+    if (t.customer) who.push(esc(t.customer));
+    var whoHtml = who.length ? '<div class="who">' + who.join(' <span class="sep">·</span> ') + "</div>" : "";
+
+    var badges = '<span class="badge">' + esc(t.category) + "</span>";
+    if (t.estimator) badges += '<span class="badge estimator">' + esc(t.estimator) + "</span>";
+    if (!t.done && waited > 0) badges += '<span class="badge wait' + (stale ? " stale" : "") + '">Waiting ' + waited + (waited === 1 ? " day" : " days") + "</span>";
     if (t.example) badges += '<span class="badge example">Example</span>';
 
-    var dueText;
-    if (t.done) {
-      dueText = "Completed " + formatDate(toDateKey(new Date(t.completedAt)));
-    } else if (overdue) {
-      var late = daysBetween(t.due, today);
-      dueText = 'Due ' + esc(formatDate(t.due)) + ' · <span class="late">' + late + (late === 1 ? " day" : " days") + " late</span>";
-    } else {
-      dueText = "Due " + esc(formatDate(t.due));
-    }
+    var dateText = "Added " + esc(formatDate(addedKey(t)));
+    if (t.done) dateText += " · Completed " + esc(formatDate(toDateKey(new Date(t.completedAt))));
 
+    var id = esc(t.id);
     var actions = t.done
-      ? '<button type="button" class="btn" data-action="undo" data-id="' + esc(t.id) + '">Reopen</button>' +
-        '<button type="button" class="btn btn-danger" data-action="delete" data-id="' + esc(t.id) + '">Delete</button>'
-      : '<button type="button" class="btn" data-action="edit" data-id="' + esc(t.id) + '">Edit</button>' +
-        '<button type="button" class="btn btn-danger" data-action="delete" data-id="' + esc(t.id) + '">Delete</button>';
-
-    var checkLabel = t.done ? "Mark as not done" : "Mark as done";
+      ? '<button type="button" class="btn" data-action="toggle" data-id="' + id + '">Reopen</button>'
+      : '<button type="button" class="btn" data-action="edit" data-id="' + id + '">Edit</button>';
+    actions += '<button type="button" class="btn btn-danger" data-action="delete" data-id="' + id + '">Delete</button>';
 
     return '<li class="' + classes.join(" ") + '">' +
-      '<button type="button" class="check" data-action="toggle" data-id="' + esc(t.id) + '" aria-label="' + checkLabel + ": " + esc(t.desc) + '">' + (t.done ? "&#10003;" : "") + "</button>" +
+      '<button type="button" class="check" data-action="toggle" data-id="' + id + '" aria-label="' + (t.done ? "Mark as not done" : "Mark as done") + ": " + esc(t.desc) + '">' + (t.done ? "&#10003;" : "") + "</button>" +
       '<div class="task-body">' +
-        '<div class="meta-top">' + badges + "</div>" +
+        whoHtml +
         '<p class="desc">' + esc(t.desc) + "</p>" +
-        '<div class="meta-bottom">' + dueText + "</div>" +
+        '<div class="meta-top">' + badges + "</div>" +
+        '<div class="meta-bottom">' + dateText + "</div>" +
         '<div class="task-actions">' + actions + "</div>" +
       "</div>" +
     "</li>";
   }
 
-  function filtersActive() { return filters.category !== "All" || filters.folder !== ""; }
+  function filtersActive() { return filters.category !== "All" || filters.search !== "" || filters.estimator !== ""; }
 
   function renderFilterNote(visibleCount) {
     var note = $("filterNote");
     if (!filtersActive()) { note.hidden = true; return; }
     var parts = [];
     if (filters.category !== "All") parts.push(filters.category);
-    if (filters.folder) parts.push('folder "' + filters.folder + '"');
+    if (filters.estimator) parts.push(filters.estimator);
+    if (filters.search) parts.push('"' + filters.search + '"');
     $("filterNoteText").textContent = "Showing " + visibleCount + " of " + tasks.length + " · " + parts.join(", ");
     note.hidden = false;
   }
 
   function renderCategoryChips() {
-    var all = ["All"].concat(CATEGORIES);
-    $("categoryChips").innerHTML = all.map(function (c) {
+    $("categoryChips").innerHTML = ["All"].concat(CATEGORIES).map(function (c) {
       return '<button type="button" class="chip" data-category="' + c + '" aria-pressed="' + (filters.category === c) + '">' + c + "</button>";
     }).join("");
   }
 
-  function renderCategoryOptions() {
-    $("fCategory").innerHTML = CATEGORIES.map(function (c) {
-      return '<option value="' + c + '">' + c + "</option>";
+  function optionList(values, selected) {
+    return values.map(function (v) {
+      return '<option value="' + esc(v) + '"' + (v === selected ? " selected" : "") + ">" + esc(v) + "</option>";
     }).join("");
-  }
-
-  function setPriority(p) {
-    selectedPriority = p;
-    var buttons = $("fPriority").querySelectorAll("button");
-    for (var i = 0; i < buttons.length; i++) {
-      buttons[i].setAttribute("aria-pressed", String(buttons[i].getAttribute("data-value") === p));
-    }
   }
 
   var toastTimer = null;
   function showToast(msg, isError) {
     var el = $("toast");
-    if (!el) { if (isError) alert(msg); return; }
+    if (!el) return;
     el.textContent = msg;
     el.classList.toggle("error", !!isError);
     el.classList.add("show");
@@ -856,6 +961,7 @@
   }
 
   // In-page "Are you sure?" box. Calls onYes only if the user taps the red button.
+  var closeConfirm = null;
   function askConfirm(message, okLabel, onYes) {
     var box = $("confirmBox");
     var prevFocus = document.activeElement;
@@ -863,16 +969,16 @@
     $("confirmOk").textContent = okLabel;
     box.hidden = false;
     $("confirmCancel").focus();
-    function close(yes) {
+    closeConfirm = function (yes) {
       box.hidden = true;
-      $("confirmOk").onclick = $("confirmCancel").onclick = box.onclick = document.onkeydown = null;
+      closeConfirm = null;
+      $("confirmOk").onclick = $("confirmCancel").onclick = box.onclick = null;
       if (prevFocus && prevFocus.focus) prevFocus.focus({ preventScroll: true });
       if (yes) onYes();
-    }
-    $("confirmOk").onclick = function () { close(true); };
-    $("confirmCancel").onclick = function () { close(false); };
-    box.onclick = function (e) { if (e.target === box) close(false); };
-    document.onkeydown = function (e) { if (e.key === "Escape") close(false); };
+    };
+    $("confirmOk").onclick = function () { closeConfirm(true); };
+    $("confirmCancel").onclick = function () { closeConfirm(false); };
+    box.onclick = function (e) { if (e.target === box) closeConfirm(false); };
   }
 
   /* ---------- 6. Actions ---------- */
@@ -884,65 +990,75 @@
   function resetForm() {
     editingId = null;
     $("taskForm").reset();
-    $("fDue").value = todayKey();
     $("fCategory").value = CATEGORIES[0];
-    setPriority("Normal");
+    $("fEstimator").value = loadLastEstimator();
     $("formTitle").textContent = "Add task";
     $("submitBtn").textContent = "Add task";
     $("cancelEditBtn").hidden = true;
     $("editingBanner").hidden = true;
     $("formError").hidden = true;
+    $("dateLineLabel").textContent = "Date added";
+    $("dateLineValue").textContent = formatLongDate(todayKey());
   }
 
   function showFormError(msg) {
-    var el = $("formError");
-    el.textContent = msg;
-    el.hidden = false;
+    $("formError").textContent = msg;
+    $("formError").hidden = false;
   }
 
   function handleSubmit(e) {
     e.preventDefault();
     var desc = $("fDesc").value.trim();
-    var folder = $("fFolder").value.trim();
-    var due = $("fDue").value || todayKey();
-    var category = $("fCategory").value;
+    var values = {
+      customer: $("fCustomer").value.trim(),
+      folder: $("fFolder").value.trim(),
+      desc: desc,
+      category: $("fCategory").value,
+      estimator: $("fEstimator").value.trim()
+    };
+    if (!desc) { showFormError("Please enter what needs to be done."); $("fDesc").focus(); return; }
 
-    if (!desc) { showFormError("Please enter a task description."); $("fDesc").focus(); return; }
-    if (!isValidDateKey(due)) { showFormError("Please choose a valid due date."); return; }
+    // Remember the estimator for the next new task (editing an old task doesn't change it).
+    if (values.estimator && !editingId) saveLastEstimator(values.estimator);
 
     if (editingId) {
       var t = findTask(editingId);
       if (!t) { showToast("That task no longer exists.", true); resetForm(); render(); return; }
-      t.desc = desc; t.folder = folder; t.due = due; t.category = category; t.priority = selectedPriority;
+      t.customer = values.customer; t.folder = values.folder; t.desc = values.desc;
+      t.category = values.category; t.estimator = values.estimator;
       t.example = false; // once edited, it's yours
       saveTasks();
       showToast("Task updated");
     } else {
       tasks.push({
-        id: makeId(), folder: folder, desc: desc, priority: selectedPriority, due: due,
-        category: category, done: false, completedAt: null, createdAt: new Date().toISOString(), example: false
+        id: makeId(), customer: values.customer, folder: values.folder, desc: values.desc,
+        category: values.category, estimator: values.estimator,
+        createdAt: new Date().toISOString(), done: false, completedAt: null, example: false
       });
       saveTasks();
       showToast("Task added");
     }
     resetForm();
     render();
+    $("fCustomer").focus({ preventScroll: true });
   }
 
   function startEdit(id) {
     var t = findTask(id);
     if (!t) return;
     editingId = id;
-    $("fDesc").value = t.desc;
+    $("fCustomer").value = t.customer;
     $("fFolder").value = t.folder;
-    $("fDue").value = t.due;
+    $("fDesc").value = t.desc;
     $("fCategory").value = t.category;
-    setPriority(t.priority);
+    $("fEstimator").value = t.estimator;
     $("formTitle").textContent = "Edit task";
     $("submitBtn").textContent = "Save changes";
     $("cancelEditBtn").hidden = false;
     $("editingBanner").hidden = false;
     $("formError").hidden = true;
+    $("dateLineLabel").textContent = "Date added";
+    $("dateLineValue").textContent = formatLongDate(addedKey(t));
     $("formCard").scrollIntoView({ behavior: "smooth", block: "start" });
     $("fDesc").focus({ preventScroll: true });
   }
@@ -960,8 +1076,8 @@
   function deleteTask(id) {
     var t = findTask(id);
     if (!t) return;
-    var label = (t.folder ? "#" + t.folder + " – " : "") + t.desc;
-    askConfirm("Delete this task?\n\n" + label, "Delete", function () {
+    var who = [t.folder ? "#" + t.folder : "", t.customer].filter(Boolean).join(" · ");
+    askConfirm("Delete this task?\n\n" + (who ? who + "\n" : "") + t.desc, "Delete", function () {
       tasks = tasks.filter(function (x) { return x.id !== id; });
       if (editingId === id) resetForm();
       saveTasks();
@@ -1008,23 +1124,20 @@
     reader.onerror = function () { showToast("Couldn't read that file.", true); };
     reader.onload = function () {
       var parsed;
-      try {
-        parsed = JSON.parse(reader.result);
-      } catch (e) {
-        showToast("That file isn't valid JSON.", true);
-        return;
-      }
-      // Accept the export format, or a bare array of tasks.
-      var list = Array.isArray(parsed) ? parsed : (parsed && parsed.tasks);
+      try { parsed = JSON.parse(reader.result); }
+      catch (e) { showToast("That file isn't valid JSON.", true); return; }
+
       if (parsed && !Array.isArray(parsed) && parsed.app && parsed.app !== APP_ID) {
         showToast("That backup is from a different app.", true);
         return;
       }
-      var result = validateTaskArray(list);
+      // Accept the export format, or a bare array of tasks.
+      var result = validateTaskArray(Array.isArray(parsed) ? parsed : (parsed && parsed.tasks));
       if (result.error) { showToast("Import cancelled. " + result.error, true); return; }
 
       var msg = "Replace your current " + tasks.length + " task" + (tasks.length === 1 ? "" : "s") +
-        " with " + result.tasks.length + " task" + (result.tasks.length === 1 ? "" : "s") + " from this backup?\n\nThis cannot be undone. Export a backup first if unsure.";
+        " with " + result.tasks.length + " task" + (result.tasks.length === 1 ? "" : "s") +
+        " from this backup?\n\nThis cannot be undone. Export a backup first if unsure.";
       askConfirm(msg, "Replace tasks", function () {
         tasks = result.tasks;
         resetForm();
@@ -1036,74 +1149,44 @@
     reader.readAsText(file);
   }
 
-  /* ---------- 7b. Add from notes (text copied from a photo) ----------
-     Everything here runs on the device. Nothing is sent anywhere.
-     parseNotes() turns pasted text into proposed tasks; the user reviews
-     them, then applyProposals() creates new tasks or updates matching
-     open tasks (same folder number and category). */
+  /* ---------- 8. Add from notes ----------
+     Turns pasted or image-read text into proposed tasks, which the user
+     reviews before anything is saved. A line that matches an open task
+     (same category and same folder #, or same customer when there's no
+     folder #) is offered as an update to that task. */
 
-  var WEEKDAYS = { sunday: 0, monday: 1, mon: 1, tuesday: 2, tue: 2, tues: 2, wednesday: 3, wed: 3,
-                   thursday: 4, thu: 4, thur: 4, thurs: 4, friday: 5, fri: 5, saturday: 6 };
   var PHONE_RE = /\(?\b\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}\b|\b\d{3}[-.]\d{4}\b/g;
-  var DATE_RE = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2}|\d{4}))?\b/;
+  var DATE_RE = /\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g;
   var FOLDER_PREFIX_RE = /(?:\b(?:folder|fldr|ro|r\/o|job|file|wo|w\/o)\b\s*(?:#|no\.?|number)?\s*[:#-]?|#)\s*([a-z0-9][a-z0-9-]{1,14})/i;
   var FOLDER_BARE_RE = /(?:^|[\s(,;:])(\d{4,7})(?=$|[\s),.;:])/;
+  // "Cust: Rivera", "Customer - Ann Lee", "Owner: Lee" (names must start with a capital)
+  var CUSTOMER_LABEL_RE = /\b(?:[Cc]ust(?:omer)?|CUST(?:OMER)?|[Oo]wner|OWNER|[Nn]ame|NAME)\s*[:\-]\s*([A-Z][A-Za-z'.-]+(?:\s+[A-Z][A-Za-z'.-]+){0,2})/;
+  var ESTIMATOR_LABEL_RE = /\b(?:[Ee]st(?:imator)?|EST(?:IMATOR)?|[Ww]riter|WRITER)\s*[:\-]\s*([A-Z][A-Za-z'.-]+(?:\s+[A-Z][A-Za-z'.-]+)?)/;
+  var NAME_ONLY_RE = /^[A-Z][A-Za-z'.-]+(?:,?\s+[A-Z][A-Za-z'.-]+){0,2}$/;
 
   function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&"); }
 
-  // Precompiled keyword patterns: whole words / phrases only.
+  function wordPattern(word) {
+    return new RegExp("(^|[^a-z0-9])" + escapeRegex(word) + "(?=$|[^a-z0-9])", "i");
+  }
+
   var KEYWORD_PATTERNS = {};
   Object.keys(CATEGORY_KEYWORDS).forEach(function (cat) {
-    KEYWORD_PATTERNS[cat] = CATEGORY_KEYWORDS[cat].map(function (k) {
-      return new RegExp("(^|[^a-z0-9])" + escapeRegex(k) + "(?=$|[^a-z0-9])", "i");
-    });
+    KEYWORD_PATTERNS[cat] = CATEGORY_KEYWORDS[cat].map(wordPattern);
   });
 
-  function detectCategory(line) {
+  function categoryScores(line) {
     var best = "Other", bestScore = 0;
     Object.keys(KEYWORD_PATTERNS).forEach(function (cat) {
       var score = KEYWORD_PATTERNS[cat].filter(function (re) { return re.test(line); }).length;
       if (score > bestScore) { best = cat; bestScore = score; }
     });
-    return best;
+    return { category: best, score: bestScore };
   }
 
-  function detectPriority(line) {
-    if (/\b(urgent|asap|a\.s\.a\.p|immediately|rush|emergency)\b|!!/i.test(line)) return "Urgent";
-    if (/\b(high|important|priority|hot)\b|!/i.test(line)) return "High";
-    return "Normal";
-  }
-
-  // Returns { due, explicit }. Default is today; "explicit" means the line named a date.
-  function detectDue(line, today) {
-    var lower = line.toLowerCase();
-    if (/\b(today|eod|tonight)\b/.test(lower)) return { due: today, explicit: true };
-    if (/\b(tomorrow|tmrw|tmw|tmrrw)\b/.test(lower)) return { due: addDays(today, 1), explicit: true };
-
-    var m = line.replace(PHONE_RE, " ").match(DATE_RE);
-    if (m) {
-      var month = Number(m[1]), day = Number(m[2]);
-      var year = m[3] ? Number(m[3].length === 2 ? "20" + m[3] : m[3]) : Number(today.slice(0, 4));
-      var key = year + "-" + pad(month) + "-" + pad(day);
-      if (isValidDateKey(key)) {
-        // "3/2" written in the fall most likely means next year.
-        if (!m[3] && daysBetween(key, today) > 60) key = (year + 1) + "-" + pad(month) + "-" + pad(day);
-        if (isValidDateKey(key)) return { due: key, explicit: true };
-      }
-    }
-
-    var w = lower.match(/\b(monday|mon|tuesday|tues|tue|wednesday|wed|thursday|thurs|thur|thu|friday|fri|saturday|sunday)\b/);
-    if (w) {
-      var diff = (WEEKDAYS[w[1]] - parseDateKey(today).getDay() + 7) % 7;
-      return { due: addDays(today, diff), explicit: true };
-    }
-    return { due: today, explicit: false };
-  }
-
-  // Finds a folder number. Returns { folder, text } where text is the matched
-  // piece to remove from the description, or null.
+  // Finds a folder number. Returns { folder, text } or null.
   function detectFolder(line) {
-    var scan = line.replace(PHONE_RE, " ").replace(new RegExp(DATE_RE.source, "g"), " ");
+    var scan = line.replace(PHONE_RE, " ").replace(DATE_RE, " ");
     var m = scan.match(FOLDER_PREFIX_RE);
     if (m && /\d/.test(m[1])) return { folder: m[1].toUpperCase(), text: m[0].trim() };
     m = scan.match(FOLDER_BARE_RE);
@@ -1111,6 +1194,15 @@
       var n = Number(m[1]);
       var looksLikeYear = m[1].length === 4 && n >= 1980 && n <= 2039;
       if (!looksLikeYear) return { folder: m[1], text: m[1] };
+    }
+    return null;
+  }
+
+  function detectKnownEstimator(line, names) {
+    var label = line.match(ESTIMATOR_LABEL_RE);
+    if (label) return { name: label[1], text: label[0] };
+    for (var i = 0; i < names.length; i++) {
+      if (wordPattern(names[i]).test(line)) return { name: names[i], text: "" };
     }
     return null;
   }
@@ -1123,75 +1215,91 @@
       .trim();
   }
 
-  function parseNotes(text, today, existing) {
+  function parseNotes(text, existing, knownEstimators, defaultEstimator) {
     var lines = String(text || "").split(/\r?\n/);
     var proposals = [];
-    var currentFolder = "";   // a line that is only a folder # applies to the lines under it, until a blank line
+    var group = { folder: "", customer: "" };  // a header line applies to the lines under it, until a blank line
     var skipped = 0;
+    knownEstimators = knownEstimators || [];
 
     for (var i = 0; i < lines.length; i++) {
       var raw = lines[i].trim();
-      if (!raw) { currentFolder = ""; continue; }  // a blank line ends a folder group
+      if (!raw) { group = { folder: "", customer: "" }; continue; }
       if (raw.length < 3) continue;
       if (proposals.length >= MAX_NOTE_LINES) { skipped++; continue; }
 
-      var found = detectFolder(raw);
       var desc = raw;
-      if (found) desc = desc.replace(found.text, " ");
+      var folderHit = detectFolder(raw);
+      if (folderHit) desc = desc.replace(folderHit.text, " ");
+
+      var customer = "";
+      var custHit = desc.match(CUSTOMER_LABEL_RE);
+      if (custHit) { customer = custHit[1]; desc = desc.replace(custHit[0], " "); }
+
+      var estHit = detectKnownEstimator(desc, knownEstimators);
+      if (estHit && estHit.text) desc = desc.replace(estHit.text, " ");
+
       desc = cleanDescription(desc);
 
-      if (found && !desc) { currentFolder = found.folder; continue; }  // header line
-      if (!desc || !/[a-z]/i.test(desc)) continue;
+      // Header line: just a folder # and/or a customer name, e.g. "RO 90452 Rivera".
+      var scored = categoryScores(desc);
+      if (!desc || (folderHit || custHit) && !scored.score && NAME_ONLY_RE.test(desc)) {
+        if (folderHit || custHit) {
+          group = {
+            folder: folderHit ? folderHit.folder : "",
+            customer: customer || (desc && NAME_ONLY_RE.test(desc) ? desc.replace(/,/g, "") : "")
+          };
+        }
+        continue;
+      }
+      if (!/[a-z]/i.test(desc)) continue;
 
-      var folder = found ? found.folder : currentFolder;
-      var due = detectDue(raw, today);
       var p = {
         include: true,
-        folder: folder,
+        customer: customer || group.customer,
+        folder: folderHit ? folderHit.folder : group.folder,
         desc: desc.charAt(0).toUpperCase() + desc.slice(1),
-        category: detectCategory(raw),
-        priority: detectPriority(raw),
-        due: due.due,
-        dueExplicit: due.explicit,
+        category: categoryScores(raw).category,
+        estimator: estHit ? estHit.name : (defaultEstimator || ""),
         matchId: null,
         duplicate: false
       };
-
-      var lowerDesc = p.desc.toLowerCase();
-      for (var j = 0; j < existing.length; j++) {
-        var t = existing[j];
-        if (t.done) continue;
-        if (t.desc.toLowerCase() === lowerDesc) { p.duplicate = true; p.include = false; break; }
-        if (folder && t.folder.toLowerCase() === folder.toLowerCase() && t.category === p.category) {
-          // Prefer the most recently created match.
-          var current = p.matchId ? findTask(p.matchId) : null;
-          if (!current || (t.createdAt || "") > (current.createdAt || "")) p.matchId = t.id;
-        }
-      }
+      findMatch(p, existing);
       proposals.push(p);
     }
     return { proposals: proposals, skipped: skipped };
   }
 
-  var proposals = [];
+  function sameKey(a, b) { return !!a && !!b && a.toLowerCase() === b.toLowerCase(); }
 
-  function optionList(values, selected) {
-    return values.map(function (v) {
-      return '<option value="' + esc(v) + '"' + (v === selected ? " selected" : "") + ">" + esc(v) + "</option>";
-    }).join("");
+  // Sets p.duplicate or p.matchId by comparing with open tasks.
+  function findMatch(p, existing) {
+    var best = null;
+    var lowerDesc = p.desc.toLowerCase();
+    for (var j = 0; j < existing.length; j++) {
+      var t = existing[j];
+      if (t.done) continue;
+      if (t.desc.toLowerCase() === lowerDesc) { p.duplicate = true; p.include = false; p.matchId = null; return; }
+      if (t.category !== p.category) continue;
+      var same = p.folder ? sameKey(t.folder, p.folder) : sameKey(t.customer, p.customer);
+      if (same && (!best || t.createdAt > best.createdAt)) best = t;
+    }
+    p.matchId = best ? best.id : null;
   }
+
+  var proposals = [];
 
   function readNotes() {
     var text = $("notesInput").value;
     if (!text.trim()) { showToast("Paste some notes first.", true); $("notesInput").focus(); return; }
-    var result = parseNotes(text, todayKey(), tasks);
+    var result = parseNotes(text, tasks, estimatorNames(), $("fEstimator").value.trim() || loadLastEstimator());
     proposals = result.proposals;
     if (!proposals.length) { showToast("No tasks found. Put each task on its own line.", true); return; }
 
     var matches = proposals.filter(function (p) { return p.matchId; }).length;
     var dupes = proposals.filter(function (p) { return p.duplicate; }).length;
     var summary = "Found " + proposals.length + " task" + (proposals.length === 1 ? "" : "s") + ".";
-    if (matches) summary += " " + matches + " match" + (matches === 1 ? "es an open task" : " open tasks") + " and will update it unless you change the action.";
+    if (matches) summary += " " + matches + (matches === 1 ? " matches an open task and will update it" : " match open tasks and will update them") + " unless you change the action.";
     if (dupes) summary += " " + dupes + " already on your list (unchecked).";
     if (result.skipped) summary += " Only the first " + MAX_NOTE_LINES + " lines were read.";
     summary += " Check the details, then add.";
@@ -1208,13 +1316,13 @@
       var html = '<div class="review-item' + (p.include ? "" : " off") + '" data-i="' + i + '">' +
         '<div class="review-top">' +
           '<input type="checkbox" id="rv-inc-' + i + '" data-field="include"' + (p.include ? " checked" : "") + ' aria-label="Include this task">' +
-          '<input type="text" id="rv-desc-' + i + '" data-field="desc" maxlength="300" value="' + esc(p.desc) + '" aria-label="Task description">' +
+          '<input type="text" id="rv-desc-' + i + '" data-field="desc" maxlength="300" value="' + esc(p.desc) + '" aria-label="Task">' +
         "</div>" +
         '<div class="review-grid">' +
+          '<label>Customer<input type="text" id="rv-cust-' + i + '" data-field="customer" maxlength="60" autocapitalize="words" spellcheck="false" value="' + esc(p.customer) + '"></label>' +
           '<label>Folder #<input type="text" id="rv-folder-' + i + '" data-field="folder" maxlength="30" autocapitalize="characters" spellcheck="false" value="' + esc(p.folder) + '"></label>' +
           '<label>Category<select id="rv-cat-' + i + '" data-field="category">' + optionList(CATEGORIES, p.category) + "</select></label>" +
-          '<label>Priority<select id="rv-pri-' + i + '" data-field="priority">' + optionList(PRIORITIES, p.priority) + "</select></label>" +
-          '<label>Due<input type="date" id="rv-due-' + i + '" data-field="due" value="' + esc(p.due) + '"></label>' +
+          '<label>Estimator<input type="text" id="rv-est-' + i + '" data-field="estimator" list="estimatorList" maxlength="40" autocapitalize="words" spellcheck="false" value="' + esc(p.estimator) + '"></label>' +
         "</div>";
       if (match) {
         html += '<label>Action<select id="rv-act-' + i + '" data-field="action">' +
@@ -1234,19 +1342,24 @@
     return {
       include: el.querySelector('[data-field="include"]').checked,
       desc: val("desc").trim(),
+      customer: val("customer").trim(),
       folder: val("folder").trim(),
       category: val("category"),
-      priority: val("priority"),
-      due: val("due"),
-      dueChanged: val("due") !== p.due,
-      dueExplicit: p.dueExplicit,
+      estimator: val("estimator").trim(),
       matchId: p.matchId,
       action: p.matchId ? val("action") : "new"
     };
   }
 
-  // Counts what "Add" will do, so the button can say it.
-  function plannedChanges() {
+  function willUpdate(r) {
+    if (r.action !== "update" || !r.matchId) return false;
+    var t = findTask(r.matchId);
+    if (!t || t.done) return false;
+    // If the folder # or customer was edited away from the match, treat it as new.
+    return r.folder ? sameKey(t.folder, r.folder) : (sameKey(t.customer, r.customer) || (!t.customer && !r.customer));
+  }
+
+  function updateApplyLabel() {
     var add = 0, update = 0;
     var items = $("reviewList").querySelectorAll(".review-item");
     for (var i = 0; i < items.length; i++) {
@@ -1254,22 +1367,10 @@
       if (!r.include) continue;
       if (willUpdate(r)) update++; else add++;
     }
-    return { add: add, update: update };
-  }
-
-  function willUpdate(r) {
-    if (r.action !== "update" || !r.matchId) return false;
-    var t = findTask(r.matchId);
-    // If the folder # was edited away from the match, treat it as new.
-    return !!t && !t.done && t.folder.toLowerCase() === r.folder.toLowerCase();
-  }
-
-  function updateApplyLabel() {
-    var c = plannedChanges();
     var parts = [];
-    if (c.add) parts.push("Add " + c.add);
-    if (c.update) parts.push((c.add ? "update " : "Update ") + c.update);
-    $("applyNotesBtn").textContent = parts.length ? parts.join(", ") + (c.add + c.update === 1 ? " task" : " tasks") : "Nothing selected";
+    if (add) parts.push("Add " + add);
+    if (update) parts.push((add ? "update " : "Update ") + update);
+    $("applyNotesBtn").textContent = parts.length ? parts.join(", ") + (add + update === 1 ? " task" : " tasks") : "Nothing selected";
     $("applyNotesBtn").disabled = !parts.length;
   }
 
@@ -1279,26 +1380,29 @@
     for (var i = 0; i < items.length; i++) {
       var r = readReviewItem(items[i]);
       if (!r.include) continue;
-      if (!r.desc) { showToast("A checked task has no description. Fill it in or uncheck it.", true); items[i].querySelector('[data-field="desc"]').focus(); return; }
-      if (!isValidDateKey(r.due)) { showToast("A checked task has no valid due date.", true); items[i].querySelector('[data-field="due"]').focus(); return; }
+      if (!r.desc) {
+        showToast("A checked task has no description. Fill it in or uncheck it.", true);
+        items[i].querySelector('[data-field="desc"]').focus();
+        return;
+      }
       reviewed.push(r);
     }
 
     var added = 0, updated = 0, now = new Date().toISOString();
     reviewed.forEach(function (r) {
+      if (r.estimator) saveLastEstimator(r.estimator);
       if (willUpdate(r)) {
         var t = findTask(r.matchId);
-        if (t.desc.toLowerCase().indexOf(r.desc.toLowerCase()) === -1) {
-          t.desc = (t.desc + " | " + r.desc).slice(0, 300);
-        }
-        if (PRIORITY_RANK[r.priority] < PRIORITY_RANK[t.priority]) t.priority = r.priority;
-        if (r.dueExplicit || r.dueChanged) t.due = r.due;
+        if (t.desc.toLowerCase().indexOf(r.desc.toLowerCase()) === -1) t.desc = (t.desc + " | " + r.desc).slice(0, 300);
+        if (!t.customer && r.customer) t.customer = r.customer;
+        if (!t.folder && r.folder) t.folder = r.folder;
+        if (!t.estimator && r.estimator) t.estimator = r.estimator;
         t.example = false;
         updated++;
       } else {
         tasks.push({
-          id: makeId(), folder: r.folder, desc: r.desc, priority: r.priority, due: r.due,
-          category: r.category, done: false, completedAt: null, createdAt: now, example: false
+          id: makeId(), customer: r.customer, folder: r.folder, desc: r.desc, category: r.category,
+          estimator: r.estimator, createdAt: now, done: false, completedAt: null, example: false
         });
         added++;
       }
@@ -1307,10 +1411,11 @@
     saveTasks();
     closeReview();
     $("notesInput").value = "";
+    if (!editingId) $("fEstimator").value = loadLastEstimator();
     render();
     var msg = [];
     if (added) msg.push("Added " + added);
-    if (updated) msg.push("updated " + updated);
+    if (updated) msg.push((added ? "updated " : "Updated ") + updated);
     showToast(msg.join(", ") + (added + updated === 1 ? " task" : " tasks"));
   }
 
@@ -1320,16 +1425,127 @@
     $("reviewPanel").hidden = true;
   }
 
-  /* ---------- 8. Event wiring and startup ---------- */
+  /* ---------- 9. Read text from images ----------
+     Uses Tesseract.js, which runs inside this browser. The engine and
+     English language data (a few MB) download from jsDelivr the first
+     time; after that the browser usually has them cached. The image
+     itself is never uploaded anywhere. */
+
+  var ocrLoad = null;   // promise for the script
+  var ocrWorker = null; // promise for a ready worker
+  var ocrBusy = false;
+
+  function loadOcrScript() {
+    if (window.Tesseract) return Promise.resolve();
+    if (ocrLoad) return ocrLoad;
+    ocrLoad = new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.src = OCR_SCRIPT_URL;
+      s.async = true;
+      s.onload = function () { window.Tesseract ? resolve() : reject(new Error("missing")); };
+      s.onerror = function () { reject(new Error("load")); };
+      document.head.appendChild(s);
+    });
+    ocrLoad.catch(function () { ocrLoad = null; });  // allow a retry later
+    return ocrLoad;
+  }
+
+  function getOcrWorker() {
+    if (ocrWorker) return ocrWorker;
+    ocrWorker = loadOcrScript().then(function () {
+      return window.Tesseract.createWorker(OCR_LANGUAGE, 1, {
+        logger: function (m) {
+          if (m.status === "recognizing text") setOcrStatus("Reading text…", m.progress);
+          else if (/load|initializ/i.test(m.status || "")) setOcrStatus("Getting the text reader ready…", m.progress);
+        }
+      });
+    });
+    ocrWorker.catch(function () { ocrWorker = null; });
+    return ocrWorker;
+  }
+
+  function setOcrStatus(text, progress, isError) {
+    var box = $("ocrStatus");
+    box.hidden = !text;
+    box.classList.toggle("error", !!isError);
+    $("ocrStatusText").textContent = text || "";
+    $("ocrBar").hidden = isError || typeof progress !== "number";
+    if (typeof progress === "number") $("ocrBar").firstChild.style.width = Math.round(progress * 100) + "%";
+  }
+
+  function cleanOcrText(text) {
+    return String(text || "")
+      .split(/\r?\n/)
+      .map(function (l) { return l.replace(/[|_]{2,}/g, " ").replace(/\s{2,}/g, " ").trim(); })
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+
+  // Reads one or more images, adds their text to the notes box, then opens the review.
+  function readImages(files) {
+    var images = Array.prototype.filter.call(files || [], function (f) { return f && /^image\//.test(f.type); });
+    if (!images.length) { showToast("That isn't an image. Drop a screenshot, snippet or photo.", true); return; }
+    if (ocrBusy) { showToast("Still reading the last image. One moment.", true); return; }
+    var tooBig = images.filter(function (f) { return f.size > MAX_IMAGE_BYTES; });
+    if (tooBig.length) { showToast("That image is too large (over 15 MB).", true); return; }
+
+    ocrBusy = true;
+    setOcrStatus("Getting the text reader ready…", 0);
+    var allText = [];
+
+    getOcrWorker().then(function (worker) {
+      var chain = Promise.resolve();
+      images.forEach(function (img, i) {
+        chain = chain.then(function () {
+          setOcrStatus("Reading image " + (i + 1) + " of " + images.length + "…", 0);
+          return worker.recognize(img).then(function (res) {
+            var t = cleanOcrText(res && res.data && res.data.text);
+            if (t) allText.push(t);
+          });
+        });
+      });
+      return chain;
+    }).then(function () {
+      ocrBusy = false;
+      if (!allText.length) {
+        setOcrStatus("No text found in that image. Try a sharper or larger snippet.", null, true);
+        return;
+      }
+      setOcrStatus("");
+      var box = $("notesInput");
+      box.value = (box.value.trim() ? box.value.trim() + "\n\n" : "") + allText.join("\n\n");
+      readNotes();
+    }).catch(function (err) {
+      ocrBusy = false;
+      var offline = err && /load|missing|fetch|network/i.test(String(err.message || err));
+      setOcrStatus(offline
+        ? "Couldn't load the text reader. It needs an internet connection the first time you read an image."
+        : "Couldn't read that image. Try again, or paste the text instead.", null, true);
+    });
+  }
+
+  function imagesFromClipboard(e) {
+    var items = (e.clipboardData && e.clipboardData.items) || [];
+    var files = [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].kind === "file" && /^image\//.test(items[i].type)) {
+        var f = items[i].getAsFile();
+        if (f) files.push(f);
+      }
+    }
+    return files;
+  }
+
+  /* ---------- 10. Event wiring, keyboard shortcuts and startup ---------- */
+  function isTyping(el) {
+    return el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable);
+  }
+
   function wireEvents() {
     $("taskForm").addEventListener("submit", handleSubmit);
-    $("cancelEditBtn").addEventListener("click", resetForm);
+    $("cancelEditBtn").addEventListener("click", function () { resetForm(); render(); });
     $("fDesc").addEventListener("input", function () { $("formError").hidden = true; });
-
-    $("fPriority").addEventListener("click", function (e) {
-      var b = e.target.closest("button[data-value]");
-      if (b) setPriority(b.getAttribute("data-value"));
-    });
 
     $("categoryChips").addEventListener("click", function (e) {
       var b = e.target.closest("button[data-category]");
@@ -1338,35 +1554,29 @@
       renderCategoryChips();
       render();
     });
-
-    $("folderSearch").addEventListener("input", function (e) {
-      filters.folder = e.target.value.trim();
-      render();
-    });
-
+    $("search").addEventListener("input", function (e) { filters.search = e.target.value.trim(); render(); });
+    $("estimatorFilter").addEventListener("change", function (e) { filters.estimator = e.target.value; render(); });
     $("clearFiltersBtn").addEventListener("click", function () {
-      filters.category = "All";
-      filters.folder = "";
-      $("folderSearch").value = "";
+      filters = { category: "All", search: "", estimator: "" };
+      $("search").value = "";
       renderCategoryChips();
       render();
     });
 
     // One listener handles buttons on every task card.
-    document.querySelector(".main-col").addEventListener("click", function (e) {
+    $("todayList").parentNode.parentNode.addEventListener("click", function (e) {
       var b = e.target.closest("button[data-action]");
       if (!b) return;
       var id = b.getAttribute("data-id");
-      switch (b.getAttribute("data-action")) {
-        case "toggle": case "undo": toggleDone(id); break;
-        case "edit": startEdit(id); break;
-        case "delete": deleteTask(id); break;
-      }
+      var action = b.getAttribute("data-action");
+      if (action === "toggle") toggleDone(id);
+      else if (action === "edit") startEdit(id);
+      else if (action === "delete") deleteTask(id);
     });
 
-    // Add from notes
+    // Notes, review
     $("readNotesBtn").addEventListener("click", readNotes);
-    $("clearNotesBtn").addEventListener("click", function () { $("notesInput").value = ""; $("notesInput").focus(); });
+    $("clearNotesBtn").addEventListener("click", function () { $("notesInput").value = ""; setOcrStatus(""); $("notesInput").focus(); });
     $("applyNotesBtn").addEventListener("click", applyProposals);
     $("cancelReviewBtn").addEventListener("click", closeReview);
     $("reviewList").addEventListener("change", function (e) {
@@ -1375,30 +1585,90 @@
       updateApplyLabel();
     });
     $("reviewList").addEventListener("input", updateApplyLabel);
+    $("notesInput").addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); readNotes(); }
+    });
 
+    // Images: choose, paste, drag and drop
+    $("chooseImageBtn").addEventListener("click", function () { $("imageFile").click(); });
+    $("imageFile").addEventListener("change", function (e) { readImages(e.target.files); e.target.value = ""; });
+
+    document.addEventListener("paste", function (e) {
+      var files = imagesFromClipboard(e);
+      if (!files.length) return;            // plain text pastes work as normal
+      e.preventDefault();
+      readImages(files);
+    });
+
+    var dragDepth = 0;
+    function hasFiles(e) {
+      var types = e.dataTransfer && e.dataTransfer.types;
+      return types && Array.prototype.indexOf.call(types, "Files") !== -1;
+    }
+    document.addEventListener("dragenter", function (e) {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      dragDepth++;
+      $("dropOverlay").hidden = false;
+      $("dropZone").classList.add("active");
+    });
+    document.addEventListener("dragover", function (e) { if (hasFiles(e)) e.preventDefault(); });
+    document.addEventListener("dragleave", function (e) {
+      if (!hasFiles(e)) return;
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (!dragDepth) { $("dropOverlay").hidden = true; $("dropZone").classList.remove("active"); }
+    });
+    document.addEventListener("drop", function (e) {
+      dragDepth = 0;
+      $("dropOverlay").hidden = true;
+      $("dropZone").classList.remove("active");
+      if (hasFiles(e)) {
+        e.preventDefault();
+        readImages(e.dataTransfer.files);
+        return;
+      }
+      // Dragged text (e.g. selected from an email) dropped outside the notes box
+      var text = e.dataTransfer && e.dataTransfer.getData("text/plain");
+      if (text && e.target !== $("notesInput")) {
+        e.preventDefault();
+        var box = $("notesInput");
+        box.value = (box.value.trim() ? box.value.trim() + "\n" : "") + text.trim();
+        readNotes();
+      }
+    });
+
+    // Backup and examples
     $("deleteExamplesBtn").addEventListener("click", deleteExamples);
     $("exportBtn").addEventListener("click", exportBackup);
     $("importBtn").addEventListener("click", function () { $("importFile").click(); });
-    $("importFile").addEventListener("change", function (e) {
-      importBackup(e.target.files[0]);
-      e.target.value = ""; // allow re-selecting the same file
+    $("importFile").addEventListener("change", function (e) { importBackup(e.target.files[0]); e.target.value = ""; });
+
+    // Keyboard shortcuts (desktop)
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        if (closeConfirm) { closeConfirm(false); return; }
+        if (!$("reviewPanel").hidden) { closeReview(); return; }
+        if (editingId) { resetForm(); render(); return; }
+        if (isTyping(document.activeElement)) document.activeElement.blur();
+        return;
+      }
+      if (closeConfirm || isTyping(document.activeElement) || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "n" || e.key === "N") { e.preventDefault(); $("fCustomer").focus(); }
+      else if (e.key === "/") { e.preventDefault(); $("search").focus(); }
     });
 
-    // If the app stays open past midnight, refresh "Today" when you come back.
+    // If the app stays open past midnight, refresh when you come back.
     var lastDay = todayKey();
     function checkDayChange() {
-      if (todayKey() !== lastDay) {
-        lastDay = todayKey();
-        if (!editingId) $("fDue").value = lastDay;
-        render();
-      }
+      if (todayKey() !== lastDay) { lastDay = todayKey(); render(); }
     }
     document.addEventListener("visibilitychange", function () { if (!document.hidden) checkDayChange(); });
     setInterval(checkDayChange, 60000);
   }
 
   function init() {
-    renderCategoryOptions();
+    $("fCategory").innerHTML = optionList(CATEGORIES, CATEGORIES[0]);
+    $("statStaleLabel").textContent = "Waiting " + STALE_DAYS + "+ days";
     renderCategoryChips();
     tasks = loadTasks();
     resetForm();
