@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#111111">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Repair Planner">
+<title>Repair Advisor Planner</title>
+<style>
+  /* ============================================================
+     Repair Advisor Planner v1.0 — styles
+     Palette: red / white / black. Change colors here only.
+     ============================================================ */
+  :root {
+    --red: #C8102E;
+    --red-dark: #9E0B23;
+    --red-tint: #FCEBEE;
+    --black: #111111;
+    --ink: #1F1F1F;
+    --gray-700: #4A4A4A;
+    --gray-500: #767676;
+    --gray-300: #D4D4D4;
+    --gray-100: #F3F3F3;
+    --white: #FFFFFF;
+    --radius: 12px;
+    --tap: 48px; /* minimum tap target height */
+  }
+
+  * { box-sizing: border-box; }
+
+  [hidden] { display: none !important; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--gray-100);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.4;
+  }
+
+  button, input, select { font: inherit; color: inherit; }
+
+  button { cursor: pointer; }
+
+  :focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+
+  /* ---------- Header ---------- */
+  .app-header {
+    background: var(--black);
+    color: var(--white);
+    padding: calc(14px + env(safe-area-inset-top)) 16px 14px;
+    border-bottom: 4px solid var(--red);
+  }
+  .header-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: var(--red);
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 18px;
+  }
+  .brand h1 { margin: 0; font-size: 20px; letter-spacing: 0.2px; }
+  .brand .today-label { display: block; font-size: 13px; color: #BDBDBD; font-weight: 400; }
+
+  /* ---------- Layout ---------- */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 16px 16px calc(32px + env(safe-area-inset-bottom));
+  }
+  .layout { display: grid; gap: 16px; }
+  /* Two columns on iPad (portrait and landscape) and desktop */
+  @media (min-width: 760px) {
+    .layout { grid-template-columns: minmax(300px, 340px) 1fr; align-items: start; }
+    .side { position: sticky; top: 16px; }
+  }
+
+  .card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+  .card + .card { margin-top: 16px; }
+  .card h2 {
+    margin: 0 0 12px;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--gray-700);
+  }
+
+  /* ---------- Summary ---------- */
+  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .stat {
+    border: 1px solid var(--gray-300);
+    border-radius: 10px;
+    padding: 10px 6px;
+    text-align: center;
+  }
+  .stat .num { display: block; font-size: 28px; font-weight: 800; line-height: 1.1; }
+  .stat .lbl { display: block; font-size: 12px; color: var(--gray-700); }
+  .stat.alert { border-color: var(--red); background: var(--red-tint); }
+  .stat.alert .num { color: var(--red); }
+
+  /* ---------- Form ---------- */
+  .field { margin-bottom: 12px; }
+  .field label, .field .label {
+    display: block; font-size: 14px; font-weight: 600; margin-bottom: 4px;
+  }
+  .field .hint { font-weight: 400; color: var(--gray-500); }
+  input[type="text"], input[type="date"], input[type="search"], select {
+    width: 100%;
+    min-height: var(--tap);
+    padding: 10px 12px;
+    border: 1.5px solid var(--gray-300);
+    border-radius: 10px;
+    background: var(--white);
+    font-size: 17px; /* 16px+ prevents iOS zoom on focus */
+  }
+  input:focus, select:focus { border-color: var(--black); outline: none; }
+  input[type="date"] { -webkit-appearance: none; appearance: none; }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .seg button {
+    min-height: var(--tap);
+    border: 1.5px solid var(--gray-300);
+    background: var(--white);
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .seg button[aria-pressed="true"] { background: var(--black); border-color: var(--black); color: var(--white); }
+  .seg button[data-value="Urgent"][aria-pressed="true"] { background: var(--red); border-color: var(--red); }
+
+  .btn {
+    min-height: var(--tap);
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1.5px solid var(--black);
+    background: var(--white);
+    font-weight: 700;
+  }
+  .btn-primary { background: var(--red); border-color: var(--red); color: var(--white); }
+  .btn-primary:active { background: var(--red-dark); }
+  .btn-dark { background: var(--black); color: var(--white); }
+  .btn-block { width: 100%; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn-row .btn { flex: 1 1 auto; }
+
+  .form-error { color: var(--red); font-weight: 600; font-size: 14px; margin: 0 0 10px; }
+  .editing-banner {
+    background: var(--black); color: var(--white);
+    border-radius: 8px; padding: 8px 12px; font-size: 14px; margin-bottom: 12px;
+  }
+
+  /* ---------- Filters ---------- */
+  .filters { display: grid; gap: 10px; }
+  .chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  .chip {
+    flex: 0 0 auto;
+    min-height: 40px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1.5px solid var(--gray-300);
+    background: var(--white);
+    font-weight: 600; font-size: 15px;
+  }
+  .chip[aria-pressed="true"] { background: var(--black); color: var(--white); border-color: var(--black); }
+  .filter-note { font-size: 14px; color: var(--gray-700); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .link-btn { background: none; border: none; color: var(--red); font-weight: 700; padding: 8px 4px; min-height: 40px; }
+
+  /* ---------- Example banner ---------- */
+  .examples-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    background: var(--white);
+    border: 2px dashed var(--red);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 15px;
+  }
+
+  /* ---------- Sections & tasks ---------- */
+  .section { margin-bottom: 20px; }
+  .section-head {
+    display: flex; align-items: baseline; gap: 8px;
+    border-bottom: 2px solid var(--black);
+    padding-bottom: 6px; margin-bottom: 10px;
+  }
+  .section-head h2 { margin: 0; font-size: 20px; }
+  .count {
+    background: var(--black); color: var(--white);
+    border-radius: 999px; font-size: 13px; font-weight: 700;
+    padding: 2px 9px;
+  }
+  .section.today .section-head { border-color: var(--red); }
+  .section.today .count { background: var(--red); }
+
+  .empty { color: var(--gray-500); font-size: 15px; padding: 8px 2px; }
+
+  .task-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .task {
+    background: var(--white);
+    border-radius: var(--radius);
+    border-left: 6px solid var(--gray-300);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    padding: 12px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+  .task.p-High { border-left-color: var(--black); }
+  .task.p-Urgent { border-left-color: var(--red); }
+  .task.overdue { background: var(--red-tint); border-left-color: var(--red); }
+  .task.done { opacity: 0.75; border-left-color: var(--gray-300); }
+  .task.done .desc { text-decoration: line-through; color: var(--gray-700); }
+
+  .check {
+    width: var(--tap); height: var(--tap);
+    border-radius: 50%;
+    border: 2.5px solid var(--black);
+    background: var(--white);
+    display: grid; place-items: center;
+    font-size: 22px; font-weight: 800; line-height: 1;
+  }
+  .task.done .check { background: var(--black); color: var(--white); }
+
+  .task-body { min-width: 0; }
+  .meta-top { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 4px; }
+  .folder { font-weight: 800; font-size: 16px; }
+  .badge {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.3px;
+    border-radius: 6px; padding: 2px 7px;
+    border: 1px solid var(--gray-300); color: var(--gray-700);
+    text-transform: uppercase;
+  }
+  .badge.urgent { background: var(--red); border-color: var(--red); color: var(--white); }
+  .badge.high { background: var(--black); border-color: var(--black); color: var(--white); }
+  .badge.overdue { background: var(--white); border-color: var(--red); color: var(--red); }
+  .badge.example { border-style: dashed; }
+  .desc { margin: 0 0 6px; font-size: 17px; overflow-wrap: anywhere; }
+  .meta-bottom { font-size: 14px; color: var(--gray-700); }
+  .meta-bottom .late { color: var(--red); font-weight: 700; }
+  .task-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .task-actions .btn { min-height: 44px; padding: 8px 14px; font-size: 15px; }
+  .btn-danger { border-color: var(--red); color: var(--red); }
+
+  /* ---------- Backup ---------- */
+  .small { font-size: 14px; color: var(--gray-700); margin: 0 0 10px; }
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(20px);
+    background: var(--black); color: var(--white);
+    padding: 12px 18px; border-radius: 10px;
+    font-size: 15px; font-weight: 600;
+    max-width: calc(100% - 32px);
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transition: transform 0.2s ease, opacity 0.2s ease, visibility 0.2s;
+    z-index: 10;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; visibility: visible; }
+  .toast.error { background: var(--red); }
+
+  @media (max-width: 420px) {
+    .summary { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">R</div>
+      <h1>Repair Advisor Planner<span class="today-label" id="todayLabel"></span></h1>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="layout">
+
+    <!-- ===== Left column: summary, add/edit form, backup ===== -->
+    <div class="side">
+
+      <section class="card" aria-labelledby="summaryTitle">
+        <h2 id="summaryTitle">Daily summary</h2>
+        <div class="summary">
+          <div class="stat" id="statOpen"><span class="num">0</span><span class="lbl">Open</span></div>
+          <div class="stat" id="statUrgent"><span class="num">0</span><span class="lbl">Urgent</span></div>
+          <div class="stat" id="statOverdue"><span class="num">0</span><span class="lbl">Overdue</span></div>
+          <div class="stat" id="statDone"><span class="num">0</span><span class="lbl">Done today</span></div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="formTitle" id="formCard">
+        <h2 id="formTitle">Add task</h2>
+        <div class="editing-banner" id="editingBanner" hidden>Editing a task. Save or cancel when done.</div>
+        <form id="taskForm" novalidate autocomplete="off">
+          <p class="form-error" id="formError" role="alert" hidden></p>
+
+          <div class="field">
+            <label for="fDesc">Task</label>
+            <input type="text" id="fDesc" maxlength="300" placeholder="e.g. Call parts on back-ordered bumper" enterkeyhint="done">
+          </div>
+
+          <div class="row-2">
+            <div class="field">
+              <label for="fFolder">Folder # <span class="hint">(optional)</span></label>
+              <input type="text" id="fFolder" maxlength="30" inputmode="text" autocapitalize="characters" spellcheck="false" placeholder="e.g. 10452">
+            </div>
+            <div class="field">
+              <label for="fDue">Due date</label>
+              <input type="date" id="fDue">
+            </div>
+          </div>
+
+          <div class="field">
+            <span class="label" id="priorityLabel">Priority</span>
+            <div class="seg" role="group" aria-labelledby="priorityLabel" id="fPriority">
+              <button type="button" data-value="Normal" aria-pressed="true">Normal</button>
+              <button type="button" data-value="High" aria-pressed="false">High</button>
+              <button type="button" data-value="Urgent" aria-pressed="false">Urgent</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="fCategory">Category</label>
+            <select id="fCategory"></select>
+          </div>
+
+          <div class="btn-row">
+            <button type="submit" class="btn btn-primary" id="submitBtn">Add task</button>
+            <button type="button" class="btn" id="cancelEditBtn" hidden>Cancel</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card" aria-labelledby="backupTitle">
+        <h2 id="backupTitle">Backup</h2>
+        <p class="small">Tasks are saved only in this browser on this device. Export a backup file regularly.</p>
+        <div class="btn-row">
+          <button type="button" class="btn btn-dark" id="exportBtn">Export backup</button>
+          <button type="button" class="btn" id="importBtn">Import backup</button>
+        </div>
+        <input type="file" id="importFile" accept=".json,application/json" class="visually-hidden" tabindex="-1" aria-hidden="true">
+      </section>
+
+    </div>
+
+    <!-- ===== Right column: filters and task lists ===== -->
+    <div class="main-col">
+
+      <div class="examples-banner" id="examplesBanner" hidden>
+        <span>Showing fictional <strong>example tasks</strong> for demonstration.</span>
+        <button type="button" class="btn btn-danger" id="deleteExamplesBtn">Delete examples</button>
+      </div>
+
+      <section class="card filters" aria-label="Filters" style="margin-bottom:16px">
+        <div>
+          <label for="folderSearch" class="visually-hidden">Find by folder number</label>
+          <input type="search" id="folderSearch" placeholder="Find folder #" inputmode="text" autocapitalize="characters" spellcheck="false">
+        </div>
+        <div class="chips" id="categoryChips" role="group" aria-label="Filter by category"></div>
+        <div class="filter-note" id="filterNote" hidden>
+          <span id="filterNoteText"></span>
+          <button type="button" class="link-btn" id="clearFiltersBtn">Clear filters</button>
+        </div>
+      </section>
+
+      <section class="section today" aria-labelledby="todayTitle">
+        <div class="section-head"><h2 id="todayTitle">Today</h2><span class="count" id="todayCount">0</span></div>
+        <ul class="task-list" id="todayList"></ul>
+      </section>
+
+      <section class="section" aria-labelledby="upcomingTitle">
+        <div class="section-head"><h2 id="upcomingTitle">Upcoming</h2><span class="count" id="upcomingCount">0</span></div>
+        <ul class="task-list" id="upcomingList"></ul>
+      </section>
+
+      <section class="section" aria-labelledby="completedTitle">
+        <div class="section-head"><h2 id="completedTitle">Completed</h2><span class="count" id="completedCount">0</span></div>
+        <ul class="task-list" id="completedList"></ul>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ==============================================================
+   Repair Advisor Planner v1.0
+   Single-file app. No backend, no tracking, no dependencies.
+   All data lives in this browser's localStorage.
+
+   Sections in this script:
+     1. Constants
+     2. Date helpers
+     3. Storage (load / save)
+     4. Task helpers (validate, sort, group)
+     5. Rendering
+     6. Actions (add, edit, complete, delete)
+     7. Backup (export / import)
+     8. Event wiring and startup
+   ============================================================== */
+(function () {
+  "use strict";
+
+  /* ---------- 1. Constants ---------- */
+  var STORAGE_KEY = "repairAdvisorPlanner.tasks.v1";
+  var APP_ID = "repair-advisor-planner";
+  var DATA_VERSION = 1;
+  var PRIORITIES = ["Normal", "High", "Urgent"];
+  var CATEGORIES = ["Parts", "Supplements", "Sublet", "Customer", "Scheduling", "Delivery", "Other"];
+  var PRIORITY_RANK = { Urgent: 0, High: 1, Normal: 2 };
+
+  /* ---------- 2. Date helpers (local time, "YYYY-MM-DD") ---------- */
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+
+  function toDateKey(d) {
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+
+  function todayKey() { return toDateKey(new Date()); }
+
+  function addDays(key, days) {
+    var d = parseDateKey(key);
+    d.setDate(d.getDate() + days);
+    return toDateKey(d);
+  }
+
+  function parseDateKey(key) {
+    var p = key.split("-");
+    return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  }
+
+  function isValidDateKey(key) {
+    if (typeof key !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(key)) return false;
+    return toDateKey(parseDateKey(key)) === key; // rejects 2026-02-31 etc.
+  }
+
+  function daysBetween(fromKey, toKey) {
+    var ms = parseDateKey(toKey) - parseDateKey(fromKey);
+    return Math.round(ms / 86400000);
+  }
+
+  function formatDate(key) {
+    var today = todayKey();
+    if (key === today) return "Today";
+    if (key === addDays(today, 1)) return "Tomorrow";
+    if (key === addDays(today, -1)) return "Yesterday";
+    return parseDateKey(key).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  }
+
+  /* ---------- 3. Storage ---------- */
+  var tasks = [];
+
+  function makeId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  function exampleTasks() {
+    // Fictional demonstration data only. No real customers or records.
+    var t = todayKey();
+    var now = new Date().toISOString();
+    return [
+      { id: makeId(), folder: "DEMO-101", desc: "Example: follow up on back-ordered front bumper cover", priority: "Urgent", due: addDays(t, -1), category: "Parts", done: false, completedAt: null, createdAt: now, example: true },
+      { id: makeId(), folder: "DEMO-102", desc: "Example: submit supplement for hidden frame damage", priority: "High", due: t, category: "Supplements", done: false, completedAt: null, createdAt: now, example: true },
+      { id: makeId(), folder: "", desc: "Example: confirm delivery time with vehicle owner", priority: "Normal", due: addDays(t, 2), category: "Delivery", done: false, completedAt: null, createdAt: now, example: true }
+    ];
+  }
+
+  function loadTasks() {
+    var raw;
+    try {
+      raw = localStorage.getItem(STORAGE_KEY);
+    } catch (e) {
+      showToast("Browser storage is unavailable. Tasks won't be saved.", true);
+      return exampleTasks();
+    }
+    if (raw === null) {
+      // First run: seed the examples and save them.
+      var seeded = exampleTasks();
+      tasks = seeded;
+      saveTasks();
+      return seeded;
+    }
+    try {
+      var parsed = JSON.parse(raw);
+      var result = validateTaskArray(parsed);
+      if (result.error) throw new Error(result.error);
+      return result.tasks;
+    } catch (e) {
+      // Keep a copy of the unreadable data so nothing is silently lost.
+      try { localStorage.setItem(STORAGE_KEY + ".corrupt." + Date.now(), raw); } catch (ignore) {}
+      showToast("Saved tasks couldn't be read. Starting fresh; a copy was kept.", true);
+      return [];
+    }
+  }
+
+  function saveTasks() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      return true;
+    } catch (e) {
+      showToast("Couldn't save. Storage may be full or blocked (Private Browsing?).", true);
+      return false;
+    }
+  }
+
+  /* ---------- 4. Task helpers ---------- */
+
+  // Checks one task from storage or a backup file. Returns a clean task or null.
+  function normalizeTask(t) {
+    if (!t || typeof t !== "object") return null;
+    var desc = typeof t.desc === "string" ? t.desc.trim() : "";
+    if (!desc) return null;
+    if (PRIORITIES.indexOf(t.priority) === -1) return null;
+    if (CATEGORIES.indexOf(t.category) === -1) return null;
+    if (!isValidDateKey(t.due)) return null;
+    return {
+      id: typeof t.id === "string" && t.id ? t.id : makeId(),
+      folder: typeof t.folder === "string" ? t.folder.trim().slice(0, 30) : "",
+      desc: desc.slice(0, 300),
+      priority: t.priority,
+      due: t.due,
+      category: t.category,
+      done: t.done === true,
+      completedAt: t.done === true && typeof t.completedAt === "string" ? t.completedAt : (t.done === true ? new Date().toISOString() : null),
+      createdAt: typeof t.createdAt === "string" ? t.createdAt : new Date().toISOString(),
+      example: t.example === true
+    };
+  }
+
+  // Validates a whole list. Rejects the list if any task is invalid.
+  function validateTaskArray(arr) {
+    if (!Array.isArray(arr)) return { error: "No task list found." };
+    var clean = [];
+    var seen = {};
+    for (var i = 0; i < arr.length; i++) {
+      var t = normalizeTask(arr[i]);
+      if (!t) return { error: "Task #" + (i + 1) + " is missing a description, or has an invalid priority, category or date." };
+      if (seen[t.id]) t.id = makeId();
+      seen[t.id] = true;
+      clean.push(t);
+    }
+    return { tasks: clean };
+  }
+
+  function byPriorityThenDue(a, b) {
+    var p = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
+    if (p !== 0) return p;
+    return a.due < b.due ? -1 : a.due > b.due ? 1 : 0;
+  }
+
+  function byDueThenPriority(a, b) {
+    if (a.due !== b.due) return a.due < b.due ? -1 : 1;
+    return PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
+  }
+
+  function isOverdue(t, today) { return !t.done && t.due < today; }
+
+  function completedToday(t, today) {
+    return t.done && t.completedAt && toDateKey(new Date(t.completedAt)) === today;
+  }
+
+  /* ---------- 5. Rendering ---------- */
+  var filters = { category: "All", folder: "" };
+  var editingId = null;
+  var selectedPriority = "Normal";
+
+  function $(id) { return document.getElementById(id); }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function matchesFilters(t) {
+    if (filters.category !== "All" && t.category !== filters.category) return false;
+    if (filters.folder) {
+      var q = filters.folder.toLowerCase();
+      if (t.folder.toLowerCase().indexOf(q) === -1) return false;
+    }
+    return true;
+  }
+
+  function render() {
+    var today = todayKey();
+    $("todayLabel").textContent = parseDateKey(today).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+
+    renderSummary(today);
+
+    var visible = tasks.filter(matchesFilters);
+    // Today = due today OR overdue. Overdue tasks are carried forward here
+    // visually; their stored due date is never changed.
+    var todayTasks = visible.filter(function (t) { return !t.done && t.due <= today; }).sort(function (a, b) {
+      var ao = isOverdue(a, today), bo = isOverdue(b, today);
+      if (ao !== bo) return ao ? -1 : 1;
+      return byPriorityThenDue(a, b);
+    });
+    var upcoming = visible.filter(function (t) { return !t.done && t.due > today; }).sort(byDueThenPriority);
+    var completed = visible.filter(function (t) { return t.done; }).sort(function (a, b) {
+      return (b.completedAt || "").localeCompare(a.completedAt || "");
+    });
+
+    renderList("todayList", "todayCount", todayTasks, today, "Nothing due today. Nice work.");
+    renderList("upcomingList", "upcomingCount", upcoming, today, "No upcoming tasks.");
+    renderList("completedList", "completedCount", completed, today, "No completed tasks yet.");
+
+    renderFilterNote(visible.length);
+    $("examplesBanner").hidden = !tasks.some(function (t) { return t.example; });
+  }
+
+  function renderSummary(today) {
+    var open = tasks.filter(function (t) { return !t.done; });
+    setStat("statOpen", open.length, false);
+    var urgent = open.filter(function (t) { return t.priority === "Urgent"; }).length;
+    setStat("statUrgent", urgent, urgent > 0);
+    var overdue = open.filter(function (t) { return isOverdue(t, today); }).length;
+    setStat("statOverdue", overdue, overdue > 0);
+    setStat("statDone", tasks.filter(function (t) { return completedToday(t, today); }).length, false);
+  }
+
+  function setStat(id, value, alert) {
+    var el = $(id);
+    el.querySelector(".num").textContent = value;
+    el.classList.toggle("alert", alert);
+  }
+
+  function renderList(listId, countId, list, today, emptyText) {
+    $(countId).textContent = list.length;
+    var ul = $(listId);
+    if (list.length === 0) {
+      ul.innerHTML = '<li class="empty">' + (filtersActive() ? "No tasks match your filters." : emptyText) + "</li>";
+      return;
+    }
+    ul.innerHTML = list.map(function (t) { return taskHtml(t, today); }).join("");
+  }
+
+  function taskHtml(t, today) {
+    var overdue = isOverdue(t, today);
+    var classes = ["task", "p-" + t.priority];
+    if (overdue) classes.push("overdue");
+    if (t.done) classes.push("done");
+
+    var badges = "";
+    if (t.folder) badges += '<span class="folder">#' + esc(t.folder) + "</span>";
+    if (overdue) badges += '<span class="badge overdue">Overdue</span>';
+    if (t.priority === "Urgent") badges += '<span class="badge urgent">Urgent</span>';
+    if (t.priority === "High") badges += '<span class="badge high">High</span>';
+    badges += '<span class="badge">' + esc(t.category) + "</span>";
+    if (t.example) badges += '<span class="badge example">Example</span>';
+
+    var dueText;
+    if (t.done) {
+      dueText = "Completed " + formatDate(toDateKey(new Date(t.completedAt)));
+    } else if (overdue) {
+      var late = daysBetween(t.due, today);
+      dueText = 'Due ' + esc(formatDate(t.due)) + ' · <span class="late">' + late + (late === 1 ? " day" : " days") + " late</span>";
+    } else {
+      dueText = "Due " + esc(formatDate(t.due));
+    }
+
+    var actions = t.done
+      ? '<button type="button" class="btn" data-action="undo" data-id="' + esc(t.id) + '">Reopen</button>' +
+        '<button type="button" class="btn btn-danger" data-action="delete" data-id="' + esc(t.id) + '">Delete</button>'
+      : '<button type="button" class="btn" data-action="edit" data-id="' + esc(t.id) + '">Edit</button>' +
+        '<button type="button" class="btn btn-danger" data-action="delete" data-id="' + esc(t.id) + '">Delete</button>';
+
+    var checkLabel = t.done ? "Mark as not done" : "Mark as done";
+
+    return '<li class="' + classes.join(" ") + '">' +
+      '<button type="button" class="check" data-action="toggle" data-id="' + esc(t.id) + '" aria-label="' + checkLabel + ": " + esc(t.desc) + '">' + (t.done ? "&#10003;" : "") + "</button>" +
+      '<div class="task-body">' +
+        '<div class="meta-top">' + badges + "</div>" +
+        '<p class="desc">' + esc(t.desc) + "</p>" +
+        '<div class="meta-bottom">' + dueText + "</div>" +
+        '<div class="task-actions">' + actions + "</div>" +
+      "</div>" +
+    "</li>";
+  }
+
+  function filtersActive() { return filters.category !== "All" || filters.folder !== ""; }
+
+  function renderFilterNote(visibleCount) {
+    var note = $("filterNote");
+    if (!filtersActive()) { note.hidden = true; return; }
+    var parts = [];
+    if (filters.category !== "All") parts.push(filters.category);
+    if (filters.folder) parts.push('folder "' + filters.folder + '"');
+    $("filterNoteText").textContent = "Showing " + visibleCount + " of " + tasks.length + " · " + parts.join(", ");
+    note.hidden = false;
+  }
+
+  function renderCategoryChips() {
+    var all = ["All"].concat(CATEGORIES);
+    $("categoryChips").innerHTML = all.map(function (c) {
+      return '<button type="button" class="chip" data-category="' + c + '" aria-pressed="' + (filters.category === c) + '">' + c + "</button>";
+    }).join("");
+  }
+
+  function renderCategoryOptions() {
+    $("fCategory").innerHTML = CATEGORIES.map(function (c) {
+      return '<option value="' + c + '">' + c + "</option>";
+    }).join("");
+  }
+
+  function setPriority(p) {
+    selectedPriority = p;
+    var buttons = $("fPriority").querySelectorAll("button");
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].setAttribute("aria-pressed", String(buttons[i].getAttribute("data-value") === p));
+    }
+  }
+
+  var toastTimer = null;
+  function showToast(msg, isError) {
+    var el = $("toast");
+    if (!el) { if (isError) alert(msg); return; }
+    el.textContent = msg;
+    el.classList.toggle("error", !!isError);
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove("show"); }, isError ? 4500 : 2200);
+  }
+
+  /* ---------- 6. Actions ---------- */
+  function findTask(id) {
+    for (var i = 0; i < tasks.length; i++) if (tasks[i].id === id) return tasks[i];
+    return null;
+  }
+
+  function resetForm() {
+    editingId = null;
+    $("taskForm").reset();
+    $("fDue").value = todayKey();
+    $("fCategory").value = CATEGORIES[0];
+    setPriority("Normal");
+    $("formTitle").textContent = "Add task";
+    $("submitBtn").textContent = "Add task";
+    $("cancelEditBtn").hidden = true;
+    $("editingBanner").hidden = true;
+    $("formError").hidden = true;
+  }
+
+  function showFormError(msg) {
+    var el = $("formError");
+    el.textContent = msg;
+    el.hidden = false;
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    var desc = $("fDesc").value.trim();
+    var folder = $("fFolder").value.trim();
+    var due = $("fDue").value || todayKey();
+    var category = $("fCategory").value;
+
+    if (!desc) { showFormError("Please enter a task description."); $("fDesc").focus(); return; }
+    if (!isValidDateKey(due)) { showFormError("Please choose a valid due date."); return; }
+
+    if (editingId) {
+      var t = findTask(editingId);
+      if (!t) { showToast("That task no longer exists.", true); resetForm(); render(); return; }
+      t.desc = desc; t.folder = folder; t.due = due; t.category = category; t.priority = selectedPriority;
+      t.example = false; // once edited, it's yours
+      saveTasks();
+      showToast("Task updated");
+    } else {
+      tasks.push({
+        id: makeId(), folder: folder, desc: desc, priority: selectedPriority, due: due,
+        category: category, done: false, completedAt: null, createdAt: new Date().toISOString(), example: false
+      });
+      saveTasks();
+      showToast("Task added");
+    }
+    resetForm();
+    render();
+  }
+
+  function startEdit(id) {
+    var t = findTask(id);
+    if (!t) return;
+    editingId = id;
+    $("fDesc").value = t.desc;
+    $("fFolder").value = t.folder;
+    $("fDue").value = t.due;
+    $("fCategory").value = t.category;
+    setPriority(t.priority);
+    $("formTitle").textContent = "Edit task";
+    $("submitBtn").textContent = "Save changes";
+    $("cancelEditBtn").hidden = false;
+    $("editingBanner").hidden = false;
+    $("formError").hidden = true;
+    $("formCard").scrollIntoView({ behavior: "smooth", block: "start" });
+    $("fDesc").focus({ preventScroll: true });
+  }
+
+  function toggleDone(id) {
+    var t = findTask(id);
+    if (!t) return;
+    t.done = !t.done;
+    t.completedAt = t.done ? new Date().toISOString() : null;
+    saveTasks();
+    showToast(t.done ? "Marked done" : "Reopened");
+    render();
+  }
+
+  function deleteTask(id) {
+    var t = findTask(id);
+    if (!t) return;
+    var label = (t.folder ? "#" + t.folder + " – " : "") + t.desc;
+    if (!confirm("Delete this task?\n\n" + label)) return;
+    tasks = tasks.filter(function (x) { return x.id !== id; });
+    if (editingId === id) resetForm();
+    saveTasks();
+    showToast("Task deleted");
+    render();
+  }
+
+  function deleteExamples() {
+    var n = tasks.filter(function (t) { return t.example; }).length;
+    if (!n) return;
+    if (!confirm("Delete the " + n + " example task" + (n === 1 ? "" : "s") + "? Your own tasks will not be touched.")) return;
+    tasks = tasks.filter(function (t) { return !t.example; });
+    if (editingId && !findTask(editingId)) resetForm();
+    saveTasks();
+    showToast("Examples deleted");
+    render();
+  }
+
+  /* ---------- 7. Backup ---------- */
+  function exportBackup() {
+    try {
+      var data = { app: APP_ID, version: DATA_VERSION, exportedAt: new Date().toISOString(), tasks: tasks };
+      var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "repair-planner-backup-" + todayKey() + ".json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      showToast("Backup exported (" + tasks.length + " tasks)");
+    } catch (e) {
+      showToast("Export failed: " + e.message, true);
+    }
+  }
+
+  function importBackup(file) {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { showToast("That file is too large to be a backup.", true); return; }
+    var reader = new FileReader();
+    reader.onerror = function () { showToast("Couldn't read that file.", true); };
+    reader.onload = function () {
+      var parsed;
+      try {
+        parsed = JSON.parse(reader.result);
+      } catch (e) {
+        showToast("That file isn't valid JSON.", true);
+        return;
+      }
+      // Accept the export format, or a bare array of tasks.
+      var list = Array.isArray(parsed) ? parsed : (parsed && parsed.tasks);
+      if (parsed && !Array.isArray(parsed) && parsed.app && parsed.app !== APP_ID) {
+        showToast("That backup is from a different app.", true);
+        return;
+      }
+      var result = validateTaskArray(list);
+      if (result.error) { showToast("Import cancelled. " + result.error, true); return; }
+
+      var msg = "Replace your current " + tasks.length + " task" + (tasks.length === 1 ? "" : "s") +
+        " with " + result.tasks.length + " task" + (result.tasks.length === 1 ? "" : "s") + " from this backup?\n\nThis cannot be undone. Export a backup first if unsure.";
+      if (!confirm(msg)) return;
+
+      tasks = result.tasks;
+      resetForm();
+      saveTasks();
+      render();
+      showToast("Imported " + tasks.length + " tasks");
+    };
+    reader.readAsText(file);
+  }
+
+  /* ---------- 8. Event wiring and startup ---------- */
+  function wireEvents() {
+    $("taskForm").addEventListener("submit", handleSubmit);
+    $("cancelEditBtn").addEventListener("click", resetForm);
+    $("fDesc").addEventListener("input", function () { $("formError").hidden = true; });
+
+    $("fPriority").addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-value]");
+      if (b) setPriority(b.getAttribute("data-value"));
+    });
+
+    $("categoryChips").addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-category]");
+      if (!b) return;
+      filters.category = b.getAttribute("data-category");
+      renderCategoryChips();
+      render();
+    });
+
+    $("folderSearch").addEventListener("input", function (e) {
+      filters.folder = e.target.value.trim();
+      render();
+    });
+
+    $("clearFiltersBtn").addEventListener("click", function () {
+      filters.category = "All";
+      filters.folder = "";
+      $("folderSearch").value = "";
+      renderCategoryChips();
+      render();
+    });
+
+    // One listener handles buttons on every task card.
+    document.querySelector(".main-col").addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-action]");
+      if (!b) return;
+      var id = b.getAttribute("data-id");
+      switch (b.getAttribute("data-action")) {
+        case "toggle": case "undo": toggleDone(id); break;
+        case "edit": startEdit(id); break;
+        case "delete": deleteTask(id); break;
+      }
+    });
+
+    $("deleteExamplesBtn").addEventListener("click", deleteExamples);
+    $("exportBtn").addEventListener("click", exportBackup);
+    $("importBtn").addEventListener("click", function () { $("importFile").click(); });
+    $("importFile").addEventListener("change", function (e) {
+      importBackup(e.target.files[0]);
+      e.target.value = ""; // allow re-selecting the same file
+    });
+
+    // If the app stays open past midnight, refresh "Today" when you come back.
+    var lastDay = todayKey();
+    function checkDayChange() {
+      if (todayKey() !== lastDay) {
+        lastDay = todayKey();
+        if (!editingId) $("fDue").value = lastDay;
+        render();
+      }
+    }
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) checkDayChange(); });
+    setInterval(checkDayChange, 60000);
+  }
+
+  function init() {
+    renderCategoryOptions();
+    renderCategoryChips();
+    tasks = loadTasks();
+    resetForm();
+    wireEvents();
+    render();
+  }
+
+  window.addEventListener("error", function () {
+    showToast("Something went wrong. Your saved tasks are safe; try refreshing.", true);
+  });
+
+  init();
+})();
+</script>
+</body>
+</html>
