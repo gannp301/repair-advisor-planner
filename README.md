@@ -2,9 +2,26 @@
 
 A simple, private daily notebook and task board for a collision repair advisor.
 
-**Version 1.3** · one file (`index.html`) · HTML, CSS and plain JavaScript · no accounts, no server, no tracking.
+**Version 1.4 — Smart Capture & Strawberry Cottage** · one file (`index.html`) · HTML, CSS and plain JavaScript · no accounts, no server, no tracking.
 
-Write notes the way you already do, all day long. When you have a minute, let the planner suggest what's a follow-up, what's an appointment, what's just information, and what looks finished. Nothing changes until you approve it.
+Write notes the way you already do, all day long, and capture everything else: sticky notes, notebook pages, scraps of paper, Teams chats, emails. When you have a minute, let the planner suggest what's a follow-up, what's an appointment, what's just information, and what looks finished. Nothing changes until you approve it.
+
+## New in 1.4
+
+- **Capture Inbox** (new tab): **Take photo**, **Choose images** (several at once), drop/paste a screenshot, or paste/type a note. No categories, dates or statuses to pick first.
+- **Source recognition:** each capture is labelled *Sticky note, Handwritten notebook, Loose paper / envelope, Email, Teams / chat, Digital notes, Appointment, Typed note* or *Other*, with **Likely / Maybe / Not sure** and the reason. Change it with one tap if it's wrong.
+- **Smarter sorting:** besides follow-up / appointment / info, lines get a topic (*Accident details, Customer concern, Parts, Supplement, Repair status*), and a co-worker's name ("Derek confirmed…") is shown but kept out of task matching.
+  - Email/chat header lines (From/To/Sent, "Derek Miller 10:42 AM", signatures) stay in the capture and aren't added to your notes.
+  - An email or chat saying something was handled suggests **linking it as a status update**; the task stays open. Completing a task always needs its own approval.
+- **New review action:** *Keep in Capture Inbox only* (no note, no task). The full list: add as open task, save to daily notes, save as appointment info, link to an existing task (status update), mark an existing task complete, save as reference info, keep in inbox only, skip.
+- **Inbox views:** Needs review · Saved · Linked · Archived; search by folder #, customer or any word (all views); archive/restore; delete (asks first). Cancelling a review keeps the capture in *Needs review*.
+- **One record per capture.** Re-capturing an updated screenshot (same day) updates the existing record; lines you already handled don't come back, newly crossed-out lines do.
+- **Strawberry Cottage** look (Appearance card): soft pink, cream, cocoa and butter yellow, original pixel-art strawberry, goose and sleeping cat. **Classic Work** (red/white/black) is still the default.
+- **Scrapbook view** of the inbox: sticky notes with tape, envelope-style emails, chat bubbles, lined notebook paper, torn scraps, calendar-style appointments. It's only a different way of drawing the same records; the text stays real, searchable text. List or Scrapbook is remembered.
+- **12 original stickers** (strawberry, bow, cupcake, cookie, sleeping cat, paw, goose, daisy, coffee, star, heart, flower) in fixed sticker spots: one per scrapbook card and six on the "desk". Tap a spot to add, change or remove. Stored separately from your notes and tasks.
+- **Show decorations and stickers** can turn all of it off at once.
+- **Daily motivation** on today's notes page: sweet, funny or encouraging; tap *Another* or *Hide*.
+- **Safety:** an automatic once-a-day copy of everything is kept on the device and used if saved data is ever found damaged; every save is read back to check it was stored completely.
 
 ## Daily notes (opens first)
 
@@ -23,7 +40,7 @@ Write notes the way you already do, all day long. When you have a minute, let th
 
 ## Smart import
 
-Import from the **Import notes** card (on every tab):
+Import from the **Capture** card (on every tab; called *Import notes* in v1.3):
 
 - **Screenshots or photos:** drop, paste (Ctrl/⌘+V) or **Choose image**. Several at once is fine.
 - **Pasted text:** one note per line.
@@ -68,6 +85,23 @@ Take as many screenshots of the same page as you like through the day:
 - Lines that look similar but not certainly the same, or that appear on another day's page, are flagged for you to decide.
 - Existing lines keep their original time and wording.
 
+## Source recognition (how it works, and its limits)
+
+Everything happens on your device. No image or text is sent anywhere, and there's no AI service. The app uses rules of thumb, and always shows how sure it is:
+
+- **Email:** header lines like `From:`, `To:`, `Subject:`, `Sent:` (two or more = *Likely*).
+- **Teams / chat:** lines like `Derek Miller 10:42 AM` (two or more = *Likely*).
+- **Appointment:** several appointment words (*appointment, confirmed, scheduled, drop-off, estimate…*) with a day or time.
+- **Photo or screenshot?** In a screenshot one background color covers most of the image; in a photo light and grain spread it over many shades.
+- **Sticky note:** a photo where pastel paper (yellow, pink, green, blue…) fills most of the picture.
+- **Handwritten notebook:** a photo with evenly spaced ruled lines (even if the photo is a little crooked).
+- **Loose paper / envelope:** a photo of light-brown paper, or a photo of paper whose text is hard to read.
+- Otherwise *Digital notes* (screenshot), *Typed note*, or *Other / Not sure*.
+
+Tested on browser-drawn stand-ins (a tilted sticky note "photo", a lined-paper "photo" in a slanted font, an email and a Teams-style screenshot); all four were recognised and read at 95%+. **Real phone photos and real handwriting will do worse.** Tesseract.js reads print far better than handwriting: messy handwriting, pencil, low light, glare, a palm, or a note on a busy desk will often come back garbled or as "No readable text". Nothing is ever invented — unreadable text stays unreadable, and the source type falls back to *Other / Not sure* for you to set.
+
+Handwritten lines that wrap ("10452 Jones -" / "check bumper" / "bracket ETA") are joined back into one note for sticky notes, notebook pages and scraps only.
+
 ## Highlighter and cross-out recognition (how it works, and its limits)
 
 The text reader (Tesseract.js) only reads letters. It can't tell whether a line is highlighted or crossed out, and in testing it **skipped highlighted lines entirely** and **garbled crossed-out ones**. So before reading, the planner looks at the image itself on a `<canvas>` on your device:
@@ -95,24 +129,51 @@ Smart fill, Today / Carried over / Completed, mark done, reopen, edit, delete, s
 
 ## Privacy and security
 
+- **Screenshots and photos are not stored.** A capture keeps the text that was read, the source type and links to notes/tasks. The picture is kept only in memory while you review it.
+- **Optional:** *Keep a small picture of each capture* (off by default) saves a small, low-quality copy on this device. Pictures can show customer details. *Delete saved picture* (per capture) and *Delete all saved pictures* remove them. They're included in backups while they exist.
+- Stickers, theme and motivation are decoration only and never change notes, tasks or captures.
+
 - Notes, tasks, settings and the import history are saved in this browser's **local storage** on this device. They don't sync between devices; clearing the browser's website data erases them. **Export a backup regularly.**
 - No AI services, analytics, telemetry or uploads.
-- **Reading images:** the first time you read an image, the browser downloads Tesseract.js 5.1.1, its engine and English data (several MB) from **cdn.jsdelivr.net**, at pinned versions. The main script is checked against a fixed SRI hash. That first time needs internet; afterwards the browser usually has the files cached, but offline use isn't guaranteed (the cache can be cleared). Reading happens **inside your browser** (a Web Worker). **The image is not uploaded** and is **not saved**. It's kept in memory only while the review is open. The *text* read from it is saved in **Import history** (so you can check it later), and each record can be deleted.
+- **Reading images:** the first time you read an image, the browser downloads Tesseract.js 5.1.1, its engine and English data (several MB) from **cdn.jsdelivr.net**, at pinned versions. The main script is checked against a fixed SRI hash. That first time needs internet; afterwards the browser usually has the files cached, but offline use isn't guaranteed (the cache can be cleared). Reading happens **inside your browser** (a Web Worker). **The image is not uploaded** and is **not saved**. It's kept in memory only while the review is open. The *text* read from it is saved with the capture in the **Capture Inbox** (so you can check it later), and each capture can be deleted.
 - Everything imported is shown as plain text (escaped), never as HTML.
 - Pasted text and typed notes never leave the device.
 
 ## Your data, versions and backups
 
+**v1.4 changes** (storage version 4):
+- New: `captures.v1` (Capture Inbox), `stickers.v1` (sticker spots), `dailySnapshot` (automatic daily safety copy).
+- First run of v1.4 keeps an untouched copy of the v1.3 notebook under `repairAdvisorPlanner.notebook.v1.beforeV1_4`, and turns each v1.3 *Import history* record into a *Saved* capture (the old history is left in place too).
+- Notes and tasks are not converted; v1.3 can still read them (it ignores the new `captureId` / `topic` fields on note lines).
+- Backups are now version 4 and include captures, stickers and appearance settings. v1.3, v1.0–v1.2 and bare task-list backups still import.
+- Damaged saved data is kept aside (`….corrupt.<time>`) and replaced by the automatic daily copy when there is one.
+- Browser storage holds about 5 MB. Text captures are small; saved pictures are not. A warning appears in the inbox above about 3.5 MB.
+
+**Earlier versions:**
+
 - Tasks stay under the same storage key as v1.0–v1.2, in the same shape, so nothing about them is converted. v1.3 adds optional fields (`noteRef`, `log`) that older versions simply ignore.
 - New in v1.3: `notebook.v1` (pages), `settings.v1`, `imports.v1` (import history) and `schemaVersion` = 3.
 - **First run of v1.3** keeps an untouched copy of your v1.2 task list under `repairAdvisorPlanner.tasks.v1.beforeV1_3`.
 - **Export backup** (version 3) contains tasks, all notes, settings and import history.
-- **Import backup** accepts v3 backups (replaces tasks **and** notes), and v1.0–v1.2 backups or a bare task list (replaces **tasks only**; your notes are kept). Backups are checked before anything changes, and you confirm first.
+- **Import backup** accepts v3/v4 backups (replaces tasks **and** notes), and v1.0–v1.2 backups or a bare task list (replaces **tasks only**; your notes are kept). Backups are checked before anything changes, and you confirm first.
 - **Undo last backup import** puts back exactly what you had before the last restore.
 
 ## Run it
 
 Open `index.html` in Safari, Chrome or Edge. No install or build step. On iPad, Share → *Add to Home Screen* gives it its own icon.
+
+## iPad testing checklist for v1.4 (fictional data only)
+
+1. **Capture Inbox → Take photo** of a fictional sticky note (e.g. "10452 Jones – check bumper bracket ETA"). Check the source says *Sticky note*, the text, and *Add as an open task*.
+2. Photograph a fictional lined notebook page and a scrap of paper. Note how well your handwriting is read and whether the type is right; correct it with *Wrong? Source type*.
+3. Screenshot a fictional Teams message ("Derek confirmed bracket was ordered yesterday") and a fictional email ("Smith confirmed estimate Thursday at 9:30 AM"). Check *Teams / chat* → link as status update (task stays open), *Email* → appointment info, and that names/times/From lines aren't added to notes.
+4. Choose *Keep in Capture Inbox only* for one line; check no note or task was added and it shows under *Saved*.
+5. Skip a suggested completion; the task stays open.
+6. Capture the same screenshot again: nothing new is suggested and the inbox still has one card.
+7. Search the inbox for a folder # and a name; archive a card, find it under *Archived*, restore it.
+8. Appearance: switch to **Strawberry Cottage**, open the inbox in **Scrapbook**, add and remove a sticker, turn decorations off and on, try the motivation styles.
+9. Rotate the iPad (portrait/landscape) on the inbox and the review. Everything should fit without sideways scrolling.
+10. Export a backup, delete a capture, import the backup: it comes back.
 
 ## User testing checklist (fictional data only)
 
@@ -121,7 +182,7 @@ Open `index.html` in Safari, Chrome or Edge. No install or build step. On iPad, 
 3. **Previous days:** ‹ to go back, add a line to an earlier day. Today's page doesn't change.
 4. **Unresolved:** open lines from earlier days are listed; tap **Just info** on one.
 5. **Highlighted lines mean:** switch between Done / Important / Nothing and watch Unresolved change.
-6. **Paste text** into Import notes and tap **Read & sort**:
+6. **Paste text** into the Capture card and tap **Capture**:
    ```
    ~~10452 Jones - check bumper bracket order~~
    Smith called to schedule estimate Thursday at 9:30
@@ -139,7 +200,7 @@ Open `index.html` in Safari, Chrome or Edge. No install or build step. On iPad, 
 
 ## Automated tests
 
-`tests/run-tests.js` drives the real page in Chromium (Playwright): notes, highlighting, refresh, past days, unresolved, text and **real-OCR screenshot** imports with visual marks, matching and confidence, rejecting a completion, duplicate prevention, ambiguous and misread OCR, v1.2 migration, backups (v3, v1.0, bare list, bad files, undo), escaping, and iPad/phone layouts. The OCR files are served from `tests/node_modules`, so tests run offline.
+`tests/run-tests.js` (with `tests/capture-tests.js` for v1.4) drives the real page in Chromium (Playwright). v1.4 adds: sticky-note, email, Teams and handwritten-style captures with real OCR, correcting a source, keep-without-task, linking a status update, rejecting a completion, re-capturing, inbox views/search/archive/delete, saved-picture opt-in, both themes, list/scrapbook, stickers, hidden decorations, motivation, v1.3 → v1.4 migration, v4 backups and recovery from damaged storage, and iPad layouts. v1.3 covers: notes, highlighting, refresh, past days, unresolved, text and **real-OCR screenshot** imports with visual marks, matching and confidence, rejecting a completion, duplicate prevention, ambiguous and misread OCR, v1.2 migration, backups (v3, v1.0, bare list, bad files, undo), escaping, and iPad/phone layouts. The OCR files are served from `tests/node_modules`, so tests run offline.
 
 ```
 cd tests && npm install && npx playwright install chromium && cd ..

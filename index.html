@@ -10,7 +10,7 @@
 <title>Repair Advisor Planner</title>
 <style>
   /* ============================================================
-     Repair Advisor Planner v1.3 — styles
+     Repair Advisor Planner v1.4 — styles
      Palette: red / white / black. Change colors here only.
      ============================================================ */
   :root {
@@ -375,11 +375,12 @@
   /* Only the cards for the current view are shown. */
   body[data-view="notes"] [data-view]:not([data-view~="notes"]),
   body[data-view="open"] [data-view]:not([data-view~="open"]),
-  body[data-view="tasks"] [data-view]:not([data-view~="tasks"]) { display: none !important; }
+  body[data-view="tasks"] [data-view]:not([data-view~="tasks"]),
+  body[data-view="inbox"] [data-view]:not([data-view~="inbox"]) { display: none !important; }
 
   /* On phones the notebook comes before the side cards. */
   @media (max-width: 759px) {
-    body[data-view="notes"] .main-col, body[data-view="open"] .main-col { order: -1; }
+    body[data-view="notes"] .main-col, body[data-view="open"] .main-col, body[data-view="inbox"] .main-col { order: -1; }
     .layout { display: flex; flex-direction: column; }
   }
 
@@ -553,6 +554,183 @@
 
   .kbd-only { display: none; }
 
+
+  /* ============ v1.4: Capture Inbox ============ */
+  .capture-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .capture-btns .btn { min-height: 52px; }
+  .warn-text { color: #8A5300; font-weight: 600; }
+  .seg-small button { flex: 0 0 auto; min-height: 44px; padding: 6px 14px; font-size: 14px; }
+  .inbox-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .inbox-top h2 { margin: 0; }
+  .inbox-filter { margin-bottom: 10px; }
+  .inbox-filter button { font-size: 14px; }
+  .inbox-filter .n { font-variant-numeric: tabular-nums; opacity: 0.8; margin-left: 2px; }
+  #inboxSearch { margin-bottom: 4px; }
+  .cap-list { display: grid; gap: 10px; }
+  .cap { border: 1.5px solid var(--gray-300); border-radius: 12px; padding: 12px; background: var(--white); min-width: 0; }
+  .cap.needs { border-color: #D98E04; }
+  .cap-head { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .cap-when { font-size: 13px; color: var(--gray-700); }
+  .cap-body { font-size: 16px; line-height: 1.4; overflow-wrap: anywhere; margin-bottom: 6px; }
+  .cap-body .more { color: var(--gray-700); font-size: 14px; }
+  .cap-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .cap-actions .btn { min-height: 44px; padding: 6px 14px; font-size: 15px; }
+  .cap-details { margin-top: 10px; border-top: 1px dashed var(--gray-300); padding-top: 10px; display: grid; gap: 8px; }
+  .cap-field { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--gray-700); }
+  .cap-thumb { max-width: 100%; max-height: 320px; border-radius: 8px; border: 1px solid var(--gray-300); justify-self: start; }
+  .cap-details pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace; background: var(--gray-100); padding: 8px; border-radius: 6px; max-height: 260px; overflow: auto; }
+  .cap-links ul { margin: 4px 0 0; padding-left: 0; list-style: none; display: grid; gap: 2px; font-size: 15px; }
+  .src-chip {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 800;
+    border-radius: 999px; padding: 3px 10px 3px 8px; background: var(--gray-100); color: var(--ink); border: 1px solid var(--gray-300);
+  }
+  .src-ico { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .rv-caps { display: grid; gap: 8px; margin-bottom: 10px; }
+  .rv-cap { display: flex; gap: 10px; align-items: flex-start; border: 1.5px dashed var(--gray-300); border-radius: 12px; padding: 10px; }
+  .rv-cap-pic { padding: 0; border: 1px solid var(--gray-300); border-radius: 8px; background: var(--white); overflow: hidden; flex: none; }
+  .rv-cap-pic img, img.rv-cap-pic { display: block; width: 84px; height: 84px; object-fit: cover; }
+  .rv-cap-info { min-width: 0; flex: 1; display: grid; gap: 4px; }
+  .rv-cap-info p { margin: 0; }
+  .rv-cap-src { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--gray-700); max-width: 320px; }
+  .rv-cap-src select { min-height: 44px; }
+
+  /* Scrapbook: the same records, drawn by source type. Text stays real text. */
+  .scrapbook > .empty { grid-column: 1 / -1; }
+  .scrapbook { align-items: start; display: grid; gap: 22px 18px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); padding: 8px 2px 4px; }
+  .scrap {
+    position: relative; min-width: 0; padding: 16px 14px 12px; border-radius: 6px;
+    background: #FFFFFF; color: #33272B; box-shadow: 0 2px 6px rgba(51,39,43,0.14);
+    border: 1px solid rgba(51,39,43,0.08);
+  }
+  .scrap .cap-head { padding-right: 46px; }
+  .scrap .cap-when, .scrap .cap-body .more, .scrap .small { color: #5E4A4F; }
+  .scrap .btn { background: rgba(255,255,255,0.85); }
+  .scrap.needs { box-shadow: 0 0 0 3px #F2B44C, 0 2px 6px rgba(51,39,43,0.14); }
+  .scrap-sticky { background: #FFF1A6; transform: rotate(-0.8deg); border-radius: 2px; }
+  .scrap-sticky:nth-child(3n+2) { background: #FFD6E3; transform: rotate(0.7deg); }
+  .scrap-sticky:nth-child(3n) { background: #DDF2D0; }
+  .scrap-sticky::before {
+    content: ""; position: absolute; top: -9px; left: 50%; width: 70px; height: 20px; margin-left: -35px;
+    background: rgba(255,255,255,0.65); border: 1px solid rgba(51,39,43,0.08); transform: rotate(-3deg);
+  }
+  .scrap-email { background: #FFFFFF; border-top: 34px solid #FCE6EE; padding-top: 10px; }
+  .scrap-email::before {
+    content: ""; position: absolute; left: 0; right: 0; top: -34px; height: 34px;
+    background: linear-gradient(to bottom right, transparent 49.5%, #EFA6BC 50%, transparent 51.5%) left/50% 100% no-repeat,
+                linear-gradient(to bottom left, transparent 49.5%, #EFA6BC 50%, transparent 51.5%) right/50% 100% no-repeat;
+  }
+  .scrap-chat { background: #E9DDF7; border-radius: 22px 22px 22px 6px; }
+  .scrap-chat::after {
+    content: ""; position: absolute; left: 14px; bottom: -12px; width: 18px; height: 14px;
+    background: #E9DDF7; clip-path: polygon(0 0, 100% 0, 0 100%);
+  }
+  .scrap-notebook {
+    background-color: #FFF8EE;
+    background-image: linear-gradient(to right, transparent 30px, rgba(226,85,111,0.45) 30px, rgba(226,85,111,0.45) 32px, transparent 32px),
+                      repeating-linear-gradient(to bottom, transparent 0 25px, rgba(122,160,210,0.45) 25px 26px);
+    padding-left: 40px; line-height: 26px;
+  }
+  .scrap-notebook .cap-body { line-height: 26px; }
+  .scrap-scrap {
+    background: #EAD7BE; border-radius: 2px;
+    clip-path: polygon(0 2%, 8% 0, 22% 2%, 38% 0, 55% 2%, 70% 0, 86% 2%, 100% 0, 100% 97%, 90% 100%, 76% 97%, 60% 100%, 44% 97%, 28% 100%, 12% 97%, 0 100%);
+    padding-top: 20px; padding-bottom: 18px;
+  }
+  .scrap-appointment { background: #FFFFFF; padding-top: 12px; padding-left: 84px; min-height: 120px; }
+  .cal-badge {
+    position: absolute; left: 12px; top: 14px; width: 58px; border-radius: 8px; overflow: hidden; text-align: center;
+    border: 1.5px solid #70514B; background: #FFF8EE; color: #33272B;
+  }
+  .cal-badge span { display: block; background: #B33A62; color: #FFFFFF; font-size: 12px; font-weight: 800; text-transform: uppercase; padding: 2px 0; }
+  .cal-badge b { display: block; font-size: 24px; line-height: 1.3; }
+  .scrap-digital, .scrap-typed, .scrap-unknown { border: 1.5px dashed #C9B3BB; box-shadow: none; }
+
+  /* Stickers: own spots only, never on top of text or buttons. */
+  .sticker-slot {
+    position: absolute; top: 6px; right: 6px; width: 44px; height: 44px; border-radius: 50%;
+    border: 1.5px dashed rgba(112,81,75,0.45); background: rgba(255,255,255,0.5); color: #70514B;
+    display: grid; place-items: center; font-size: 20px; font-weight: 700; padding: 0;
+  }
+  .sticker-slot.filled { border-color: transparent; background: transparent; }
+  .sticker-slot .px { width: 36px; height: 36px; }
+  .desk-stickers { display: flex; gap: 10px; flex-wrap: wrap; padding: 8px; margin: 0 0 12px; border-radius: 12px; background: repeating-linear-gradient(45deg, #FCE6EE 0 10px, #FFF8EE 10px 20px); }
+  .desk-stickers .sticker-slot { position: static; }
+  .sticker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin-bottom: 14px; }
+  .sticker-grid button {
+    display: grid; justify-items: center; gap: 4px; padding: 10px 4px; min-height: 96px;
+    border: 1.5px solid var(--gray-300); border-radius: 12px; background: var(--white); font-size: 13px; font-weight: 600; color: var(--ink);
+  }
+  .sticker-grid button[aria-pressed="true"] { border-color: var(--black); box-shadow: 0 0 0 2px var(--black) inset; }
+  .sticker-grid .px { width: 44px; height: 44px; }
+  .px { image-rendering: pixelated; display: block; }
+
+  /* Motivation and small decorations */
+  .motivation {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 10px 12px 0; padding: 8px 12px;
+    border-radius: 999px; background: var(--red-tint); color: var(--ink); font-size: 15px; font-weight: 600;
+  }
+  .motivation #motText { flex: 1 1 160px; }
+  .motivation .link-btn { min-height: 40px; }
+  .header-decor { display: inline-flex; gap: 4px; margin-left: 4px; }
+  .header-decor .px { width: 26px; height: 26px; }
+  .entry { position: relative; }
+  .entry-cat { position: absolute; right: 14px; bottom: 6px; pointer-events: none; }
+  body:not(.no-decor) .entry-hint { padding-right: 64px; }
+  .entry-cat .px { width: 52px; height: 30px; }
+  body.no-decor .decor { display: none !important; }
+
+  /* ============ v1.4: Strawberry Cottage theme ============
+     Same layout, softer colors. Text colors are checked for contrast:
+     dark ink / cocoa on pink, cream and blush; cream text on cocoa. */
+  body[data-theme="strawberry"] {
+    --red: #B33A62;          /* strawberry, for accents and links */
+    --red-dark: #8E2A4C;
+    --red-tint: #FCE6EE;     /* soft blush */
+    --black: #70514B;        /* cocoa: header, strong borders */
+    --ink: #33272B;          /* dark ink */
+    --gray-700: #5E4A4F;
+    --gray-500: #76626A;
+    --gray-300: #EAD3DB;
+    --gray-100: #FCEFF3;
+    --white: #FFF8EE;        /* vanilla cream cards */
+    --hl: #FFE9AD;           /* butter yellow */
+    --hl-edge: #E6BE4E;
+    --blue: #6A4FA3;         /* lavender-ink for appointments */
+    --green: #2F7A43;
+    background-color: #FCE6EE;
+    background-image: radial-gradient(rgba(239,166,188,0.35) 1.5px, transparent 1.6px);
+    background-size: 22px 22px;
+  }
+  body[data-theme="strawberry"] .app-header { border-bottom: 6px solid #EFA6BC; }
+  body[data-theme="strawberry"] .app-header::after {
+    content: ""; display: block; height: 10px; margin: 14px -16px -14px;
+    background: linear-gradient(135deg, #EFA6BC 25%, transparent 25%) -6px 0/12px 12px,
+                linear-gradient(225deg, #FFE9AD 25%, transparent 25%) -6px 0/12px 12px;
+  }
+  body[data-theme="strawberry"].no-decor .app-header::after { display: none; }
+  body[data-theme="strawberry"] .brand-mark { background: #EFA6BC; color: #33272B; border-radius: 50% 50% 46% 46%; }
+  body[data-theme="strawberry"] h1, body[data-theme="strawberry"] .card h2, body[data-theme="strawberry"] .page-title h2 {
+    font-family: ui-rounded, "SF Pro Rounded", "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  body[data-theme="strawberry"] .card { border-radius: 18px; box-shadow: 0 2px 0 #EFC6D3, 0 4px 14px rgba(112,81,75,0.08); }
+  body[data-theme="strawberry"] .btn { border-radius: 14px; }
+  body[data-theme="strawberry"] .btn-primary { background: #EFA6BC; border-color: #D98AA3; color: #33272B; }
+  body[data-theme="strawberry"] .btn-primary:active { background: #E592AB; }
+  body[data-theme="strawberry"] .btn-danger { border-color: #B33A62; color: #8E2A4C; }
+  body[data-theme="strawberry"] .tab { border-color: #A88B85; }
+  body[data-theme="strawberry"] .tab[aria-pressed="true"] { background: #FFF8EE; color: #33272B; }
+  body[data-theme="strawberry"] .entry { background: #FFF3F6; }
+  body[data-theme="strawberry"] .page-tools { background: #FFF3F6; }
+  body[data-theme="strawberry"] .section.today .count, body[data-theme="strawberry"] .count { color: #FFF8EE; }
+  body[data-theme="strawberry"] .stat.alert { background: #FCE6EE; }
+  body[data-theme="strawberry"] .stat.alert .num { color: #8E2A4C; }
+  body[data-theme="strawberry"] .toast { background: #70514B; color: #FFF8EE; }
+  body[data-theme="strawberry"] .toast.error { background: #8E2A4C; }
+  body[data-theme="strawberry"] .modal { border-top-color: #EFA6BC; border-radius: 18px; }
+  body[data-theme="strawberry"] .motivation { background: #E9DDF7; }
+  body[data-theme="strawberry"] .chip-s.k-followup { border-color: #B33A62; color: #8E2A4C; }
+  body[data-theme="strawberry"] .seg button[aria-pressed="true"], body[data-theme="strawberry"] .chip[aria-pressed="true"] { background: #70514B; border-color: #70514B; color: #FFF8EE; }
+
   /* ---------- Keyboard hint (mouse/keyboard devices only) ---------- */
   .shortcuts { display: none; font-size: 13px; color: var(--gray-700); margin-top: 16px; text-align: center; }
   kbd {
@@ -596,9 +774,11 @@
     <div class="brand">
       <div class="brand-mark" aria-hidden="true">R</div>
       <h1>Repair Advisor Planner</h1>
+      <span class="header-decor decor" id="headerDecor" aria-hidden="true"></span>
     </div>
     <nav class="tabs" aria-label="Views">
       <button type="button" class="tab" data-tab="notes" aria-pressed="true">Daily notes</button>
+      <button type="button" class="tab" data-tab="inbox" aria-pressed="false">Capture Inbox <span class="tab-count" id="inboxTabCount"></span></button>
       <button type="button" class="tab" data-tab="open" aria-pressed="false">Unresolved <span class="tab-count" id="openTabCount"></span></button>
       <button type="button" class="tab" data-tab="tasks" aria-pressed="false">Task board <span class="tab-count" id="taskTabCount"></span></button>
     </nav>
@@ -694,37 +874,52 @@
       </section>
 
       <section class="card" aria-labelledby="notesTitle" id="notesCard">
-        <h2 id="notesTitle">Import notes</h2>
-        <p class="small">Screenshots, photos or pasted text. Each line is sorted into follow-ups, appointments and info. You review everything before anything changes.</p>
-        <div class="field">
-          <label for="importDate">These notes are from</label>
-          <input type="date" id="importDate">
+        <h2 id="notesTitle">Capture</h2>
+        <p class="small">Photos, screenshots, sticky notes, emails, Teams chats or a quick note. The app guesses what it is and suggests what to do; nothing changes until you approve. Captures wait in the Capture Inbox.</p>
+        <div class="capture-btns">
+          <button type="button" class="btn btn-primary" id="cameraBtn">Take photo</button>
+          <button type="button" class="btn" id="chooseImageBtn">Choose images</button>
         </div>
         <div class="drop-zone" id="dropZone">
-          <strong>Drop or paste a screenshot here</strong><br>
+          <strong>Or drop / paste a screenshot here</strong><br>
           Read on this device. Highlights, cross-outs and checkmarks are looked for too.
-          <div style="margin-top:8px">
-            <button type="button" class="btn" id="chooseImageBtn">Choose image</button>
-          </div>
         </div>
+        <input type="file" id="cameraFile" accept="image/*" capture="environment" class="visually-hidden" tabindex="-1" aria-hidden="true">
         <input type="file" id="imageFile" accept="image/*" multiple class="visually-hidden" tabindex="-1" aria-hidden="true">
         <div class="ocr-status" id="ocrStatus" role="status" aria-live="polite" hidden>
           <span id="ocrStatusText"></span>
           <span class="ocr-bar" id="ocrBar"><span></span></span>
         </div>
         <div class="field">
-          <label for="notesInput">Or paste text, one note per line</label>
-          <textarea id="notesInput" rows="5" spellcheck="false" placeholder="10452 Jones - check bumper bracket order&#10;Smith called to schedule estimate Thursday at 9:30&#10;10518 - follow up with parts on mirror ETA"></textarea>
+          <label for="notesInput">Or paste or type a note</label>
+          <textarea id="notesInput" rows="4" spellcheck="true" placeholder="10452 Jones - check bumper bracket ETA&#10;Smith confirmed estimate Thursday at 9:30 AM"></textarea>
         </div>
         <div class="btn-row">
-          <button type="button" class="btn btn-dark" id="readNotesBtn">Read &amp; sort</button>
+          <button type="button" class="btn btn-dark" id="readNotesBtn">Capture</button>
           <button type="button" class="btn" id="clearNotesBtn">Clear</button>
         </div>
-        <details class="history" id="importHistory">
-          <summary>Import history (<span id="importHistoryCount">0</span>)</summary>
-          <p class="small">The text read from each import. Screenshots themselves are not kept.</p>
-          <div id="importHistoryList"></div>
-        </details>
+        <div class="field" style="margin-top:12px">
+          <label for="importDate">These notes are from</label>
+          <input type="date" id="importDate">
+        </div>
+        <label class="toggle"><input type="checkbox" id="thumbToggle"> Keep a small picture of each capture</label>
+        <p class="small" id="thumbWarn">Off by default. Pictures can show customer details and stay on this device until you delete them. Text is always kept.
+          <button type="button" class="link-btn" id="dropThumbsBtn">Delete all saved pictures</button></p>
+      </section>
+
+      <section class="card" aria-labelledby="lookTitle" id="lookCard">
+        <h2 id="lookTitle">Appearance</h2>
+        <div class="seg" id="themeSeg" role="group" aria-label="Theme">
+          <button type="button" data-v="classic" aria-pressed="true">Classic Work</button>
+          <button type="button" data-v="strawberry" aria-pressed="false">Strawberry Cottage</button>
+        </div>
+        <label class="toggle"><input type="checkbox" id="decorToggle"> Show decorations and stickers</label>
+        <label class="toggle"><input type="checkbox" id="motToggle"> Daily motivation</label>
+        <div class="seg" id="moodSeg" role="group" aria-label="Motivation style">
+          <button type="button" data-v="sweet" aria-pressed="false">Sweet</button>
+          <button type="button" data-v="funny" aria-pressed="false">Funny</button>
+          <button type="button" data-v="encouraging" aria-pressed="false">Encouraging</button>
+        </div>
       </section>
 
       <section class="card" aria-labelledby="backupTitle">
@@ -741,7 +936,7 @@
       </section>
 
       <p class="shortcuts">
-        <kbd>N</kbd> write note / new task · <kbd>/</kbd> search · <kbd>Ctrl</kbd>+<kbd>V</kbd> paste screenshot · <kbd>Esc</kbd> cancel
+        <kbd>N</kbd> write note / new task · <kbd>C</kbd> capture · <kbd>/</kbd> search · <kbd>Ctrl</kbd>+<kbd>V</kbd> paste screenshot · <kbd>Esc</kbd> cancel
       </p>
     </div>
 
@@ -752,6 +947,7 @@
         <h2 id="reviewTitle">Review suggestions</h2>
         <p class="small" id="reviewSummary"></p>
         <div class="review-images" id="reviewImages"></div>
+        <div class="rv-caps" id="reviewCaps"></div>
         <details class="history" id="reviewTextBox">
           <summary>Text that was read</summary>
           <div class="history-item"><pre id="reviewText"></pre></div>
@@ -784,9 +980,16 @@
           <button type="button" class="btn" id="reviewPageBtn">Suggest tasks</button>
           <button type="button" class="btn" id="writeBtn">Write</button>
         </div>
+        <div class="motivation" id="motivation" hidden>
+          <span class="mot-heart decor" aria-hidden="true">&#9825;</span>
+          <span id="motText"></span>
+          <button type="button" class="link-btn" id="motNext">Another</button>
+          <button type="button" class="link-btn" id="motHide" aria-label="Hide daily motivation">Hide</button>
+        </div>
         <div class="appt-box" id="apptBox" hidden></div>
         <div class="page-lines" id="pageLines"></div>
         <div class="entry">
+          <span class="entry-cat decor" id="entryCat" aria-hidden="true"></span>
           <label for="noteEntry" class="visually-hidden">Write a note</label>
           <textarea id="noteEntry" rows="3" spellcheck="true" autocapitalize="sentences" placeholder="Write a note. Each line can be checked off on its own."></textarea>
           <div class="btn-row">
@@ -794,6 +997,28 @@
           </div>
           <p class="entry-hint" id="entryHint">Return starts a new line. <span class="kbd-only">Ctrl+Enter (&#8984;+Enter) adds.</span> Your unsaved text is kept if the page reloads.</p>
         </div>
+      </section>
+
+      <section class="card inbox" id="inboxView" data-view="inbox" aria-labelledby="inboxTitle">
+        <div class="inbox-top">
+          <h2 id="inboxTitle">Capture Inbox</h2>
+          <div class="seg seg-small" id="inboxViewSeg" role="group" aria-label="Layout">
+            <button type="button" data-v="list" aria-pressed="true">List</button>
+            <button type="button" data-v="scrapbook" aria-pressed="false">Scrapbook</button>
+          </div>
+        </div>
+        <div class="seg inbox-filter" id="inboxFilter" role="group" aria-label="Show">
+          <button type="button" data-v="review" aria-pressed="true">Needs review <span class="n">0</span></button>
+          <button type="button" data-v="saved" aria-pressed="false">Saved <span class="n">0</span></button>
+          <button type="button" data-v="linked" aria-pressed="false">Linked <span class="n">0</span></button>
+          <button type="button" data-v="archived" aria-pressed="false">Archived <span class="n">0</span></button>
+        </div>
+        <label for="inboxSearch" class="visually-hidden">Search captures</label>
+        <input type="search" id="inboxSearch" placeholder="Search folder #, customer or words" spellcheck="false">
+        <p class="small" id="inboxNote" aria-live="polite"></p>
+        <p class="small warn-text" id="storageNote" hidden></p>
+        <div class="desk-stickers decor" id="deskStickers" hidden></div>
+        <div id="inboxList" class="cap-list"></div>
       </section>
 
       <section class="card" id="openView" data-view="open" aria-labelledby="openTitle">
@@ -895,6 +1120,17 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="stickerSheet" hidden>
+  <div class="modal sheet" role="dialog" aria-modal="true" aria-labelledby="stickerTitle">
+    <h3 id="stickerTitle">Pick a sticker</h3>
+    <div class="sticker-grid" id="stickerGrid"></div>
+    <div class="btn-row">
+      <button type="button" class="btn btn-danger" id="stickerRemove">Remove sticker</button>
+      <button type="button" class="btn" id="stickerCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="imageView" hidden>
   <div class="modal image-view" role="dialog" aria-modal="true" aria-label="Screenshot">
     <img id="imageViewImg" alt="Imported screenshot">
@@ -904,7 +1140,7 @@
 
 <script>
 /* ==============================================================
-   Repair Advisor Planner v1.3
+   Repair Advisor Planner v1.4
    Single-file app. No backend, no accounts, no tracking.
    Notes and tasks live in this browser's localStorage.
 
@@ -925,6 +1161,8 @@
     10. Smart import (classify, match tasks, review, apply)
     11. Visual marks and reading images (highlighter, cross-outs, checks)
     12. Event wiring, keyboard shortcuts and startup
+    13. Capture Inbox (records, source recognition, inbox views)
+    14. Strawberry Cottage (theme, stickers, motivation)
    ============================================================== */
 (function () {
   "use strict";
@@ -939,9 +1177,13 @@
   var SCHEMA_KEY = "repairAdvisorPlanner.schemaVersion";
   var PRE_V13_KEY = "repairAdvisorPlanner.tasks.v1.beforeV1_3";  // copy of v1.2 tasks taken once, before migrating
   var UNDO_RESTORE_KEY = "repairAdvisorPlanner.beforeRestore";    // everything as it was before the last backup import
+  var CAPTURES_KEY = "repairAdvisorPlanner.captures.v1";          // v1.4 Capture Inbox (text + metadata, no images unless opted in)
+  var STICKERS_KEY = "repairAdvisorPlanner.stickers.v1";          // v1.4 sticker placement, kept apart from notes and tasks
+  var SNAPSHOT_KEY = "repairAdvisorPlanner.dailySnapshot";        // v1.4 automatic once-a-day safety copy of everything
+  var PRE_V14_KEY = "repairAdvisorPlanner.notebook.v1.beforeV1_4"; // copy of the v1.3 notebook taken once, before migrating
   var APP_ID = "repair-advisor-planner";
-  var SCHEMA_VERSION = 3;   // storage layout: 1-2 = tasks only, 3 = tasks + notebook + settings + import log
-  var DATA_VERSION = 3;     // backup file format (v1.0 = 1, v1.1-1.2 = 2, v1.3 = 3)
+  var SCHEMA_VERSION = 4;   // storage layout: 1-2 = tasks only, 3 = + notebook, settings, import log, 4 = + captures, stickers
+  var DATA_VERSION = 4;     // backup file format (v1.0 = 1, v1.1-1.2 = 2, v1.3 = 3, v1.4 = 4)
   var CATEGORIES = ["Parts", "Supplements", "Sublet", "Customer", "Scheduling", "Delivery", "Other"];
   var KINDS = ["followup", "appointment", "reference"];   // a note line's type ("" = not set)
   var KIND_LABEL = { followup: "Follow-up", appointment: "Appointment", reference: "Info", uncertain: "Unsure", completion: "Looks done", "": "Not set" };
@@ -1051,21 +1293,20 @@
       if (result.error) throw new Error(result.error);
       return result.tasks;
     } catch (e) {
-      // Keep a copy of the unreadable data so nothing is silently lost.
+      // Keep a copy of the unreadable data so nothing is silently lost,
+      // then fall back to today's automatic safety copy if there is one.
       try { localStorage.setItem(STORAGE_KEY + ".corrupt." + Date.now(), raw); } catch (ignore) {}
-      showToast("Saved tasks couldn't be read. Starting fresh; a copy was kept.", true);
-      return [];
+      var snap = snapshotPart("tasks", function (v) { var r = validateTaskArray(v); return r.error ? null : r.tasks; });
+      showToast(snap ? "Saved tasks were damaged. Restored the automatic copy from " + snap.when + "." : "Saved tasks couldn't be read. Starting fresh; a copy was kept.", true);
+      if (snap) storageSet(STORAGE_KEY, JSON.stringify(snap.value));
+      return snap ? snap.value : [];
     }
   }
 
   function saveTasks() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-      return true;
-    } catch (e) {
-      showToast("Couldn't save. Storage may be full or blocked (Private Browsing?).", true);
-      return false;
-    }
+    if (storageSet(STORAGE_KEY, JSON.stringify(tasks))) return true;
+    showToast("Couldn't save. Storage may be full or blocked (Private Browsing?).", true);
+    return false;
   }
 
   function loadLastEstimator() {
@@ -1077,8 +1318,12 @@
   }
 
   function storageGet(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+  // Writes, then reads back to make sure the whole value was stored.
   function storageSet(key, value) {
-    try { localStorage.setItem(key, value); return true; } catch (e) { return false; }
+    try {
+      localStorage.setItem(key, value);
+      return localStorage.getItem(key) === value;
+    } catch (e) { return false; }
   }
 
   /* Notebook: one page per day, each a list of lines in the order written.
@@ -1096,7 +1341,9 @@
        editedAt. */
   var notebook = { version: 1, days: {} };
   var settings = { highlightMeans: "done", hideDone: false, view: "notes" };
-  var importLog = [];
+  var importLog = [];     // v1.3 import history; v1.4 keeps it only for older backups (shown in Capture Inbox instead)
+  var captures = [];      // v1.4 Capture Inbox records (see section 13)
+  var stickers = { cards: {}, desk: [] };
 
   var DATE_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
   var TIME_RE_HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -1136,6 +1383,8 @@
       taskId: typeof l.taskId === "string" ? l.taskId.slice(0, 40) : "",
       appt: normalizeAppt(l.appt),
       src: ["typed", "text", "image"].indexOf(l.src) !== -1 ? l.src : "typed",
+      captureId: typeof l.captureId === "string" ? l.captureId.slice(0, 40) : "",
+      topic: TOPICS.indexOf(l.topic) !== -1 ? l.topic : "",
       importId: typeof l.importId === "string" ? l.importId.slice(0, 40) : "",
       vis: normalizeVis(l.vis),
       orig: typeof l.orig === "string" ? l.orig.slice(0, MAX_LINE_LEN) : "",
@@ -1172,7 +1421,16 @@
     return {
       highlightMeans: HL_MEANINGS.indexOf(x.highlightMeans) !== -1 ? x.highlightMeans : "done",
       hideDone: x.hideDone === true,
-      view: ["notes", "open", "tasks"].indexOf(x.view) !== -1 ? x.view : "notes"
+      view: ["notes", "inbox", "open", "tasks"].indexOf(x.view) !== -1 ? x.view : "notes",
+      // v1.4 appearance and inbox preferences
+      theme: x.theme === "strawberry" ? "strawberry" : "classic",
+      decor: x.decor !== false,
+      motivation: x.motivation !== false,
+      mood: ["sweet", "funny", "encouraging"].indexOf(x.mood) !== -1 ? x.mood : "encouraging",
+      motIndex: typeof x.motIndex === "number" && x.motIndex >= 0 ? Math.floor(x.motIndex) : -1,
+      inboxView: x.inboxView === "scrapbook" ? "scrapbook" : "list",
+      inboxFilter: ["review", "saved", "linked", "archived"].indexOf(x.inboxFilter) !== -1 ? x.inboxFilter : "review",
+      keepThumbs: x.keepThumbs === true
     };
   }
 
@@ -1200,8 +1458,10 @@
       return r.notebook;
     } catch (e) {
       storageSet(NOTEBOOK_KEY + ".corrupt." + Date.now(), raw);
-      showToast("Saved notes couldn't be read. Starting fresh; a copy was kept.", true);
-      return { version: 1, days: {} };
+      var snap = snapshotPart("notebook", function (v) { var r = normalizeNotebook(v); return r.error ? null : r.notebook; });
+      showToast(snap ? "Saved notes were damaged. Restored the automatic copy from " + snap.when + "." : "Saved notes couldn't be read. Starting fresh; a copy was kept.", true);
+      if (snap) storageSet(NOTEBOOK_KEY, JSON.stringify(snap.value));
+      return snap ? snap.value : { version: 1, days: {} };
     }
   }
 
@@ -1227,14 +1487,53 @@
      so tasks need no conversion. The first time v1.3 runs, a copy of the
      task list is kept under PRE_V13_KEY, the empty notebook is created and
      the storage version is recorded. Nothing is deleted. */
+  /* v1.3 -> v1.4: the notebook and tasks are unchanged. A copy of the
+     notebook is kept once under PRE_V14_KEY, and each v1.3 Import history
+     record becomes a "Saved" capture in the Capture Inbox (text only).
+     The old import history key is left in place, untouched. */
   function migrateStorage() {
     var from = Number(storageGet(SCHEMA_KEY)) || 0;
     if (from >= SCHEMA_VERSION) return from;
     var oldTasks = storageGet(STORAGE_KEY);
     if (oldTasks !== null && storageGet(PRE_V13_KEY) === null) storageSet(PRE_V13_KEY, oldTasks);
-    if (storageGet(NOTEBOOK_KEY) === null) storageSet(NOTEBOOK_KEY, JSON.stringify({ version: 1, days: {} }));
+    var oldNotes = storageGet(NOTEBOOK_KEY);
+    if (oldNotes === null) storageSet(NOTEBOOK_KEY, JSON.stringify({ version: 1, days: {} }));
+    else if (from === 3 && storageGet(PRE_V14_KEY) === null) storageSet(PRE_V14_KEY, oldNotes);
+    if (storageGet(CAPTURES_KEY) === null) {
+      var log = [];
+      try { log = normalizeImportLog(JSON.parse(storageGet(IMPORTS_KEY) || "[]")); } catch (e) { log = []; }
+      if (!storageSet(CAPTURES_KEY, JSON.stringify({ version: 1, items: capturesFromImportLog(log) }))) return from;  // try again next time
+    }
     storageSet(SCHEMA_KEY, String(SCHEMA_VERSION));
     return from;
+  }
+
+  /* Automatic safety copy: once a day, before anything is changed, the
+     whole planner is copied to SNAPSHOT_KEY. If a saved list is ever found
+     damaged, that copy is used instead of starting empty. */
+  function takeDailySnapshot() {
+    var prev = safeParse(storageGet(SNAPSHOT_KEY)), today = todayKey();
+    if (prev && prev.day === today) return;
+    var old = (prev && prev.data) || {};
+    // A part that can't be read now keeps the previous good copy instead.
+    function part(name, key) { var v = safeParse(storageGet(key)); return v !== null ? v : (old[name] !== undefined ? old[name] : null); }
+    var data = {
+      tasks: part("tasks", STORAGE_KEY), notebook: part("notebook", NOTEBOOK_KEY),
+      captures: part("captures", CAPTURES_KEY), settings: part("settings", SETTINGS_KEY),
+      stickers: part("stickers", STICKERS_KEY)
+    };
+    if (data.tasks === null && data.notebook === null) return;   // nothing readable to keep
+    storageSet(SNAPSHOT_KEY, JSON.stringify({ day: today, at: new Date().toISOString(), data: data }));
+  }
+
+  function safeParse(raw) { if (raw === null) return null; try { return JSON.parse(raw); } catch (e) { return null; } }
+
+  // Returns { value, when } from the safety copy, or null.
+  function snapshotPart(name, check) {
+    var snap = safeParse(storageGet(SNAPSHOT_KEY));
+    if (!snap || !snap.data || snap.data[name] === null || snap.data[name] === undefined) return null;
+    var v = check(snap.data[name]);
+    return v ? { value: v, when: formatDate(snap.day || todayKey()) } : null;
   }
 
   /* ---------- 4. Task helpers ---------- */
@@ -1327,7 +1626,9 @@
     renderDayList();
     renderNoteSearch();
     renderHlMeaning();
-    renderImportHistory();
+    renderInbox();
+    renderMotivation();
+    applyAppearance();
     $("taskTabCount").textContent = "(" + tasks.filter(function (t) { return !t.done; }).length + " open)";
     $("undoRestoreRow").hidden = storageGet(UNDO_RESTORE_KEY) === null;
   }
@@ -1623,7 +1924,9 @@
   }
 
   /* ---------- 7. Backup ----------
-     v1.3 backups hold tasks, daily notes, settings and the import log.
+     v1.4 backups hold tasks, daily notes, Capture Inbox, settings (theme,
+     decorations, motivation), sticker placement and the v1.3 import log.
+     v1.3 backups still import (their import log becomes Saved captures).
      Older backups (v1.0-v1.2: tasks only, or a bare task list) still import;
      they replace the tasks and leave the daily notes alone. Before any
      import replaces data, everything is copied to UNDO_RESTORE_KEY so the
@@ -1631,7 +1934,7 @@
   function backupData() {
     return {
       app: APP_ID, version: DATA_VERSION, exportedAt: new Date().toISOString(),
-      tasks: tasks, notebook: notebook, settings: settings, imports: importLog
+      tasks: tasks, notebook: notebook, captures: captures, stickers: stickers, settings: settings, imports: importLog
     };
   }
 
@@ -1652,7 +1955,7 @@
       a.click();
       document.body.removeChild(a);
       setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-      showToast("Backup exported (" + tasks.length + " tasks, " + countLines(notebook) + " note lines)");
+      showToast("Backup exported (" + tasks.length + " tasks, " + countLines(notebook) + " note lines, " + captures.length + " captures)");
     } catch (e) {
       showToast("Export failed: " + e.message, true);
     }
@@ -1666,16 +1969,26 @@
     var legacy = Array.isArray(parsed) || !parsed || !parsed.notebook;
     var taskResult = validateTaskArray(Array.isArray(parsed) ? parsed : (parsed && parsed.tasks));
     if (taskResult.error) return { error: taskResult.error };
-    if (legacy) return { tasks: taskResult.tasks, notebook: null, settings: null, imports: null, legacy: true };
+    if (legacy) return { tasks: taskResult.tasks, notebook: null, settings: null, imports: null, captures: null, stickers: null, legacy: true };
     if (typeof parsed.version === "number" && parsed.version > DATA_VERSION) {
       return { error: "That backup is from a newer version of the planner." };
     }
     var nb = normalizeNotebook(parsed.notebook);
     if (nb.error) return { error: nb.error };
+    var imports = normalizeImportLog(parsed.imports);
+    var caps;
+    if (parsed.captures !== undefined) {
+      var cr = normalizeCaptures(parsed.captures);
+      if (cr.error) return { error: cr.error };
+      caps = cr.items;
+    } else {
+      caps = capturesFromImportLog(imports);   // v1.3 backup
+    }
     return {
-      tasks: taskResult.tasks, notebook: nb.notebook,
+      tasks: taskResult.tasks, notebook: nb.notebook, captures: caps,
+      stickers: normalizeStickers(parsed.stickers),
       settings: parsed.settings ? normalizeSettings(parsed.settings) : null,
-      imports: normalizeImportLog(parsed.imports), legacy: false
+      imports: imports, legacy: false
     };
   }
 
@@ -1695,8 +2008,8 @@
       var msg = b.legacy
         ? "This is an older backup with tasks only.\n\nReplace your current " + plural(tasks.length, "task") + " with " +
           plural(b.tasks.length, "task") + " from it? Your daily notes are kept as they are."
-        : "Replace your current " + plural(tasks.length, "task") + " and " + plural(countLines(notebook), "note line") +
-          " with " + plural(b.tasks.length, "task") + " and " + plural(countLines(b.notebook), "note line") + " from this backup?";
+        : "Replace your current " + plural(tasks.length, "task") + ", " + plural(countLines(notebook), "note line") + " and " + plural(captures.length, "capture") +
+          " with " + plural(b.tasks.length, "task") + ", " + plural(countLines(b.notebook), "note line") + " and " + plural(b.captures.length, "capture") + " from this backup?";
       msg += "\n\nYou can undo this once with \u201cUndo last backup import\u201d.";
       askConfirm(msg, "Replace", function () {
         var before = JSON.stringify(backupData());
@@ -1707,6 +2020,8 @@
         tasks = b.tasks;
         if (!b.legacy) {
           notebook = b.notebook;
+          captures = b.captures;
+          stickers = b.stickers;
           if (b.settings) settings = b.settings;
           importLog = b.imports || [];
         }
@@ -1728,6 +2043,8 @@
     askConfirm("Put back the notes and tasks you had before the last backup import?", "Undo import", function () {
       tasks = b.tasks;
       notebook = b.notebook || notebook;
+      if (b.captures) captures = b.captures;
+      if (b.stickers) stickers = b.stickers;
       if (b.settings) settings = b.settings;
       importLog = b.imports || [];
       commitAll();
@@ -1741,6 +2058,8 @@
   function commitAll() {
     var ok = saveTasks();
     ok = saveNotebook() && ok;
+    ok = saveCaptures() && ok;
+    saveStickers();
     saveSettings();
     saveImportLog();
     return ok;
@@ -2231,6 +2550,8 @@
     var chips = [];
     if (opts && opts.day) chips.push('<span class="chip-s">' + esc(formatDate(opts.day)) + "</span>");
     if (line.kind) chips.push('<span class="chip-s k-' + line.kind + '">' + KIND_LABEL[line.kind] + "</span>");
+    if (line.topic && TOPIC_LABEL[line.topic] && line.topic !== "appointment") chips.push('<span class="chip-s">' + TOPIC_LABEL[line.topic] + "</span>");
+    if (line.captureId && findCapture(line.captureId)) chips.push('<span class="chip-s" title="Came from the Capture Inbox">From ' + esc(SOURCE_LABEL[findCapture(line.captureId).source].toLowerCase()) + "</span>");
     if (line.appt && (line.appt.date || line.appt.time)) {
       chips.push('<span class="chip-s k-appointment" title="' + (line.appt.confirmed ? "Confirmed" : "Not confirmed yet") + '">' + esc(apptText(line.appt)) + "</span>");
     }
@@ -2408,16 +2729,7 @@
     $("hlMeaningHelp").textContent = HL_HELP[settings.highlightMeans];
   }
 
-  function renderImportHistory() {
-    $("importHistoryCount").textContent = importLog.length;
-    $("importHistoryList").innerHTML = importLog.map(function (e) {
-      return '<div class="history-item"><strong>' + esc(formatDate(toDateKey(new Date(e.at)))) + " " + esc(timeLabel(e.at)) + "</strong> · " +
-        (e.src === "image" ? "screenshot" : "pasted text") + (e.date ? " · notes for " + esc(formatDate(e.date)) : "") +
-        " · " + e.lines + " new " + (e.lines === 1 ? "line" : "lines") +
-        "<pre>" + esc(e.text) + "</pre>" +
-        '<button type="button" class="link-btn" data-forget="' + esc(e.id) + '">Delete this record</button></div>';
-    }).join("") || '<p class="small">Nothing imported yet.</p>';
-  }
+
 
   function setView(v) {
     settings.view = v;
@@ -2651,6 +2963,24 @@
   var DAY_WORDS = /\b(?:today|tomorrow|tmrw|tmw|tonight|mon(?:day)?|tue(?:s|sday)?|wed(?:s|nesday)?|thu(?:r|rs|rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?|next week)\b|\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/i;
   var TIME_WORDS = /\b\d{1,2}:[0-5]\d\b|\b\d{1,2}\s*[ap]\.?m\b|\b\d{1,2}[ap]\b|\bnoon\b|\b(?:at|@)\s*\d{1,2}\b(?![\/:\d])/i;
   var REF_WORDS = /\b(?:said|says|states?|stated|told (?:me|us)|per (?:cust|customer|him|her|adj|adjuster|ins)|accident|rear[\s-]?ended|backed into|t-?boned|deer|hit (?:a|by|the|him|her)|struck|collision|claim|policy|deductible|vin|mileage|miles|injur\w*|police|report(?:ed)?|insured|fyi|info|color|paint code|was|were|already|arrived|came in|received|rcvd|delivered|approved|denied|total(?:ed)?|towed|left (?:vm|voicemail|message)|lvm|no answer)\b/gi;
+  // v1.4: what a line is about, shown as a small label and kept on the note line.
+  var TOPICS = ["accident", "concern", "parts", "supplement", "status", "appointment", "general"];
+  var TOPIC_LABEL = { accident: "Accident details", concern: "Customer concern", parts: "Parts", supplement: "Supplement", status: "Repair status", appointment: "Appointment", general: "" };
+  var ACCIDENT_RE = /\b(?:accident|rear[\s-]?ended|hit (?:a|by|the|him|her|from)|struck|collision|crash(?:ed)?|t-?boned|side-?swiped|backed into|deer|stop ?light|intersection|airbags?|ran a red|police report|other driver|at fault|totall?ed)\b/i;
+  var CONCERN_RE = /\b(?:won'?t (?:close|open|start|latch|lock)|doesn'?t (?:close|open|work|latch)|noise|rattl\w*|squeak\w*|leak\w*|pulls? (?:left|right|to)|smell\w*|vibrat\w*|worried|concern\w*|upset|unhappy|complain\w*|not happy|wants to know|asked about|paint (?:doesn'?t|does not|not) match)\b/i;
+  var STATUS_RE = /\b(?:confirmed|ordered|shipped|arrived|received|rcvd|approved|denied|delivered|picked up|in paint|in the booth|on the frame|in assembly|in detail|ready for|completed|finished|on backorder|back-?ordered)\b/i;
+  var LEAD_PERSON_RE = /^([A-Z][a-z'-]+)\s+(?:confirmed|said|says|called|texted|emailed|ordered|wants|asked|replied|mentioned|told|checked|got|sent|will|is|was|has|approved|denied)\b/;
+
+  function topicOf(text, a, kind) {
+    if (kind === "appointment") return "appointment";
+    if (ACCIDENT_RE.test(text)) return "accident";
+    if (CONCERN_RE.test(text)) return "concern";
+    if (a && a.category === "Supplements") return "supplement";
+    if (STATUS_RE.test(text) && kind !== "followup") return "status";
+    if (a && a.category === "Parts") return "parts";
+    return "general";
+  }
+
   var DONE_TEXT = /(?:^|\s)(?:done|completed?|finished|handled|taken care of|took care of|resolved|all set)(?=$|[\s.!,)])|[✓✔☑]|\[x\]|\(x\)/i;
 
   // Returns { kind, conf: "high"|"medium"|"low", why, done, apptLike }.
@@ -2683,6 +3013,9 @@
     if (/\b(?:said|says|states?|stated|told (?:me|us)|per (?:cust|customer|him|her|adj|adjuster|ins))\b/i.test(raw)) rf += 1;  // what someone said
     if (/^[a-z][a-z ]{0,14}:\s*\S/i.test(raw.trim()) && !start) rf += 1;              // "Ins: Geico", "Claim: 123"
     if (raw.replace(PHONE_RE, "") !== raw) rf += 1;
+    if (ACCIDENT_RE.test(raw)) rf += 2;                              // accident details
+    if (CONCERN_RE.test(raw) && !start) rf += 1.5;                   // what the customer noticed
+    if (STATUS_RE.test(raw) && !start) rf += 1.5;                    // "Derek confirmed bracket was ordered"
     if (/^(?:called|texted|emailed|spoke|talked|left|got|heard)\b/i.test(body) && !/\bto (?:schedule|book|set up)\b/i.test(raw)) rf += 1.5;
 
     var scores = [["followup", fu], ["appointment", ap], ["reference", rf]].sort(function (x, y) { return y[1] - x[1]; });
@@ -2799,7 +3132,9 @@
   // f: { folder, customer, category }. Returns up to 5 open tasks, best first:
   // [{ taskId, level: "high"|"medium"|"low", score, reasons, ambiguous }]
   function matchTasks(f, text) {
-    var A = sigTokens(text, nameWords(f.customer));
+    var skipWords = nameWords(f.customer);
+    if (f.person) Object.assign(skipWords, nameWords(f.person));   // a co-worker's name isn't part of the job
+    var A = sigTokens(text, skipWords);
     var open = tasks.filter(function (t) { return !t.done; });
     var perFolder = {};
     open.forEach(function (t) { if (t.folder) perFolder[t.folder.toLowerCase()] = (perFolder[t.folder.toLowerCase()] || 0) + 1; });
@@ -2831,7 +3166,7 @@
       else if (cEq && sim >= 0.3) level = "medium";
       else if (!cConflict && sim >= 0.75 && shared.length >= 2) level = "medium";
       else if (fEq || fNear || (cEq && noFolderToCompare) || (!cConflict && sim >= 0.4 && shared.length >= 1)) level = "low";
-      if (level) out.push({ taskId: t.id, level: level, score: score, reasons: reasons, ambiguous: false });
+      if (level) out.push({ taskId: t.id, level: level, score: score, reasons: reasons, ambiguous: false, sim: sim });
     });
     out.sort(function (a, b) { return b.score - a.score; });
     // Two close candidates: don't call either one "high"; ask.
@@ -2875,16 +3210,17 @@
   }
 
   var ACTION_LABEL = {
-    task: "Create open task",
-    link: "Link to an existing task",
+    task: "Add as an open task",
+    link: "Link to an existing task (status update)",
     complete: "Mark an existing task complete",
-    followup: "Save as follow-up (no task)",
-    appt: "Save as appointment",
-    info: "Save as info",
-    note: "Save note, type not set",
-    done: "Save note as done (no task change)",
+    followup: "Save to daily notes as a follow-up",
+    appt: "Save as appointment info",
+    info: "Save as reference info",
+    note: "Save to daily notes",
+    done: "Save to daily notes, checked off",
     update: "Update the existing note line",
-    skip: "Skip this line"
+    keep: "Keep in Capture Inbox only",
+    skip: "Skip / discard this line"
   };
   var DEFAULT_ACTION = { followup: "task", appointment: "appt", reference: "info", uncertain: "note", completion: "complete" };
   var MARK_LABEL = { highlight: "Highlighted", strike: "Crossed out", check: "Checked" };
@@ -2908,7 +3244,15 @@
       }
       if (a.header) group = { key: r.group, folder: a.folder, customer: a.customer, source: a.customerSource };
       var useGroupName = !a.header && group.customer && (!a.customer || a.customerSource === "guess");
+      // "Derek confirmed…": a leading name is a customer only if you've used it as one before.
+      var person = r.person || "", lead = r.text.match(LEAD_PERSON_RE);
+      if (lead && !a.customer && !useGroupName) {
+        if (findKnown(lead[1], ctx.knownCustomers)) { a = Object.assign({}, a, { customer: findKnown(lead[1], ctx.knownCustomers), customerSource: "known" }); }
+        else if (!findKnown(lead[1], ctx.knownEstimators) && !person) person = lead[1];
+      }
+      if (person && a.customer && lastName(a.customer) === lastName(person)) a = Object.assign({}, a, { customer: "", customerSource: "" });
       var it = {
+        cap: r.cap || "", capLine: r.capLine, meta: r.meta || "", source: r.source || "",
         i: idx, raw: r.raw || r.text, text: r.text, group: r.group, crop: r.crop || "", imageIdx: r.imageIdx,
         ocrConf: typeof r.ocrConf === "number" ? r.ocrConf : null, marks: r.marks || [], notes: [],
         lineId: "", existing: null, unchanged: false, candidates: [], chosenTask: "", decision: "pending",
@@ -2918,11 +3262,19 @@
           customerGuess: (useGroupName ? group.source : a.customerSource) === "guess",
           folder: a.folder || group.folder,
           category: a.category,
-          estimator: a.estimator || defaultEst
+          estimator: a.estimator || defaultEst,
+          person: person
         }
       };
       it.cls = cls0;
       it.kind = it.cls.kind;
+      it.topic = topicOf(r.text, a, it.kind);
+      if (it.meta) {
+        // Email header, chat name/time, signature: stays in the capture, not in your notes.
+        it.unchanged = true; it.action = "skip"; it.decision = "skip"; it.kind = "reference";
+        it.notes.push("Message details (sender, time or signature). Kept in the capture only.");
+        return it;
+      }
       it.appt = it.cls.kind === "appointment" || it.cls.apptLike ? parseAppt(r.text, opts.date) : null;
       if (it.appt && it.cls.kind === "appointment") it.notes = it.notes.concat(it.appt.notes);
       it.candidates = a.header ? [] : matchTasks(it.fields, it.fields.desc);
@@ -2933,6 +3285,14 @@
       });
       it.doneSignal = doneMarks.some(function (m) { return m.level === "likely"; }) ? "likely"
         : doneMarks.length ? "possible" : it.cls.done ? "text" : "";
+
+      // Already reviewed in an earlier version of this capture.
+      // (Lines that were marked done since then come back without a prior outcome.)
+      if (r.prior) {
+        it.unchanged = true; it.action = "skip"; it.decision = "skip"; it.prior = r.prior;
+        it.notes.push("Already reviewed in the Capture Inbox (" + (ACTION_LABEL[r.prior.a] || "no change").toLowerCase() + ").");
+        return it;
+      }
 
       // Same line twice in one import (overlapping screenshots).
       var norm = normLine(r.text);
@@ -3029,6 +3389,15 @@
     }
 
     var pending = lowOcr || unclearMark || (it.existing && !it.existing.sure) || !!it.otherDay;
+    var message = it.source === "email" || it.source === "chat";
+    if (message && it.doneSignal === "text") {
+      // An email or chat saying something was handled is a status update, never an automatic completion.
+      if (topOk) {
+        setAction(it, "reference", "link", top.taskId, "pending");
+        it.notes.push("Says it was handled. It will be added to the task's history; the task stays open. Choose \u201cMark an existing task complete\u201d if it really is done.");
+      } else setAction(it, "reference", "info", "", pending ? "pending" : "approve");
+      return;
+    }
     if (it.doneSignal) {
       if (topOk) { setAction(it, "completion", "complete", top.taskId, "pending"); return; }
       setAction(it, it.kind, "done", "", pending || it.doneSignal === "text" ? "pending" : "approve");
@@ -3037,7 +3406,9 @@
     }
     switch (it.kind) {
       case "followup":
-        if (top && top.level === "high") {
+        // Only treat it as the same to-do when the wording is nearly the same
+        // ("check bracket ETA" is a different ask from "verify bracket was ordered").
+        if (top && top.level === "high" && top.sim >= 0.8) {
           setAction(it, "followup", "link", top.taskId, pending ? "pending" : "approve");
           it.notes.push("Already on your task board, so no new task is suggested.");
         } else {
@@ -3046,7 +3417,15 @@
         }
         break;
       case "appointment": setAction(it, "appointment", "appt", "", pending ? "pending" : "approve"); break;
-      case "reference": setAction(it, "reference", "info", "", pending ? "pending" : "approve"); break;
+      case "reference":
+        if (topOk && (it.topic === "status" || message)) {
+          setAction(it, "reference", "link", top.taskId, "pending");
+          it.notes.push("Looks like a status update for an open task. Linking adds it to the task's history; the task stays open.");
+        } else if (top && it.topic === "status") {
+          setAction(it, "reference", "info", "", pending ? "pending" : "approve");
+          it.notes.push("Might be an update for an open task. Choose \u201cLink to an existing task\u201d to attach it.");
+        } else setAction(it, "reference", "info", "", pending ? "pending" : "approve");
+        break;
       default:
         setAction(it, "uncertain", "note", "", "pending");
         it.notes.push((it.cls.why || "Not sure what this line is") + ". Pick a type, or skip it.");
@@ -3058,7 +3437,8 @@
     var limited = rawLines.slice(0, MAX_IMPORT_LINES);
     review = {
       src: opts.src, date: opts.date, images: opts.images || [], text: opts.text || "", name: opts.name || "",
-      skipped: rawLines.length - limited.length, items: buildItems(limited, opts)
+      skipped: rawLines.length - limited.length, items: buildItems(limited, opts),
+      caps: opts.caps || [], opts: opts
     };
     if (opts.forceAction) {
       review.items.forEach(function (it) {
@@ -3085,13 +3465,8 @@
     return out;
   }
 
-  function readNotes() {
-    var text = $("notesInput").value;
-    if (!text.trim()) { showToast("Paste some notes first.", true); $("notesInput").focus(); return; }
-    var raw = textToRawLines(text);
-    if (!raw.length) { showToast("No notes found. Put each note on its own line.", true); return; }
-    startReview(raw, { src: "text", date: $("importDate").value || todayKey(), text: text.trim() });
-  }
+  // v1.4: pasted or typed text goes through the Capture Inbox (section 13).
+  function readNotes() { captureText(); }
 
   // Review lines already on a page ("Suggest tasks", "Make it a task…").
   function reviewLines(lines, date, forceAction) {
@@ -3107,6 +3482,7 @@
   function actionsFor(it) {
     var list = ["task", "link", "complete", "followup", "appt", "info", "note", "done"];
     if (it.lineId) list.push("update");
+    if (it.cap) list.push("keep");
     list.push("skip");
     if (!tasks.some(function (t) { return !t.done; })) list = list.filter(function (a) { return a !== "link" && a !== "complete"; });
     return list;
@@ -3126,6 +3502,8 @@
         MARK_LABEL[m.mark] + (m.level === "possible" ? " (unclear)" : " (likely)") + "</span>";
     });
     if (it.cls.done && !it.marks.length) head += '<span class="chip-s k-completion">Says done</span>';
+    if (it.topic && TOPIC_LABEL[it.topic] && it.topic !== "appointment") head += '<span class="chip-s">' + TOPIC_LABEL[it.topic] + "</span>";
+    if (it.fields.person) head += '<span class="chip-s" title="Person mentioned (not used to match tasks)">' + esc(it.fields.person) + "</span>";
     if (it.ocrConf !== null && it.ocrConf < OCR_LOW_CONFIDENCE) head += '<span class="chip-s warn">Text unclear</span>';
     if (it.lineId && review.src !== "notebook") head += '<span class="chip-s">Already in notes</span>';
     if (it.decision === "pending") head += '<span class="chip-s warn">Needs your decision</span>';
@@ -3211,12 +3589,13 @@
     if (r.skipped) s += "Only the first " + MAX_IMPORT_LINES + " lines were read. ";
     s += "Nothing changes until you press Apply.";
     $("reviewSummary").textContent = s;
-    $("reviewTitle").textContent = r.src === "notebook" ? "Suggestions for this page" : "Review imported notes";
+    $("reviewTitle").textContent = r.src === "notebook" ? "Suggestions for this page" : r.src === "capture" ? "Review captures" : "Review imported notes";
+    $("reviewCaps").innerHTML = r.src === "capture" ? capPanelsHtml() : "";
 
     $("reviewImages").innerHTML = r.images.map(function (im, k) {
       return '<button type="button" data-img="' + k + '" aria-label="View screenshot ' + (k + 1) + '"><img src="' + esc(im.url) + '" alt=""></button>';
     }).join("");
-    $("reviewTextBox").hidden = r.src !== "image" || !r.text;
+    $("reviewTextBox").hidden = (r.src !== "image" && r.src !== "capture") || !r.text;
     $("reviewText").textContent = r.text;
 
     $("reviewList").innerHTML = main.length ? main.map(cardHtml).join("") : '<p class="empty">Nothing new to add. Everything here is already in your notes.</p>';
@@ -3282,7 +3661,7 @@
     if (!b || !review) return;
     var it = review.items[Number(b.closest(".rv").getAttribute("data-i"))];
     var d = b.getAttribute("data-d");
-    it.decision = it.decision === d ? "pending" : d;
+    it.decision = d;   // tapping Approve always approves, Skip always skips (no surprise toggling)
     rerenderCard(it);
   }
 
@@ -3305,6 +3684,38 @@
     $("imageViewImg").src = im.url;
     $("imageView").hidden = false;
     $("imageViewClose").focus();
+  }
+
+  // One small panel per capture: what kind of source it looks like, and a way to correct it.
+  function capPanelsHtml() {
+    return review.caps.map(findCapture).filter(Boolean).map(function (c) {
+      var k = review.opts.imageIdx ? review.opts.imageIdx[c.id] : undefined;
+      var pic = typeof k === "number" && review.images[k]
+        ? '<button type="button" class="rv-cap-pic" data-img="' + k + '" aria-label="View the picture"><img src="' + esc(review.images[k].url) + '" alt=""></button>'
+        : c.thumb ? '<img class="rv-cap-pic" src="' + esc(c.thumb) + '" alt="Saved picture of this capture">' : "";
+      return '<div class="rv-cap" data-cap="' + esc(c.id) + '">' + pic + '<div class="rv-cap-info"><div class="rv-head">' +
+        '<span class="src-chip src-' + c.source + '">' + SOURCE_ICON(c.source) + esc(SOURCE_LABEL[c.source]) + "</span>" +
+        (c.sourceSet ? '<span class="conf high">Set by you</span>' : '<span class="conf ' + ({ likely: "high", possible: "medium", unsure: "low" })[c.sourceConf] + '">' + SOURCE_CONF_LABEL[c.sourceConf] + "</span>") +
+        (c.versions > 1 ? '<span class="chip-s">Updated capture</span>' : "") + "</div>" +
+        '<p class="small">' + esc(c.sourceSet ? "You set the source type." : c.sourceWhy) + (c.ocr !== null ? " \u00b7 text read " + c.ocr + "% sure" : "") + "</p>" +
+        '<label class="rv-cap-src">Wrong? Source type<select data-cap-source="' + esc(c.id) + '">' + SOURCES.map(function (s2) {
+          return '<option value="' + s2 + '"' + (s2 === c.source ? " selected" : "") + ">" + SOURCE_LABEL[s2] + "</option>";
+        }).join("") + "</select></label></div></div>";
+    }).join("");
+  }
+
+  function onCapSourceChange(e) {
+    var sel = e.target.closest("select[data-cap-source]");
+    if (!sel || !review) return;
+    setCaptureSource(sel.getAttribute("data-cap-source"), sel.value);
+    var o = review.opts, images = review.images, raw = [];
+    review.images = [];   // keep the pictures for the rebuilt review
+    review.caps.map(findCapture).filter(Boolean).forEach(function (c) {
+      raw = raw.concat(rawFromCapture(c, o.crops && o.crops[c.id], o.imageIdx && o.imageIdx[c.id]));
+    });
+    o.images = images;
+    startReview(raw, o);
+    showToast("Suggestions updated for \u201c" + SOURCE_LABEL[sel.value] + "\u201d");
   }
 
   function closeReview() {
@@ -3338,17 +3749,22 @@
         return reviewError(it, "Pick which task this is, or choose a different action.");
       }
     }
-    var beforeTasks = JSON.stringify(tasks), beforeNotes = JSON.stringify(notebook);
+    var beforeTasks = JSON.stringify(tasks), beforeNotes = JSON.stringify(notebook), beforeCaps = JSON.stringify(captures);
     var now = new Date().toISOString(), importId = r.src === "notebook" ? "" : makeId();
-    var blocks = {}, n = { lines: 0, tasks: 0, done: 0, linked: 0, updated: 0 };
+    var blocks = {}, n = { lines: 0, tasks: 0, done: 0, linked: 0, updated: 0, kept: 0 };
+    r.items.forEach(function (it) { it.applied = false; it.appliedLine = ""; it.appliedTask = ""; });
 
     chosen.forEach(function (it) {
+      var cap = it.cap ? findCapture(it.cap) : null;
+      if (it.action === "keep") { it.applied = true; n.kept++; return; }   // stays in the capture only
       var found = it.lineId ? findLine(it.lineId) : null;
       var line = found && found.line, date = found ? found.date : r.date;
       if (!line) {
         if (!blocks[it.group]) blocks[it.group] = makeId();
-        line = newLine(it.text, blocks[it.group], r.src === "image" ? "image" : "text", importId);
+        var lsrc = cap ? (cap.src === "image" || cap.src === "camera" ? "image" : cap.src === "typed" ? "typed" : "text") : (r.src === "image" ? "image" : "text");
+        line = newLine(it.text, blocks[it.group], lsrc, importId);
         if (it.raw && it.raw !== it.text) line.orig = it.raw.slice(0, MAX_LINE_LEN);
+        if (cap) line.captureId = cap.id;
         ensureDay(r.date).push(line);
         n.lines++;
       } else {
@@ -3374,8 +3790,12 @@
       else if ((it.action === "done" || it.action === "complete") && !line.kind && KINDS.indexOf(it.kind) !== -1) line.kind = it.kind;
       if (it.action === "appt") line.appt = normalizeAppt(it.appt);
       if (it.action === "done" || it.action === "complete") { if (!line.done) { line.done = true; line.doneAt = now; } }
+      if (it.topic && it.topic !== "general" && !line.topic) line.topic = it.topic;
+      it.applied = true;
+      it.appliedLine = line.id;
 
       var label = formatDate(date);
+      var from = cap ? SOURCE_LABEL[cap.source].toLowerCase() : "daily notes";
       if (it.action === "task") {
         var f = it.fields;
         var t = normalizeTask({
@@ -3383,40 +3803,40 @@
           estimator: f.estimator.trim(), createdAt: now, done: false, completedAt: null, example: false,
           noteRef: { date: date, lineId: line.id }, log: []
         });
+        if (cap) addLog(t, "Added from a capture (" + from + ", " + label + ")");
         tasks.push(t);
         line.taskId = t.id;
+        it.appliedTask = t.id;
         if (t.estimator) saveLastEstimator(t.estimator);
         n.tasks++;
       } else if (it.action === "link" || it.action === "complete") {
         var task = findTask(it.chosenTask);
         line.taskId = task.id;
+        it.appliedTask = task.id;
         if (!task.noteRef) task.noteRef = { date: date, lineId: line.id };
         if (it.action === "complete" && !task.done) {
           task.done = true;
           task.completedAt = now;
-          addLog(task, "Completed from daily notes (" + label + "): “" + line.text + "”");
+          addLog(task, "Completed from " + from + " (" + label + "): \u201c" + line.text + "\u201d");
           n.done++;
         } else {
-          addLog(task, "Linked to a note (" + label + "): “" + line.text + "”");
+          addLog(task, (cap ? "Update from " + from : "Linked to a note") + " (" + label + "): \u201c" + line.text + "\u201d");
           n.linked++;
         }
         task.example = false;
       }
     });
 
-    if (!saveTasks() || !saveNotebook()) {
+    if (r.caps.length) recordCaptureResults(r.items, r.caps);
+    if (!saveTasks() || !saveNotebook() || (r.caps.length && !saveCaptures())) {
+      // All or nothing: put everything back the way it was.
       tasks = JSON.parse(beforeTasks);
       notebook = JSON.parse(beforeNotes);
-      saveTasks(); saveNotebook();
+      captures = JSON.parse(beforeCaps);
+      saveTasks(); saveNotebook(); saveCaptures();
       showToast("Couldn't save, so nothing was changed. Storage may be full.", true);
       render();
       return;
-    }
-    if (importId) {
-      importLog.unshift({ id: importId, at: now, date: r.date, src: r.src === "image" ? "image" : "text", name: r.name, text: r.text.slice(0, 20000), lines: n.lines });
-      importLog = importLog.slice(0, MAX_IMPORT_LOG);
-      saveImportLog();
-      $("notesInput").value = "";
     }
     var date = r.date;
     closeReview();
@@ -3427,6 +3847,7 @@
     if (n.tasks) msg.push(n.tasks + (n.tasks === 1 ? " task" : " tasks") + " created");
     if (n.done) msg.push(n.done + (n.done === 1 ? " task" : " tasks") + " completed");
     if (n.linked) msg.push(n.linked + " linked");
+    if (n.kept) msg.push(n.kept + " kept in the inbox only");
     if (settings.view === "notes" && date !== viewDate) viewDate = date;
     render();
     showToast(msg.join(", ") || "Done");
@@ -3514,7 +3935,58 @@
       }
       ctx.putImageData(img, 0, 0);
 
-      return { W: W, H: H, scale: scale, cls: cls, strokes: strokes, darkBg: darkBg, canvas: c };
+      return { W: W, H: H, scale: scale, cls: cls, strokes: strokes, darkBg: darkBg, canvas: c, feat: features(hist, bestK, bg, cls, W, H, n) };
+    }
+
+    /* Clues about what kind of picture this is (v1.4 source recognition):
+       - screenshot: one background color covers most of the image;
+         photo: the background is spread over many shades (light, grain).
+       - paper color: pastel = sticky note, light brown = envelope.
+       - ruled lines: thin rows that cross most of the width, evenly spaced. */
+    function features(hist, bestK, bg, cls, W, H, n) {
+      var share = hist[bestK] / n;
+      var mx = Math.max(bg[0], bg[1], bg[2]), mn = Math.min(bg[0], bg[1], bg[2]);
+      var sat = mx ? (mx - mn) / mx : 0, L = lum(bg[0], bg[1], bg[2]), hue = 0;
+      if (mx !== mn) {
+        var r = bg[0], g = bg[1], b = bg[2], d = mx - mn;
+        hue = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+        hue = (hue * 60 + 360) % 360;
+      }
+      // Ruled lines: thin rows that cross most of the width, evenly spaced.
+      // Photos are rarely straight, so a few small tilts are tried.
+      var lined = false;
+      var cols = Math.ceil(W / 2);
+      for (var deg = -3; deg <= 3 && !lined; deg += 0.75) {
+        var t = Math.tan(deg * Math.PI / 180), off = Math.ceil(Math.abs(t) * W) + 1;
+        var counts = new Uint16Array(H + 2 * off);
+        for (var y = 0; y < H; y += 1) {
+          var base = y * W;
+          for (var x = 0; x < W; x += 2) if (cls[base + x] !== 0) counts[Math.round(y - x * t) + off]++;
+        }
+        var bands = [], start = -1;
+        for (var k = 0; k < counts.length; k++) {
+          var full = counts[k] >= cols * 0.55;
+          if (full && start < 0) start = k;
+          if ((!full || k === counts.length - 1) && start >= 0) { bands.push([start, k - 1]); start = -1; }
+        }
+        var thin = bands.filter(function (bd) { return bd[1] - bd[0] + 1 <= Math.max(4, H * 0.008); });
+        if (thin.length >= 4) {
+          var gaps = [];
+          for (var i = 1; i < thin.length; i++) gaps.push(thin[i][0] - thin[i - 1][0]);
+          gaps.sort(function (p1, p2) { return p1 - p2; });
+          var med = gaps[Math.floor(gaps.length / 2)];
+          var regular = gaps.filter(function (g2) { return Math.abs(g2 - med) <= Math.max(2, med * 0.15); }).length;
+          lined = med > 8 && regular >= 3 && regular / gaps.length >= 0.6;
+        }
+      }
+      var photo = share < 0.3, kraft = photo && hue >= 18 && hue <= 48 && sat >= 0.2 && sat <= 0.55 && L >= 0.35 && L <= 0.78;
+      var sticky = photo && !kraft && !lined && sat >= 0.2 && L >= 0.5;
+      var aspect = W / H;
+      return {
+        photo: photo, screenshot: share >= 0.45, bgShare: Math.round(share * 100) / 100, sticky: sticky,
+        stickySure: sticky && aspect > 0.6 && aspect < 1.7 && sat >= 0.28, kraft: kraft, lined: lined,
+        colorName: hueName(hue), bgSat: Math.round(sat * 100) / 100, bgL: Math.round(L * 100) / 100
+      };
     }
 
     // Horizontal runs of ink, chained across neighbouring rows so slightly
@@ -3676,7 +4148,9 @@
   }
 
   function cleanOcrLine(l) {
-    return String(l || "").replace(/[|_]{2,}/g, " ").replace(/\s{2,}/g, " ").trim();
+    return String(l || "").replace(/[|_]{2,}/g, " ")
+      .replace(/^[|!\]\[)(]\s+|\s+[|!\]\[)(]$/g, "")     // paper edges read as "|"
+      .replace(/\s{2,}/g, " ").trim();
   }
 
   function loadImage(file) {
@@ -3746,10 +4220,12 @@
     return { lines: out, text: texts.join("\n") };
   }
 
-  // Reads one or more images, then opens the review.
-  function readImages(files) {
+  /* Reads one or more images. Each image becomes one capture in the
+     Capture Inbox (text + source type; the picture itself only if you
+     turned on "Keep a small picture"), then the review opens. */
+  function readImages(files, origin) {
     var images = Array.prototype.filter.call(files || [], function (f) { return f && /^image\//.test(f.type); });
-    if (!images.length) { showToast("That isn't an image. Drop a screenshot, snippet or photo.", true); return; }
+    if (!images.length) { showToast("That isn't an image. Use a photo or screenshot.", true); return; }
     if (ocrBusy) { showToast("Still reading the last image. One moment.", true); return; }
     var tooBig = images.filter(function (f) { return f.size > MAX_IMAGE_BYTES; });
     if (tooBig.length) { showToast("That image is too large (over 15 MB).", true); return; }
@@ -3757,20 +4233,25 @@
     ocrBusy = true;
     var date = $("importDate").value || todayKey();
     var results = [], noMarks = 0;
-    setOcrStatus("Getting the text reader ready…", 0);
+    setOcrStatus("Getting the text reader ready\u2026", 0);
 
     getOcrWorker().then(function (worker) {
       var chain = Promise.resolve();
       images.forEach(function (file, k) {
         chain = chain.then(function () {
-          setOcrStatus("Reading image " + (k + 1) + " of " + images.length + "…", 0);
+          setOcrStatus("Reading image " + (k + 1) + " of " + images.length + "\u2026", 0);
           return loadImage(file).then(function (img) {
             var an = null;
             try { an = Vision.prepare(img.el); } catch (e) { an = null; noMarks++; }
             return worker.recognize(an ? an.canvas : file).then(function (res) {
               var got = collectLines(res && res.data, an, img.el, k);
+              var confs = got.lines.map(function (l) { return l.ocrConf; }).filter(function (c) { return typeof c === "number"; });
+              results.push({
+                url: img.url, name: file.name || "image", lines: got.lines, text: got.text, feat: an ? an.feat : null,
+                ocrAvg: confs.length ? confs.reduce(function (x, y) { return x + y; }, 0) / confs.length : null,
+                thumb: settings.keepThumbs ? makeThumb(img.el) : ""
+              });
               if (an) an.canvas.width = an.canvas.height = 0;   // free memory
-              results.push({ url: img.url, name: file.name || "screenshot", lines: got.lines, text: got.text });
             });
           });
         });
@@ -3778,20 +4259,32 @@
       return chain;
     }).then(function () {
       ocrBusy = false;
-      var raw = [];
-      results.forEach(function (r) { raw = raw.concat(r.lines); });
-      if (!raw.length) {
-        results.forEach(function (r) { URL.revokeObjectURL(r.url); });
-        setOcrStatus("No text found in that image. Try a sharper or larger screenshot.", null, true);
+      var ids = [], crops = {}, imageIdx = {}, kept = [], updated = 0, empty = 0;
+      results.forEach(function (r) {
+        if (!r.lines.length) { URL.revokeObjectURL(r.url); empty++; return; }
+        var made = addCapture({
+          src: origin === "camera" ? "camera" : "image", name: r.name, date: date, text: r.text,
+          lines: r.lines.map(function (l) { return { t: l.text, raw: l.raw, g: l.group.split(":").pop(), marks: l.marks, conf: l.ocrConf }; }),
+          feat: r.feat, ocrAvg: r.ocrAvg, thumb: r.thumb
+        });
+        if (made.updated) updated++;
+        if (ids.indexOf(made.cap.id) === -1) ids.push(made.cap.id);
+        crops[made.cap.id] = made.lineMap
+          ? made.lineMap.map(function (i) { return r.lines[i] ? r.lines[i].crop : ""; })
+          : r.lines.map(function (l) { return l.crop; });
+        imageIdx[made.cap.id] = kept.length;
+        kept.push({ url: r.url, name: r.name });
+      });
+      if (!ids.length) {
+        setOcrStatus("No readable text found. Handwriting often can't be read; try a closer, sharper photo, or type the note.", null, true);
         return;
       }
-      setOcrStatus(noMarks ? "Read the text, but couldn't check the image for highlights or cross-outs." : "", null, !!noMarks);
-      startReview(raw, {
-        src: "image", date: date,
-        images: results.map(function (r) { return { url: r.url, name: r.name }; }),
-        text: results.map(function (r) { return r.text; }).join("\n\n"),
-        name: results.length === 1 ? results[0].name : results.length + " screenshots"
-      });
+      var msg = [];
+      if (noMarks) msg.push("Couldn't check the image for highlights or cross-outs.");
+      if (empty) msg.push(empty + (empty === 1 ? " image had" : " images had") + " no readable text.");
+      setOcrStatus(msg.join(" "), null, !!msg.length);
+      if (updated) showToast(updated === 1 ? "Matches a capture you already have, so that one was updated." : updated + " captures were updated instead of added again.");
+      reviewCaptures(ids, { images: kept, crops: crops, imageIdx: imageIdx });
     }).catch(function (err) {
       ocrBusy = false;
       results.forEach(function (r) { URL.revokeObjectURL(r.url); });
@@ -3812,6 +4305,778 @@
       }
     }
     return files;
+  }
+
+  /* ---------- 13. Capture Inbox ----------
+     Every screenshot, photo, pasted text or quick typed note becomes ONE
+     capture record: the text that was read, what kind of source it looks
+     like, and links to the note lines and tasks made from it. The record is
+     the single source of truth; list and scrapbook views only display it.
+     Images are not kept unless "Keep a small picture" is turned on.
+
+     Inbox views (worked out from the record, not stored twice):
+       Needs review  status "review": not fully reviewed yet
+       Saved         reviewed, kept, not linked to anything
+       Linked        reviewed and linked to note lines or tasks
+       Archived      put away on purpose (can be restored) */
+
+  var SOURCES = ["sticky", "notebook", "scrap", "email", "chat", "digital", "appointment", "typed", "unknown"];
+  var SOURCE_LABEL = {
+    sticky: "Sticky note", notebook: "Handwritten notebook", scrap: "Loose paper / envelope", email: "Email",
+    chat: "Teams / chat", digital: "Digital notes", appointment: "Appointment", typed: "Typed note", unknown: "Other / unknown"
+  };
+  var SOURCE_CONF_LABEL = { likely: "Likely", possible: "Maybe", unsure: "Not sure" };
+  var CAPTURE_ACTIONS = ["task", "link", "complete", "followup", "appt", "info", "note", "done", "update", "keep", "skip", "same", "meta"];
+  var MAX_CAPTURE_TEXT = 20000;
+  var openCapId = null;     // capture whose details are open in the inbox
+
+  function normalizeCaptureLine(l) {
+    if (!l || typeof l !== "object") return null;
+    var t = typeof l.t === "string" ? l.t.trim().slice(0, MAX_LINE_LEN) : "";
+    if (!t) return null;
+    var res = null;
+    if (l.res && typeof l.res === "object" && CAPTURE_ACTIONS.indexOf(l.res.a) !== -1) {
+      res = { a: l.res.a, lineId: typeof l.res.lineId === "string" ? l.res.lineId.slice(0, 40) : "", taskId: typeof l.res.taskId === "string" ? l.res.taskId.slice(0, 40) : "" };
+    }
+    return {
+      t: t, raw: typeof l.raw === "string" ? l.raw.slice(0, MAX_LINE_LEN) : t,
+      g: typeof l.g === "string" ? l.g.slice(0, 40) : "0",
+      marks: normalizeVis(l.marks),
+      conf: typeof l.conf === "number" && isFinite(l.conf) ? Math.round(l.conf) : null,
+      meta: ["header", "sender", "signature", "ui"].indexOf(l.meta) !== -1 ? l.meta : "",
+      person: typeof l.person === "string" ? l.person.slice(0, 40) : "",
+      res: res
+    };
+  }
+
+  function normalizeCapture(c) {
+    if (!c || typeof c !== "object" || typeof c.text !== "string") return null;
+    var lines = Array.isArray(c.lines) ? c.lines.map(normalizeCaptureLine).filter(Boolean).slice(0, 300) : [];
+    var ids = function (a) { return Array.isArray(a) ? a.filter(function (x) { return typeof x === "string" && x; }).map(function (x) { return x.slice(0, 40); }).slice(0, 300) : []; };
+    var at = isValidIso(c.at) ? c.at : new Date().toISOString();
+    return {
+      id: typeof c.id === "string" && c.id ? c.id.slice(0, 40) : makeId(),
+      at: at,
+      updatedAt: isValidIso(c.updatedAt) ? c.updatedAt : at,
+      date: isDateKey(c.date) ? c.date : toDateKey(new Date(at)),
+      src: ["image", "camera", "text", "typed"].indexOf(c.src) !== -1 ? c.src : "text",
+      name: typeof c.name === "string" ? c.name.slice(0, 80) : "",
+      source: SOURCES.indexOf(c.source) !== -1 ? c.source : "unknown",
+      sourceAuto: SOURCES.indexOf(c.sourceAuto) !== -1 ? c.sourceAuto : "unknown",
+      sourceConf: ["likely", "possible", "unsure"].indexOf(c.sourceConf) !== -1 ? c.sourceConf : "unsure",
+      sourceWhy: typeof c.sourceWhy === "string" ? c.sourceWhy.slice(0, 200) : "",
+      sourceSet: c.sourceSet === true,
+      text: c.text.slice(0, MAX_CAPTURE_TEXT),
+      lines: lines,
+      status: ["review", "saved", "archived"].indexOf(c.status) !== -1 ? c.status : "review",
+      prevStatus: c.prevStatus === "review" ? "review" : "saved",
+      links: { lines: ids(c.links && c.links.lines), tasks: ids(c.links && c.links.tasks) },
+      thumb: typeof c.thumb === "string" && /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(c.thumb) && c.thumb.length < 300000 ? c.thumb : "",
+      versions: typeof c.versions === "number" && c.versions >= 1 ? Math.floor(c.versions) : 1,
+      ocr: typeof c.ocr === "number" && isFinite(c.ocr) ? Math.round(c.ocr) : null
+    };
+  }
+
+  // Accepts { version, items } or a bare list. Returns { items } or { error }.
+  function normalizeCaptures(x) {
+    var list = Array.isArray(x) ? x : (x && Array.isArray(x.items) ? x.items : null);
+    if (!list) return { error: "Capture Inbox data is damaged." };
+    var out = [], seen = {};
+    for (var i = 0; i < list.length; i++) {
+      var c = normalizeCapture(list[i]);
+      if (!c) return { error: "Capture #" + (i + 1) + " is damaged." };
+      if (seen[c.id]) c.id = makeId();
+      seen[c.id] = true;
+      out.push(c);
+    }
+    return { items: out };
+  }
+
+  // v1.3 Import history -> Saved captures (text only; already reviewed back then).
+  function capturesFromImportLog(log) {
+    return (log || []).map(function (e) {
+      var g = 0, lines = [];
+      e.text.split(/\r?\n/).forEach(function (t) {
+        if (!t.trim()) { g++; return; }
+        lines.push({ t: t.trim(), raw: t.trim(), g: String(g), res: { a: "same" } });
+      });
+      return normalizeCapture({
+        id: "imp-" + e.id, at: e.at, date: e.date || toDateKey(new Date(e.at)), src: e.src, name: e.name,
+        source: e.src === "image" ? "digital" : "unknown", sourceAuto: e.src === "image" ? "digital" : "unknown",
+        sourceConf: "unsure", sourceWhy: "Imported with v1.3, before source types existed", text: e.text,
+        lines: lines, status: "saved"
+      });
+    }).filter(Boolean);
+  }
+
+  function normalizeStickers(x) {
+    var out = { cards: {}, desk: [] };
+    if (!x || typeof x !== "object") x = {};
+    if (x.cards && typeof x.cards === "object") {
+      Object.keys(x.cards).slice(0, 500).forEach(function (k) { if (STICKERS[x.cards[k]]) out.cards[String(k).slice(0, 40)] = x.cards[k]; });
+    }
+    for (var i = 0; i < DESK_SLOTS; i++) out.desk.push(Array.isArray(x.desk) && STICKERS[x.desk[i]] ? x.desk[i] : "");
+    return out;
+  }
+
+  function loadCaptures() {
+    var raw = storageGet(CAPTURES_KEY);
+    if (raw === null) return [];
+    try {
+      var r = normalizeCaptures(JSON.parse(raw));
+      if (r.error) throw new Error(r.error);
+      return r.items;
+    } catch (e) {
+      storageSet(CAPTURES_KEY + ".corrupt." + Date.now(), raw);
+      var snap = snapshotPart("captures", function (v) { var r2 = normalizeCaptures(v); return r2.error ? null : r2.items; });
+      showToast(snap ? "Capture Inbox was damaged. Restored the automatic copy from " + snap.when + "." : "Capture Inbox couldn't be read. A copy was kept.", true);
+      if (snap) storageSet(CAPTURES_KEY, JSON.stringify({ version: 1, items: snap.value }));
+      return snap ? snap.value : [];
+    }
+  }
+
+  function saveCaptures() {
+    if (storageSet(CAPTURES_KEY, JSON.stringify({ version: 1, items: captures }))) return true;
+    showToast("Couldn't save the Capture Inbox. Storage may be full: delete saved pictures or old captures.", true);
+    return false;
+  }
+
+  function loadStickers() { return normalizeStickers(safeParse(storageGet(STICKERS_KEY))); }
+  function saveStickers() { storageSet(STICKERS_KEY, JSON.stringify(stickers)); }
+
+  function findCapture(id) {
+    for (var i = 0; i < captures.length; i++) if (captures[i].id === id) return captures[i];
+    return null;
+  }
+
+  function capView(c) {
+    if (c.status === "archived") return "archived";
+    if (c.status === "review") return "review";
+    return c.links.lines.length || c.links.tasks.length ? "linked" : "saved";
+  }
+
+  /* ---- Source recognition ----
+     Text clues (email header lines, chat "Name 10:42 AM" lines, appointment
+     wording) plus image clues measured on this device by Vision.prepare:
+     photo vs. screenshot (how uniform the background is), the paper color
+     (pastel square = sticky note, brown = envelope), and evenly spaced
+     ruled lines (notebook). These are rules of thumb, not understanding:
+     the result is always shown with "Likely / Maybe / Not sure" and can be
+     changed with one tap. */
+  var EMAIL_HDR = /^(?:from|to|cc|bcc|sent|date|reply-to)\s*:/i;
+  var EMAIL_SUBJ = /^subject\s*:\s*/i;
+  var EMAIL_ADDR = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i;
+  var CHAT_HDR = /^([A-Z][A-Za-z'.-]+(?:,? [A-Z][A-Za-z'.-]+){0,2})\s*(?:[,·•|-]\s*)?(?:(?:yesterday|today|mon|tue|wed|thu|fri|sat|sun)[a-z]*,?\s*)?(?:\d{1,2}\/\d{1,2}(?:\/\d{2,4})?,?\s*)?\d{1,2}:\d{2}\s*(?:[ap]\.?m\.?)?$/i;
+  var CHAT_UI = /^(?:\(edited\)|edited|seen by\b|reply\b|like\b|type a (?:new )?message|new message)/i;
+  var CHAT_WORDS = /\b(?:teams|chat|\(edited\)|seen by|reacted|mentioned you)\b/i;
+  var APPT_DOC = /\b(?:appointment|appt|confirm(?:ed|ation)?|scheduled|reschedul\w*|drop[\s-]?off|pick[\s-]?up|estimate)\b/gi;
+  var SIGNATURE = /^(?:sent from my|thanks,?$|thank you,?$|regards|best,?$|--\s*$|confidential|this e-?mail|caution:)/i;
+
+  // "Derek Miller 10:42 AM" yes; "Drop-off Tuesday 8:00 AM" no.
+  function chatHeader(l) {
+    var m = l.match(CHAT_HDR);
+    if (!m) return null;
+    if (APPT_WORDS.test(m[1]) || DAY_WORDS.test(m[1]) || FOLLOWUP_START.test(m[1]) || /\d/.test(m[1])) return null;
+    return m;
+  }
+
+  function hueName(h) {
+    if (h < 15 || h >= 330) return "pink";
+    if (h < 40) return "orange";
+    if (h < 70) return "yellow";
+    if (h < 170) return "green";
+    if (h < 250) return "blue";
+    return "purple";
+  }
+
+  // feat: from Vision.prepare (images) or null. origin: "image" | "camera" | "text" | "typed".
+  function detectSource(feat, text, ocrAvg, origin) {
+    var lines = String(text || "").split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+    function out(source, conf, why) { return { source: source, conf: conf, why: why }; }
+    var emailHdr = lines.filter(function (l) { return EMAIL_HDR.test(l) || EMAIL_SUBJ.test(l); }).length;
+    var chatHdr = lines.filter(function (l) { return chatHeader(l); }).length;
+    var apptHits = (String(text).match(APPT_DOC) || []).length;
+    var timeHits = lines.filter(function (l) { return TIME_WORDS.test(l) || DAY_WORDS.test(l); }).length;
+
+    if (emailHdr >= 2) return out("email", "likely", "Has email header lines (From / To / Subject)");
+    if (chatHdr >= 2) return out("chat", "likely", "Has several “name + time” lines like a chat");
+    if (emailHdr === 1 && EMAIL_ADDR.test(text)) return out("email", "possible", "Has an email address and a header line");
+    if (chatHdr === 1 && (CHAT_WORDS.test(text) || lines.length <= 6)) return out("chat", "possible", "Has a “name + time” line like a chat");
+    if (feat && feat.photo) {
+      if (feat.kraft) return out("scrap", "possible", "Photo of brown paper, like an envelope");
+      if (feat.sticky) return out("sticky", feat.stickySure ? "likely" : "possible", "Photo of " + feat.colorName + " paper filling most of the picture");
+      if (feat.lined) return out("notebook", "likely", "Photo of paper with evenly spaced ruled lines");
+    }
+    if (apptHits >= 2 && timeHits >= 1) return out("appointment", apptHits >= 3 ? "likely" : "possible", "Appointment words with a day or time");
+    if (feat && feat.photo) {
+      if (ocrAvg !== null && ocrAvg < 70) return out("scrap", "possible", "Photo of paper with hard-to-read (maybe handwritten) text");
+      return out("unknown", "unsure", "Photo, but the kind of paper isn't clear");
+    }
+    if (feat && feat.screenshot) return out("digital", "possible", "Screenshot with a plain background and no email or chat layout");
+    if (feat) return out("unknown", "unsure", "Couldn't tell what kind of image this is");
+    if (origin === "typed") return out("typed", "likely", "Typed in the app");
+    return out("digital", "possible", "Pasted text");
+  }
+
+  // Marks email header / chat sender lines and carries the sender's name to the lines below.
+  function tagCaptureLines(lines, source) {
+    var person = "";
+    lines.forEach(function (l) {
+      l.meta = ""; l.person = "";
+      var t = l.t;
+      if (source === "email") {
+        if (EMAIL_HDR.test(t)) {
+          l.meta = "header";
+          var m = t.match(/^from\s*:\s*"?([^<@"]+?)"?\s*(?:<|$)/i);
+          if (m && /[a-z]/i.test(m[1])) person = titleCase(m[1].trim()).slice(0, 40);
+          return;
+        }
+        if (SIGNATURE.test(t)) { l.meta = "signature"; return; }
+      }
+      if (source === "chat") {
+        var c = chatHeader(t);
+        if (c) { l.meta = "sender"; person = c[1].trim().slice(0, 40); return; }
+        if (CHAT_UI.test(t)) { l.meta = "ui"; return; }
+      }
+      if (person) l.person = person;
+    });
+    return lines;
+  }
+
+  // Lines of an email/chat: highlight color there is page design, not your highlighter.
+  function marksForSource(marks, source) {
+    // Same for a sticky note: the colored paper itself would look "highlighted".
+    if (source === "email" || source === "chat" || source === "sticky") return marks.filter(function (m) { return m.mark !== "highlight"; });
+    return marks;
+  }
+
+  /* ---- Creating and updating captures ----
+     If what you capture is mostly the same as an existing capture (an
+     updated screenshot of the same notes, the same email again), that
+     record is updated instead of adding a second one. Lines you already
+     reviewed keep their outcome, so only new or newly marked lines come up. */
+  function findSimilarCapture(lines, date) {
+    var fresh = lines.filter(function (l) { return !l.meta; });
+    if (!fresh.length) return null;
+    var best = null;
+    captures.forEach(function (c) {
+      if (c.date !== date) return;   // only the same day's notes can be "the same capture"
+      var old = c.lines.filter(function (l) { return !l.meta; });
+      if (!old.length) return;
+      var oldHit = old.filter(function (o) { return fresh.some(function (n) { return lineSim(o.t, n.t) >= 0.85; }); }).length;
+      var newHit = fresh.filter(function (n) { return old.some(function (o) { return lineSim(o.t, n.t) >= 0.85; }); }).length;
+      var score = Math.max(oldHit / old.length, newHit / fresh.length);
+      if (oldHit && score >= 0.8 && (!best || score > best.score)) best = { c: c, score: score };
+    });
+    return best ? best.c : null;
+  }
+
+  // Handwriting wraps: "10452 Jones -" / "check bumper" / "bracket ETA" is one note.
+  // Only for photos of paper; typed notes keep their lines as written.
+  var CONTINUES = /(?:[-\u2013\u2014,&+:\/]|\b(?:and|re|to|for|about|with|on|the|a|of|at|from))$/i;
+  function joinWrapped(lines) {
+    var out = [];
+    lines.forEach(function (l, idx) {
+      var prev = out[out.length - 1];
+      var cont = prev && prev.g === l.g && !/[.!?]$/.test(prev.t) && (CONTINUES.test(prev.t) || /^[a-z]/.test(l.t));
+      if (cont && (prev.t + " " + l.t).length <= MAX_LINE_LEN) {
+        prev.t = prev.t + " " + l.t;
+        prev.raw = (prev.raw || prev.t) + " " + (l.raw || l.t);
+        prev.marks = normalizeVis(prev.marks.concat(l.marks));
+        if (typeof l.conf === "number") prev.conf = typeof prev.conf === "number" ? Math.min(prev.conf, l.conf) : l.conf;
+      } else { var c = Object.assign({}, l); c._from = idx; out.push(c); }
+    });
+    return out;
+  }
+
+  function hasDoneMark(l) { return l.marks.some(function (m) { return m.mark === "strike" || m.mark === "check"; }); }
+
+  // o: { src, name, date, text, lines: [{t, raw, g, marks, conf}], feat, ocrAvg, thumb }
+  // Returns { cap, updated }. Saves.
+  function addCapture(o) {
+    var det = detectSource(o.feat || null, o.text, o.ocrAvg === undefined ? null : o.ocrAvg, o.src);
+    var lines = o.lines.map(normalizeCaptureLine).filter(Boolean);
+    var lineMap = null;
+    if (["sticky", "notebook", "scrap"].indexOf(det.source) !== -1) {
+      lines = joinWrapped(lines);
+      lineMap = lines.map(function (l) { return l._from; });   // which picture goes with which note
+    }
+    var now = new Date().toISOString();
+    var prev = findSimilarCapture(tagCaptureLines(lines.map(function (l) { return Object.assign({}, l); }), det.source), o.date);
+    var source = prev && prev.sourceSet ? prev.source : det.source;
+    tagCaptureLines(lines, source);
+    lines.forEach(function (l) { l.marks = marksForSource(l.marks, source); });
+    if (prev) {
+      // Keep what was already decided for lines that are still there.
+      lines.forEach(function (l) {
+        var match = null, bestSim = 0;
+        prev.lines.forEach(function (p) { var s2 = lineSim(p.t, l.t); if (s2 >= 0.85 && s2 > bestSim) { bestSim = s2; match = p; } });
+        if (match && match.res) {
+          var newlyMarked = hasDoneMark(l) && !hasDoneMark(match);
+          l.res = newlyMarked ? null : match.res;
+          if (newlyMarked) l.prevRes = match.res;
+          l.marks = normalizeVis(match.marks.concat(l.marks));
+        }
+      });
+      prev.lines = lines.map(normalizeCaptureLine).filter(Boolean);
+      prev.text = String(o.text).slice(0, MAX_CAPTURE_TEXT);
+      prev.updatedAt = now;
+      prev.versions++;
+      if (!prev.sourceSet) { prev.source = det.source; prev.sourceAuto = det.source; prev.sourceConf = det.conf; prev.sourceWhy = det.why; }
+      if (o.ocrAvg !== undefined && o.ocrAvg !== null) prev.ocr = Math.round(o.ocrAvg);
+      if (o.thumb) prev.thumb = o.thumb;
+      if (prev.lines.some(function (l) { return !l.res; })) prev.status = "review";
+      saveCaptures();
+      return { cap: prev, updated: true, lineMap: lineMap };
+    }
+    var cap = normalizeCapture({
+      id: makeId(), at: now, updatedAt: now, date: o.date, src: o.src, name: o.name || "",
+      source: det.source, sourceAuto: det.source, sourceConf: det.conf, sourceWhy: det.why,
+      text: String(o.text), lines: lines, status: "review", thumb: o.thumb || "",
+      ocr: o.ocrAvg === undefined || o.ocrAvg === null ? null : o.ocrAvg
+    });
+    captures.unshift(cap);
+    saveCaptures();
+    return { cap: cap, updated: false, lineMap: lineMap };
+  }
+
+  function linesFromText(text) {
+    var g = 0, out = [];
+    String(text || "").replace(/\r\n?/g, "\n").split("\n").forEach(function (l) {
+      if (!l.trim()) { g++; return; }
+      var tm = textMarks(l);
+      if (tm.text.replace(/[^a-z0-9]/gi, "").length < 2) return;
+      out.push({ t: tm.text.slice(0, MAX_LINE_LEN), raw: l.trim(), g: String(g), marks: tm.marks, conf: null });
+    });
+    return out;
+  }
+
+  // Review lines for one capture. crops: optional pictures per line (memory only).
+  function rawFromCapture(cap, crops, imageIdx) {
+    return cap.lines.map(function (l, k) {
+      var subj = l.t.replace(EMAIL_SUBJ, "");
+      return {
+        text: subj || l.t, raw: l.raw || l.t, group: cap.id + ":" + l.g, marks: l.marks, ocrConf: l.conf,
+        crop: crops && crops[k] ? crops[k] : "", imageIdx: imageIdx, meta: l.meta, person: l.person,
+        cap: cap.id, capLine: k, prior: l.res && l.res.a !== "skip" ? l.res : null, source: cap.source   // skipped lines come back
+      };
+    });
+  }
+
+  function captureText() {
+    var text = $("notesInput").value;
+    if (!text.trim()) { showToast("Paste or type something first.", true); $("notesInput").focus(); return; }
+    var lines = linesFromText(text);
+    if (!lines.length) { showToast("Nothing readable found. Put each note on its own line.", true); return; }
+    var date = $("importDate").value || todayKey();
+    var r = addCapture({ src: pastedIntoCapture ? "text" : "typed", text: text.trim(), lines: lines, date: date });
+    pastedIntoCapture = false;
+    $("notesInput").value = "";
+    if (r.updated) showToast("Matches a capture you already have, so it was updated instead of added again.");
+    reviewCaptures([r.cap.id], { fresh: true });
+  }
+  var pastedIntoCapture = false;
+
+  // Opens the review for one or more captures. extra: { images, crops: {capId: [...]}, imageIdx: {capId: n}, fresh }
+  function reviewCaptures(ids, extra) {
+    extra = extra || {};
+    var caps = ids.map(findCapture).filter(Boolean);
+    if (!caps.length) return;
+    var raw = [];
+    caps.forEach(function (c) { raw = raw.concat(rawFromCapture(c, extra.crops && extra.crops[c.id], extra.imageIdx && extra.imageIdx[c.id])); });
+    if (!raw.length) { showToast("That capture has no readable lines.", true); return; }
+    var date = caps[0].date;
+    startReview(raw, {
+      src: "capture", date: date, caps: caps.map(function (c) { return c.id; }), images: extra.images || [],
+      text: caps.map(function (c) { return c.text; }).join("\n\n"), name: caps.length === 1 ? SOURCE_LABEL[caps[0].source] : caps.length + " captures",
+      crops: extra.crops || {}, imageIdx: extra.imageIdx || {}
+    });
+  }
+
+  // Changing a capture's source type re-reads its lines with the new type.
+  function setCaptureSource(id, source) {
+    var c = findCapture(id);
+    if (!c || SOURCES.indexOf(source) === -1) return;
+    c.source = source;
+    c.sourceSet = true;
+    tagCaptureLines(c.lines, source);
+    c.lines.forEach(function (l) { l.marks = marksForSource(l.marks, source); });
+    saveCaptures();
+  }
+
+  // Called by applyReview: records what happened to each line of each capture.
+  function recordCaptureResults(items, ids) {
+    ids.forEach(function (id) {
+      var c = findCapture(id);
+      if (!c) return;
+      items.forEach(function (it) {
+        if (it.cap !== id || !c.lines[it.capLine]) return;
+        var l = c.lines[it.capLine];
+        if (it.applied) l.res = { a: it.action, lineId: it.appliedLine || "", taskId: it.appliedTask || "" };
+        else if (it.unchanged && !l.res) l.res = { a: it.meta ? "meta" : "same", lineId: it.lineId || "", taskId: "" };
+        else if (it.decision === "skip" && !l.res) l.res = { a: "skip", lineId: "", taskId: "" };
+        if (it.applied && it.text && it.text !== l.t) l.t = it.text.slice(0, MAX_LINE_LEN);
+      });
+      var lineIds = {}, taskIds = {};
+      c.lines.forEach(function (l) {
+        if (!l.res) return;
+        if (l.res.lineId) lineIds[l.res.lineId] = true;
+        if (l.res.taskId) taskIds[l.res.taskId] = true;
+      });
+      c.links = { lines: Object.keys(lineIds), tasks: Object.keys(taskIds) };
+      if (c.status !== "archived") c.status = c.lines.every(function (l) { return l.res; }) ? "saved" : "review";
+      c.updatedAt = new Date().toISOString();
+    });
+  }
+
+  /* ---- Inbox screen ---- */
+  var INBOX_EMPTY = {
+    review: "Nothing waiting. Capture a photo, screenshot or note and it shows up here until you review it.",
+    saved: "Nothing saved yet. Captures you keep for reference end up here.",
+    linked: "Nothing linked yet. Captures that became notes or tasks end up here.",
+    archived: "Nothing archived."
+  };
+
+  function capHaystack(c) {
+    var extra = c.links.tasks.map(findTask).filter(Boolean).map(function (t) { return t.folder + " " + t.customer + " " + t.desc; }).join(" ");
+    return (c.text + " " + SOURCE_LABEL[c.source] + " " + extra).toLowerCase();
+  }
+
+  function renderInbox() {
+    var q = $("inboxSearch").value.trim().toLowerCase();
+    var counts = { review: 0, saved: 0, linked: 0, archived: 0 };
+    captures.forEach(function (c) { counts[capView(c)]++; });
+    Array.prototype.forEach.call($("inboxFilter").querySelectorAll("button"), function (b) {
+      var v = b.getAttribute("data-v");
+      b.setAttribute("aria-pressed", String(!q && v === settings.inboxFilter));
+      b.querySelector(".n").textContent = counts[v];
+    });
+    Array.prototype.forEach.call($("inboxViewSeg").querySelectorAll("button"), function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-v") === settings.inboxView));
+    });
+    $("inboxTabCount").textContent = counts.review ? "(" + counts.review + ")" : "";
+    var list = captures.filter(function (c) { return q ? capHaystack(c).indexOf(q) !== -1 : capView(c) === settings.inboxFilter; });
+    list.sort(function (a, b) { return (b.updatedAt || b.at).localeCompare(a.updatedAt || a.at); });
+    var scrap = settings.inboxView === "scrapbook";
+    var box = $("inboxList");
+    box.className = scrap ? "scrapbook" : "cap-list";
+    $("inboxNote").textContent = q ? list.length + (list.length === 1 ? " capture matches" : " captures match") + " “" + $("inboxSearch").value.trim() + "” (all views)." : "";
+    box.innerHTML = list.length ? list.map(function (c) { return capCardHtml(c, scrap); }).join("")
+      : '<p class="empty">' + (q ? "No captures match." : INBOX_EMPTY[settings.inboxFilter]) + "</p>";
+    $("deskStickers").hidden = !scrap || !settings.decor;
+    if (scrap && settings.decor) $("deskStickers").innerHTML = stickers.desk.map(function (s, i) { return slotHtml("desk:" + i, s, "Desk sticker spot " + (i + 1)); }).join("");
+    var size = storageBytes();
+    $("storageNote").hidden = size < 3.5e6;
+    $("storageNote").textContent = "Storage is getting full (" + (size / 1e6).toFixed(1) + " MB of about 5 MB). Export a backup, then delete saved pictures or old archived captures.";
+  }
+
+  function storageBytes() {
+    var n = 0;
+    try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); n += k.length + (localStorage.getItem(k) || "").length; } } catch (e) { /* ignore */ }
+    return n * 2;   // UTF-16
+  }
+
+  function capWhen(c) {
+    var d = toDateKey(new Date(c.at));
+    return formatDate(d) + " " + timeLabel(c.at) + (c.date !== d ? " · notes for " + formatDate(c.date) : "");
+  }
+
+  function capCardHtml(c, scrap) {
+    var id = esc(c.id), v = capView(c), open = openCapId === c.id;
+    var body = c.lines.filter(function (l) { return !l.meta; }).map(function (l) { return l.t; });
+    var shown = body.slice(0, scrap ? 6 : 3);
+    var tasksLinked = c.links.tasks.map(findTask).filter(Boolean);
+    var chips = [];
+    if (c.links.lines.length) chips.push('<span class="chip-s">' + c.links.lines.length + (c.links.lines.length === 1 ? " note line" : " note lines") + "</span>");
+    var openT = tasksLinked.filter(function (t) { return !t.done; }).length, doneT = tasksLinked.length - openT;
+    if (openT) chips.push('<span class="chip-s task-open">' + openT + (openT === 1 ? " task open" : " tasks open") + "</span>");
+    if (doneT) chips.push('<span class="chip-s task-done">' + doneT + (doneT === 1 ? " task done" : " tasks done") + "</span>");
+    if (c.versions > 1) chips.push('<span class="chip-s" title="Captured again and updated">Updated ×' + (c.versions - 1) + "</span>");
+    if (c.thumb) chips.push('<span class="chip-s warn" title="A small picture of this capture is saved on this device">Picture saved</span>');
+    var viewLabel = { review: "Needs review", saved: "Saved", linked: "Linked", archived: "Archived" }[v];
+
+    var cls = scrap ? "scrap scrap-" + c.source : "cap";
+    var html = '<article class="' + cls + (v === "review" ? " needs" : "") + '" data-cap="' + id + '" aria-label="' + esc(SOURCE_LABEL[c.source]) + ", " + esc(capWhen(c)) + '">';
+    if (scrap && c.source === "appointment") {
+      var ad = capApptDate(c), dd = parseDateKey(ad);
+      html += '<div class="cal-badge" aria-hidden="true"><span>' + esc(dd.toLocaleDateString(undefined, { month: "short" })) + "</span><b>" + dd.getDate() + "</b></div>";
+    }
+    html += '<div class="cap-head"><span class="src-chip src-' + c.source + '">' + SOURCE_ICON(c.source) + esc(SOURCE_LABEL[c.source]) + "</span>" +
+      (c.sourceSet ? '<span class="conf high" title="You set this">Set by you</span>' : '<span class="conf ' + ({ likely: "high", possible: "medium", unsure: "low" })[c.sourceConf] + '" title="' + esc(c.sourceWhy) + '">' + SOURCE_CONF_LABEL[c.sourceConf] + "</span>") +
+      '<span class="cap-when">' + esc(capWhen(c)) + "</span>" +
+      '<span class="chip-s' + (v === "review" ? " warn" : "") + '">' + viewLabel + "</span>" +
+      (scrap && settings.decor ? slotHtml("card:" + c.id, stickers.cards[c.id] || "", "Sticker for this card") : "") + "</div>";
+    html += '<div class="cap-body">' + (shown.length ? shown.map(esc).join("<br>") : "<em>No readable text</em>") +
+      (body.length > shown.length ? '<br><span class="more">+' + (body.length - shown.length) + " more</span>" : "") + "</div>";
+    if (chips.length) html += '<div class="lchips">' + chips.join("") + "</div>";
+    var keepActs = (v === "archived" ? '<button type="button" class="btn" data-cap-act="restore">Restore</button>' : '<button type="button" class="btn" data-cap-act="archive">Archive</button>') +
+      '<button type="button" class="btn btn-danger" data-cap-act="delete">Delete</button>';
+    html += '<div class="cap-actions">' +
+      (v === "archived" ? "" : '<button type="button" class="btn' + (v === "review" ? " btn-primary" : "") + '" data-cap-act="review">' + (v === "review" ? "Review" : "Review again") + "</button>") +
+      '<button type="button" class="btn" data-cap-act="details" aria-expanded="' + open + '">' + (open ? "Hide details" : "Details") + "</button>" +
+      (scrap ? "" : keepActs) + "</div>";   // scrapbook cards keep these inside Details to stay tidy
+    if (open) html += capDetailsHtml(c) + (scrap ? '<div class="cap-actions">' + keepActs + "</div>" : "");
+    return html + "</article>";
+  }
+
+  function capApptDate(c) {
+    for (var i = 0; i < c.links.lines.length; i++) {
+      var f = findLine(c.links.lines[i]);
+      if (f && f.line.appt && f.line.appt.date) return f.line.appt.date;
+    }
+    return c.date;
+  }
+
+  function capDetailsHtml(c) {
+    var html = '<div class="cap-details">';
+    html += '<label class="cap-field">Source type<select data-cap-act="source">' + SOURCES.map(function (s) {
+      return '<option value="' + s + '"' + (s === c.source ? " selected" : "") + ">" + SOURCE_LABEL[s] + "</option>";
+    }).join("") + "</select></label>";
+    html += '<p class="small">' + (c.sourceSet ? "You set this. The app guessed “" + esc(SOURCE_LABEL[c.sourceAuto]) + "”" : "Why: " + esc(c.sourceWhy || "—")) +
+      (c.ocr !== null ? " · text read " + c.ocr + "% sure" : "") + "</p>";
+    if (c.thumb) {
+      html += '<img class="cap-thumb" src="' + esc(c.thumb) + '" alt="Saved picture of this capture">' +
+        '<button type="button" class="link-btn" data-cap-act="dropthumb">Delete saved picture</button>';
+    }
+    html += '<details class="history"><summary>Text that was read</summary><pre>' + esc(c.text) + "</pre></details>";
+    var lines = c.links.lines.map(function (id) { return findLine(id); }).filter(Boolean);
+    if (lines.length) {
+      html += '<div class="cap-links"><strong>Note lines</strong><ul>' + lines.map(function (f) {
+        return '<li><button type="button" class="link-btn" data-day="' + esc(f.date) + '" data-line="' + esc(f.line.id) + '">' + esc(formatDate(f.date)) + "</button> " + esc(f.line.text) + "</li>";
+      }).join("") + "</ul></div>";
+    }
+    var tl = c.links.tasks.map(findTask).filter(Boolean);
+    if (tl.length) {
+      html += '<div class="cap-links"><strong>Tasks</strong><ul>' + tl.map(function (t) {
+        return '<li><button type="button" class="link-btn" data-show-task="' + esc(t.id) + '">' + (t.done ? "Done" : "Open") + "</button> " + esc(taskLabel(t)) + "</li>";
+      }).join("") + "</ul></div>";
+    }
+    return html + "</div>";
+  }
+
+  function onInboxClick(e) {
+    var f = e.target.closest("[data-v]");
+    if (f && $("inboxFilter").contains(f)) { settings.inboxFilter = f.getAttribute("data-v"); $("inboxSearch").value = ""; saveSettings(); renderInbox(); return; }
+    if (f && $("inboxViewSeg").contains(f)) { settings.inboxView = f.getAttribute("data-v"); saveSettings(); renderInbox(); return; }
+    var slot = e.target.closest("[data-slot]");
+    if (slot) { openStickerPicker(slot.getAttribute("data-slot")); return; }
+    var d = e.target.closest("[data-day]");
+    if (d) { goToDay(d.getAttribute("data-day"), d.getAttribute("data-line")); return; }
+    var st = e.target.closest("[data-show-task]");
+    if (st) { var t = findTask(st.getAttribute("data-show-task")); if (t) showTaskOnBoard(t); return; }
+    var b = e.target.closest("button[data-cap-act]");
+    if (!b) return;
+    var card = b.closest("[data-cap]"), c = card && findCapture(card.getAttribute("data-cap"));
+    if (!c) return;
+    var act = b.getAttribute("data-cap-act");
+    if (act === "review") reviewCaptures([c.id]);
+    else if (act === "details") { openCapId = openCapId === c.id ? null : c.id; renderInbox(); }
+    else if (act === "archive") { c.prevStatus = c.status === "review" ? "review" : "saved"; c.status = "archived"; saveCaptures(); render(); showToast("Archived. Find it under Archived."); }
+    else if (act === "restore") { c.status = c.prevStatus || "saved"; saveCaptures(); render(); showToast("Restored"); }
+    else if (act === "dropthumb") { c.thumb = ""; saveCaptures(); render(); showToast("Saved picture deleted"); }
+    else if (act === "delete") {
+      askConfirm("Delete this capture from the inbox?\n\n" + c.text.slice(0, 160) + (c.text.length > 160 ? "…" : "") +
+        "\n\nNotes and tasks made from it are kept.", "Delete capture", function () {
+        captures = captures.filter(function (x) { return x.id !== c.id; });
+        delete stickers.cards[c.id];
+        saveCaptures(); saveStickers();
+        render();
+        showToast("Capture deleted");
+      });
+    }
+  }
+
+  function onInboxChange(e) {
+    var sel = e.target.closest('select[data-cap-act="source"]');
+    if (!sel) return;
+    var card = sel.closest("[data-cap]");
+    setCaptureSource(card.getAttribute("data-cap"), sel.value);
+    renderInbox();
+    showToast("Source type changed. Use “Review again” to re-check its lines.");
+  }
+
+  function dropAllThumbs() {
+    var n = captures.filter(function (c) { return c.thumb; }).length;
+    if (!n) { showToast("No saved pictures."); return; }
+    askConfirm("Delete all " + n + " saved capture picture" + (n === 1 ? "" : "s") + "? The text stays.", "Delete pictures", function () {
+      captures.forEach(function (c) { c.thumb = ""; });
+      saveCaptures();
+      render();
+      showToast("Saved pictures deleted");
+    });
+  }
+
+  function makeThumb(img) {
+    try {
+      var w = Math.min(360, img.naturalWidth), h = Math.round(img.naturalHeight * w / img.naturalWidth);
+      if (!w || !h || h > 2400) return "";
+      var c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      return c.toDataURL("image/jpeg", 0.6);
+    } catch (e) { return ""; }
+  }
+
+  // Small line icons for source types (drawn here, no image files).
+  function SOURCE_ICON(s) {
+    var p = {
+      sticky: '<path d="M3 3h10v6l-4 4H3z"/><path d="M9 13V9h4"/>',
+      notebook: '<rect x="3" y="2" width="10" height="12" rx="1"/><path d="M6 5h5M6 8h5M6 11h3"/>',
+      scrap: '<path d="M3 3h10l-1 3 1 3-1 2 1 2H3z"/>',
+      email: '<rect x="2" y="4" width="12" height="9" rx="1"/><path d="M2 5l6 4 6-4"/>',
+      chat: '<path d="M2 3h12v8H7l-3 3v-3H2z"/>',
+      digital: '<rect x="2" y="3" width="12" height="9" rx="1"/><path d="M6 14h4"/>',
+      appointment: '<rect x="2" y="3" width="12" height="11" rx="1"/><path d="M2 6h12M5 1v3M11 1v3"/>',
+      typed: '<path d="M3 13l1-3 7-7 2 2-7 7z"/>',
+      unknown: '<circle cx="8" cy="8" r="6"/><path d="M6.5 6.5a1.5 1.5 0 1 1 2 1.4c-.5.2-.5.6-.5 1.1M8 11.5v.1"/>'
+    }[s] || "";
+    return '<svg class="src-ico" viewBox="0 0 16 16" aria-hidden="true" focusable="false">' + p + "</svg>";
+  }
+
+  /* ---------- 14. Strawberry Cottage: theme, stickers, motivation ----------
+     All of this is decoration. It never changes notes, tasks or captures,
+     and "Show decorations" turns every bit of it off (except the theme
+     colors). Sticker art is original pixel art drawn below as tiny grids. */
+  var DESK_SLOTS = 6;
+  var PIX = {
+    k: "#5A3A35", r: "#E2556F", p: "#EFA6BC", l: "#FCE6EE", g: "#7CC07A", G: "#3F8A4A", y: "#FFD75E",
+    w: "#FFFFFF", c: "#FFF8EE", b: "#D79B5F", B: "#7A4A2C", o: "#F29A3A", e: "#C8B8BC", s: "#FFF3B0", v: "#C9B3EE"
+  };
+  var STICKERS = {
+    strawberry: { name: "Strawberry", art: ["....G..G....", ".....GGg....", "...gGGGGg...", "..krrrrrrk..", ".krrsrrrsrk.", ".krrrrrrrrk.", ".krsrrrsrrk.", "..krrrrrrk..", "..krrsrrrk..", "...krrrrk...", "....krrk....", ".....kk....."] },
+    bow: { name: "Pink bow", art: [".kk......kk.", "kppk....kppk", "kpplk..klppk", "kpppkkkkpppk", "kpppkrrkpppk", "kpplk..klppk", "kppk.kk.kppk", ".kk.kppk.kk.", "....kppk....", "...kpk.kpk..", "...kk...kk.."] },
+    cupcake: { name: "Mini cupcake", art: [".....rr.....", "....krrk....", "...kllllk...", "..kllplllk..", ".kllllllplk.", ".kplllllllk.", ".kkkkkkkkkk.", "..kbBbBbBk..", "..kbBbBbBk..", "..kbBbBbBk..", "...kbBbBk...", "....kkkk...."] },
+    cookie: { name: "Cookie", art: ["..kkkkkk..", ".kbbbbbbk.", "kbBbbbbBbk", "kbbbbBbbbk", "kbbBbbbbbk", "kbbbbbBbbk", "kbBbbbbbbk", ".kbbbBbbk.", "..kkkkkk.."] },
+    cat: { name: "Sleeping cat", art: ["..k.k.........", ".kekek........", ".keeeek.kkkk..", "kekkekkeeeeek.", "keeeeeeeeeeeek", "kepeeeeeeeeeek", ".keeeeeeeeeeek", "..kkkkkkkkkkk."] },
+    paw: { name: "Cat paw", art: ["..kk..kk..", ".kppkkppk.", "..kk..kk..", "kk......kk", "kpk.kk.kpk", ".k.kppk.k.", "..kppppk..", ".kppppppk.", ".kppppppk.", "..kkkkkk.."] },
+    goose: { name: "White goose", art: ["...kkk......", "..kwwwk.....", "..kwkwkoo...", "..kwwwkoo...", "...kwwk.....", "...kwwk.....", "..kwwwwkkk..", ".kwwwwwwwwk.", ".kwwwwwwwwwk", ".kwweeewwwk.", "..kwwwwwwk..", "...kokkok..."] },
+    daisy: { name: "Daisy", art: ["...kk.kk...", "..kwwkwwk..", ".kkwwkwwkk.", "kwwkyyykwwk", "kwwkyyykwwk", ".kkkyyykkk.", "..kwwkwwk..", "...kk.kk...", ".....G.....", "....GG.....", ".....G....."] },
+    coffee: { name: "Coffee cup", art: ["...p..p.....", "..p..p......", "............", ".kkkkkkkk...", ".kccccccckk.", ".kcBBBBcck.k", ".kccccccck.k", ".kccppcccckk", "..kccccck...", "...kkkkk...."] },
+    star: { name: "Sparkly star", art: [".....k.....", "....kyk....", "...kyyyk...", "kkkyyyyykkk", ".kyyywyyyk.", "..kyyyyyk..", "..kyykyyk..", ".kyyk.kyyk.", ".kkk...kkk."] },
+    heart: { name: "Tiny heart", art: [".kk..kk.", "kppkkrrk", "kplprrrk", "kpprrrrk", ".krrrrk.", "..krrk..", "...kk..."] },
+    flower: { name: "Pink flower", art: ["...kkk...", ".kkpppkk.", "kppkpkppk", "kpkyyykpk", ".kpyyypk.", "kpkyyykpk", "kppkpkppk", ".kkpppkk.", "...kkk..."] }
+  };
+  var stickerSvgCache = {};
+
+  // Turns a pixel grid into a small SVG (one rect per run of same-color pixels).
+  function stickerSvg(id, label) {
+    var s = STICKERS[id];
+    if (!s) return "";
+    if (!stickerSvgCache[id]) {
+      var w = 0, rects = "";
+      s.art.forEach(function (row, y) {
+        w = Math.max(w, row.length);
+        var x = 0;
+        while (x < row.length) {
+          var ch = row[x], x0 = x;
+          while (x < row.length && row[x] === ch) x++;
+          if (PIX[ch]) rects += '<rect x="' + x0 + '" y="' + y + '" width="' + (x - x0) + '" height="1" fill="' + PIX[ch] + '"/>';
+        }
+      });
+      stickerSvgCache[id] = '<svg class="px" viewBox="0 0 ' + w + " " + s.art.length + '" shape-rendering="crispEdges" focusable="false"';
+      stickerSvgCache[id + ":r"] = rects + "</svg>";
+    }
+    return stickerSvgCache[id] + (label ? ' role="img" aria-label="' + esc(label) + '"' : ' aria-hidden="true"') + ">" + stickerSvgCache[id + ":r"];
+  }
+
+  function slotHtml(slot, stickerId, label) {
+    return '<button type="button" class="sticker-slot decor' + (stickerId ? " filled" : "") + '" data-slot="' + esc(slot) + '" aria-label="' +
+      esc(stickerId ? label + ": " + STICKERS[stickerId].name + ". Tap to change or remove." : label + ": empty. Tap to add a sticker.") + '">' +
+      (stickerId ? stickerSvg(stickerId) : '<span aria-hidden="true">+</span>') + "</button>";
+  }
+
+  var pickerSlot = null;
+  function openStickerPicker(slot) {
+    pickerSlot = slot;
+    var current = stickerAt(slot);
+    $("stickerGrid").innerHTML = Object.keys(STICKERS).map(function (id) {
+      return '<button type="button" data-sticker="' + id + '" aria-pressed="' + (id === current) + '">' + stickerSvg(id) + "<span>" + esc(STICKERS[id].name) + "</span></button>";
+    }).join("");
+    $("stickerRemove").hidden = !current;
+    $("stickerSheet").hidden = false;
+    $("stickerCancel").focus();
+  }
+
+  function stickerAt(slot) {
+    var m = slot.match(/^(card|desk):(.+)$/);
+    if (!m) return "";
+    return m[1] === "desk" ? stickers.desk[Number(m[2])] || "" : stickers.cards[m[2]] || "";
+  }
+
+  function placeSticker(slot, id) {
+    var m = slot.match(/^(card|desk):(.+)$/);
+    if (!m) return;
+    if (m[1] === "desk") { var i = Number(m[2]); if (i >= 0 && i < DESK_SLOTS) stickers.desk[i] = id; }
+    else if (id) stickers.cards[m[2]] = id;
+    else delete stickers.cards[m[2]];
+    saveStickers();
+  }
+
+  function closeStickerPicker() {
+    $("stickerSheet").hidden = true;
+    var el = pickerSlot && document.querySelector('[data-slot="' + cssEsc(pickerSlot) + '"]');
+    pickerSlot = null;
+    if (el) el.focus({ preventScroll: true });
+  }
+
+  function onStickerPick(e) {
+    if (e.target === $("stickerSheet")) { closeStickerPicker(); return; }
+    var b = e.target.closest("[data-sticker]");
+    if (!b || !pickerSlot) return;
+    var slot = pickerSlot;
+    placeSticker(slot, b.getAttribute("data-sticker"));
+    closeStickerPicker();
+    renderInbox();
+    var el = document.querySelector('[data-slot="' + cssEsc(slot) + '"]');
+    if (el) el.focus({ preventScroll: true });
+  }
+
+  var MOTIVATION = {
+    sweet: ["One thing at a time, babe.", "You're doing better than you think.", "Be gentle with yourself today.", "Sip your coffee. You've got this.", "Little steps still count.", "Your future self says thank you."],
+    funny: ["Today's goal: organized chaos.", "Bumpers on backorder, good vibes in stock.", "Running on coffee and folder numbers.", "Parts may be late. Snacks are not.", "Adjusters fear this level of organization.", "Professional juggler of open repair orders."],
+    encouraging: ["Look at you getting things done!", "You've handled harder Mondays.", "Tiny progress is still progress.", "Check one thing off. Then another.", "Clear notes, calm mind.", "You keep this whole shop moving."]
+  };
+
+  function renderMotivation() {
+    var box = $("motivation");
+    box.hidden = !settings.motivation || viewDate !== todayKey();
+    if (box.hidden) return;
+    var list = MOTIVATION[settings.mood];
+    var i = settings.motIndex >= 0 ? settings.motIndex % list.length : daysBetween("2026-01-05", todayKey()) % list.length;
+    if (i < 0) i += list.length;
+    $("motText").textContent = list[i];
+  }
+
+  function nextMotivation() {
+    var list = MOTIVATION[settings.mood];
+    var cur = settings.motIndex >= 0 ? settings.motIndex : ((daysBetween("2026-01-05", todayKey()) % list.length) + list.length) % list.length;
+    settings.motIndex = (cur + 1) % list.length;
+    saveSettings();
+    renderMotivation();
+  }
+
+  function applyAppearance() {
+    document.body.setAttribute("data-theme", settings.theme);
+    document.body.classList.toggle("no-decor", !settings.decor);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", settings.theme === "strawberry" ? "#70514B" : "#111111");
+    Array.prototype.forEach.call($("themeSeg").querySelectorAll("button"), function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-v") === settings.theme)); });
+    Array.prototype.forEach.call($("moodSeg").querySelectorAll("button"), function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-v") === settings.mood)); });
+    $("decorToggle").checked = settings.decor;
+    $("motToggle").checked = settings.motivation;
+    $("moodSeg").hidden = !settings.motivation;
+    $("thumbToggle").checked = settings.keepThumbs;
+    $("headerDecor").innerHTML = settings.decor ? stickerSvg("strawberry") + stickerSvg("goose") : "";
+    $("entryCat").innerHTML = settings.decor ? stickerSvg("cat") : "";
+  }
+
+  function onAppearance(e) {
+    var b = e.target.closest("button[data-v]");
+    if (b && $("themeSeg").contains(b)) settings.theme = b.getAttribute("data-v");
+    else if (b && $("moodSeg").contains(b)) { settings.mood = b.getAttribute("data-v"); settings.motIndex = -1; }
+    else return;
+    saveSettings();
+    render();
   }
 
   /* ---------- 12. Event wiring, keyboard shortcuts and startup ---------- */
@@ -3923,7 +5188,8 @@
     $("approveAllBtn").addEventListener("click", approveAll);
     $("cancelReviewBtn").addEventListener("click", function () {
       if (!review) return;
-      askConfirm("Close the review? Nothing from it will be saved.", "Close review", closeReview);
+      var capMsg = review.src === "capture" ? "Close the review? Nothing will be changed. The capture stays in Capture Inbox \u2192 Needs review, so you can finish later." : "Close the review? Nothing from it will be saved.";
+      askConfirm(capMsg, "Close review", function () { closeReview(); render(); });
     });
     ["reviewList", "reviewUnchanged"].forEach(function (id) {
       $(id).addEventListener("input", onReviewInput);
@@ -3936,15 +5202,36 @@
     $("notesInput").addEventListener("keydown", function (e) {
       if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); readNotes(); }
     });
-    $("importHistoryList").addEventListener("click", function (e) {
-      var b = e.target.closest("[data-forget]");
-      if (!b) return;
-      var id = b.getAttribute("data-forget");
-      askConfirm("Delete this import record? Notes and tasks made from it are kept.", "Delete record", function () {
-        importLog = importLog.filter(function (x) { return x.id !== id; });
-        saveImportLog();
-        render();
-      });
+    $("notesInput").addEventListener("paste", function () { pastedIntoCapture = true; });
+    $("reviewCaps").addEventListener("change", onCapSourceChange);
+    $("reviewCaps").addEventListener("click", onReviewClick);
+
+    // Capture Inbox
+    $("inboxView").addEventListener("click", onInboxClick);
+    $("inboxView").addEventListener("change", onInboxChange);
+    $("inboxSearch").addEventListener("input", renderInbox);
+    $("cameraBtn").addEventListener("click", function () { $("cameraFile").click(); });
+    $("cameraFile").addEventListener("change", function (e) { readImages(e.target.files, "camera"); e.target.value = ""; });
+    $("thumbToggle").addEventListener("change", function (e) {
+      settings.keepThumbs = e.target.checked;
+      saveSettings();
+      showToast(e.target.checked ? "Small pictures will be kept with new captures (on this device only)." : "New captures won't keep a picture.");
+    });
+    $("dropThumbsBtn").addEventListener("click", dropAllThumbs);
+
+    // Appearance, stickers, motivation
+    $("lookCard").addEventListener("click", onAppearance);
+    $("decorToggle").addEventListener("change", function (e) { settings.decor = e.target.checked; saveSettings(); render(); });
+    $("motToggle").addEventListener("change", function (e) { settings.motivation = e.target.checked; saveSettings(); render(); });
+    $("motNext").addEventListener("click", nextMotivation);
+    $("motHide").addEventListener("click", function () { settings.motivation = false; saveSettings(); render(); showToast("Motivation hidden. Turn it back on in Appearance."); });
+    $("stickerSheet").addEventListener("click", onStickerPick);
+    $("stickerCancel").addEventListener("click", closeStickerPicker);
+    $("stickerRemove").addEventListener("click", function () {
+      var slot = pickerSlot;
+      if (slot) placeSticker(slot, "");
+      closeStickerPicker();
+      renderInbox();
     });
 
     // Images: choose, paste, drag and drop
@@ -4007,13 +5294,15 @@
       if (e.key === "Escape") {
         if (closeConfirm) { closeConfirm(false); return; }
         if (!$("imageView").hidden) { $("imageView").hidden = true; return; }
+        if (!$("stickerSheet").hidden) { closeStickerPicker(); return; }
         if (!$("lineSheet").hidden) { closeLineSheet(); return; }
         if (hlMode) { hlMode = false; render(); return; }
         if (editingId) { resetForm(); render(); return; }
         if (isTyping(document.activeElement)) document.activeElement.blur();
         return;
       }
-      if (closeConfirm || !$("lineSheet").hidden || isTyping(document.activeElement) || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (closeConfirm || !$("lineSheet").hidden || !$("stickerSheet").hidden || isTyping(document.activeElement) || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "c" || e.key === "C") { e.preventDefault(); $("notesInput").focus(); $("notesInput").scrollIntoView({ block: "center" }); return; }
       var onBoard = settings.view === "tasks";
       if (e.key === "n" || e.key === "N") { e.preventDefault(); (onBoard ? $("fDesc") : $("noteEntry")).focus(); }
       else if (e.key === "/") { e.preventDefault(); (onBoard ? $("search") : $("noteSearch")).focus(); }
@@ -4039,9 +5328,12 @@
     renderCategoryChips();
     tasks = loadTasks();          // before migrating, so a brand-new install still gets the examples
     migrateStorage();
+    takeDailySnapshot();          // automatic safety copy, once a day, before anything changes
     notebook = loadNotebook();
     settings = loadSettings();
     importLog = loadImportLog();
+    captures = loadCaptures();
+    stickers = loadStickers();
     viewDate = todayKey();
     $("importDate").value = viewDate;
     $("noteEntry").value = storageGet(DRAFT_KEY) || "";
@@ -4060,7 +5352,8 @@
   window.RepairPlannerTest = {
     parseNotes: parseNotes, analyzeLine: analyzeLine, classifyText: classifyText, parseAppt: parseAppt,
     matchTasks: matchTasks, lineSim: lineSim, textMarks: textMarks, Vision: Vision, parseBackup: parseBackup,
-    review: function () { return review; }
+    review: function () { return review; },
+    detectSource: detectSource, topicOf: topicOf, captures: function () { return captures; }
   };
 })();
 </script>
