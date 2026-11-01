@@ -1,0 +1,1946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#111111">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Repair Planner">
+<title>Repair Advisor Planner</title>
+<style>
+  /* ============================================================
+     Repair Advisor Planner v1.2 — styles
+     Palette: red / white / black. Change colors here only.
+     ============================================================ */
+  :root {
+    --red: #C8102E;
+    --red-dark: #9E0B23;
+    --red-tint: #FCEBEE;
+    --black: #111111;
+    --ink: #1F1F1F;
+    --gray-700: #4A4A4A;
+    --gray-500: #767676;
+    --gray-300: #D4D4D4;
+    --gray-100: #F3F3F3;
+    --white: #FFFFFF;
+    --radius: 12px;
+    --tap: 48px; /* minimum tap target height on touch screens */
+  }
+
+  * { box-sizing: border-box; }
+
+  [hidden] { display: none !important; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--gray-100);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.4;
+  }
+
+  button, input, select, textarea { font: inherit; color: inherit; }
+
+  button { cursor: pointer; }
+  button:disabled { cursor: default; opacity: 0.5; }
+
+  :focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+
+  /* ---------- Header ---------- */
+  .app-header {
+    background: var(--black);
+    color: var(--white);
+    padding: calc(14px + env(safe-area-inset-top)) 16px 14px;
+    border-bottom: 4px solid var(--red);
+  }
+  .header-inner {
+    max-width: 1680px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: var(--red);
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 18px;
+  }
+  .brand h1 { margin: 0; font-size: 20px; letter-spacing: 0.2px; }
+  .today-date { font-size: 15px; font-weight: 600; color: #E6E6E6; }
+
+  /* ---------- Layout ---------- */
+  main {
+    max-width: 1680px;
+    margin: 0 auto;
+    padding: 16px 16px calc(32px + env(safe-area-inset-bottom));
+  }
+  .layout { display: grid; gap: 16px; }
+  .main-col { min-width: 0; }
+
+  /* Two columns on iPad and laptop */
+  @media (min-width: 760px) {
+    .layout { grid-template-columns: minmax(300px, 340px) 1fr; align-items: start; }
+    .side { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
+  }
+  /* Desktop monitor: wider side panel, three task columns side by side */
+  @media (min-width: 1280px) {
+    main { padding-left: 24px; padding-right: 24px; }
+    .layout { grid-template-columns: 380px 1fr; gap: 24px; }
+    .sections { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start; }
+    .sections .section { margin-bottom: 0; }
+  }
+
+  .card {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+  .card + .card { margin-top: 16px; }
+  .card h2 {
+    margin: 0 0 12px;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--gray-700);
+  }
+
+  /* ---------- Summary ---------- */
+  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .stat {
+    border: 1px solid var(--gray-300);
+    border-radius: 10px;
+    padding: 10px 6px;
+    text-align: center;
+  }
+  .stat .num { display: block; font-size: 28px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .stat .lbl { display: block; font-size: 12px; color: var(--gray-700); }
+  .stat.alert { border-color: var(--red); background: var(--red-tint); }
+  .stat.alert .num { color: var(--red); }
+
+  /* ---------- Form ---------- */
+  .field { margin-bottom: 12px; }
+  .field label, .field .label {
+    display: block; font-size: 14px; font-weight: 600; margin-bottom: 4px;
+  }
+  .field .hint { font-weight: 400; color: var(--gray-500); }
+  input[type="text"], input[type="search"], select, textarea {
+    width: 100%;
+    min-height: var(--tap);
+    padding: 10px 12px;
+    border: 1.5px solid var(--gray-300);
+    border-radius: 10px;
+    background: var(--white);
+    font-size: 17px; /* 16px+ prevents iOS zoom on focus */
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--black); outline: none; }
+  textarea { min-height: 120px; line-height: 1.4; resize: vertical; }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row-2 > .field { min-width: 0; }
+
+  .date-line {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    font-size: 14px; color: var(--gray-700);
+    border-top: 1px solid var(--gray-300); padding-top: 10px; margin-bottom: 12px;
+  }
+  .date-line strong { color: var(--ink); }
+
+  .btn {
+    min-height: var(--tap);
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1.5px solid var(--black);
+    background: var(--white);
+    font-weight: 700;
+  }
+  .btn-primary { background: var(--red); border-color: var(--red); color: var(--white); }
+  .btn-primary:active { background: var(--red-dark); }
+  .btn-dark { background: var(--black); color: var(--white); }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn-row .btn { flex: 1 1 auto; }
+  .btn-danger { border-color: var(--red); color: var(--red); }
+
+  .form-error { color: var(--red); font-weight: 600; font-size: 14px; margin: 0 0 10px; }
+  .editing-banner {
+    background: var(--black); color: var(--white);
+    border-radius: 8px; padding: 8px 12px; font-size: 14px; margin-bottom: 12px;
+  }
+
+  /* ---------- Notes and snippets ---------- */
+  .drop-zone {
+    border: 2px dashed var(--gray-300);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--gray-700);
+    margin-bottom: 10px;
+  }
+  .drop-zone strong { color: var(--ink); }
+  .drop-zone.active { border-color: var(--red); background: var(--red-tint); }
+  .ocr-status {
+    font-size: 14px; font-weight: 600; margin: 0 0 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .ocr-status.error { color: var(--red); }
+  .ocr-bar { flex: 1; height: 6px; background: var(--gray-300); border-radius: 3px; overflow: hidden; }
+  .ocr-bar span { display: block; height: 100%; width: 0; background: var(--red); transition: width 0.2s; }
+
+  .drop-overlay {
+    position: fixed; inset: 0; z-index: 30;
+    background: rgba(17,17,17,0.6);
+    display: grid; place-items: center;
+    pointer-events: none;
+  }
+  .drop-overlay div {
+    background: var(--white);
+    border: 3px dashed var(--red);
+    border-radius: var(--radius);
+    padding: 28px 36px;
+    font-size: 20px; font-weight: 700;
+  }
+
+  /* ---------- Filters ---------- */
+  .filters { display: grid; gap: 10px; margin-bottom: 16px; }
+  .filter-row { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  @media (min-width: 600px) and (max-width: 759px), (min-width: 1280px) {
+    .filter-row.has-estimators { grid-template-columns: 1fr 220px; }
+  }
+  .chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  @media (min-width: 1280px) { .chips { flex-wrap: wrap; overflow: visible; } }
+  .chip {
+    flex: 0 0 auto;
+    min-height: 40px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1.5px solid var(--gray-300);
+    background: var(--white);
+    font-weight: 600; font-size: 15px;
+  }
+  .chip[aria-pressed="true"] { background: var(--black); color: var(--white); border-color: var(--black); }
+  .filter-note { font-size: 14px; color: var(--gray-700); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .link-btn { background: none; border: none; color: var(--red); font-weight: 700; padding: 8px 4px; min-height: 40px; }
+
+  /* ---------- Example banner ---------- */
+  .examples-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    background: var(--white);
+    border: 2px dashed var(--red);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 15px;
+  }
+
+  /* ---------- Sections & tasks ---------- */
+  .section { margin-bottom: 20px; min-width: 0; }
+  .section-head {
+    display: flex; align-items: baseline; gap: 8px;
+    border-bottom: 2px solid var(--black);
+    padding-bottom: 6px; margin-bottom: 10px;
+  }
+  .section-head h2 { margin: 0; font-size: 20px; }
+  .section-head .sub { font-size: 13px; color: var(--gray-700); margin-left: auto; }
+  .count {
+    background: var(--black); color: var(--white);
+    border-radius: 999px; font-size: 13px; font-weight: 700;
+    padding: 2px 9px;
+  }
+  .section.today .section-head { border-color: var(--red); }
+  .section.today .count { background: var(--red); }
+
+  .empty { color: var(--gray-500); font-size: 15px; padding: 8px 2px; }
+
+  .task-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .task {
+    background: var(--white);
+    border-radius: var(--radius);
+    border-left: 6px solid var(--gray-300);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    padding: 12px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+  .task.carried { border-left-color: var(--black); }
+  .task.stale { background: var(--red-tint); border-left-color: var(--red); }
+  .task.done { opacity: 0.75; border-left-color: var(--gray-300); }
+  .task.done .desc { text-decoration: line-through; color: var(--gray-700); }
+
+  .check {
+    width: var(--tap); height: var(--tap);
+    border-radius: 50%;
+    border: 2.5px solid var(--black);
+    background: var(--white);
+    display: grid; place-items: center;
+    font-size: 22px; font-weight: 800; line-height: 1;
+  }
+  .task.done .check { background: var(--black); color: var(--white); }
+
+  .task-body { min-width: 0; }
+  .who { font-weight: 800; font-size: 16px; margin-bottom: 2px; overflow-wrap: anywhere; }
+  .who .sep { color: var(--gray-500); font-weight: 400; }
+  .meta-top { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 4px; }
+  .badge {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.3px;
+    border-radius: 6px; padding: 2px 7px;
+    border: 1px solid var(--gray-300); color: var(--gray-700);
+    text-transform: uppercase;
+  }
+  .badge.estimator { text-transform: none; letter-spacing: 0; }
+  .badge.wait { background: var(--black); border-color: var(--black); color: var(--white); text-transform: none; letter-spacing: 0; }
+  .badge.wait.stale { background: var(--red); border-color: var(--red); }
+  .badge.example { border-style: dashed; }
+  .desc { margin: 0 0 6px; font-size: 17px; overflow-wrap: anywhere; }
+  .meta-bottom { font-size: 14px; color: var(--gray-700); }
+  .task-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .task-actions .btn { min-height: 44px; padding: 8px 14px; font-size: 15px; }
+
+  /* ---------- Review (from notes) ---------- */
+  .review { margin-bottom: 16px; border: 2px solid var(--black); }
+  .review-list { display: grid; gap: 10px; margin-bottom: 14px; }
+  @media (min-width: 1280px) { .review-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .review-item {
+    border: 1.5px solid var(--gray-300);
+    border-radius: 10px;
+    padding: 10px;
+    display: grid;
+    gap: 8px;
+    align-content: start;
+    min-width: 0;
+  }
+  .review-item.off { opacity: 0.5; }
+  .review-top { display: flex; gap: 10px; align-items: center; }
+  .review-top input[type="checkbox"] {
+    flex: none; width: 28px; height: 28px; margin: 0;
+    accent-color: var(--red);
+  }
+  .review-top input[type="text"] { flex: 1; min-width: 0; }
+  .review-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px;
+  }
+  .review-item label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--gray-700); min-width: 0; }
+  .review-item label input, .review-item label select { min-height: 44px; min-width: 0; max-width: 100%; }
+  .review-note { margin: 0; font-size: 14px; color: var(--gray-700); overflow-wrap: anywhere; }
+  .review-note.match { color: var(--ink); }
+  .review-note.guess-note { color: var(--red); font-weight: 600; }
+
+  /* Boxes the smart reader filled with a guess */
+  input.guess { border-color: var(--red); border-style: dashed; background: var(--red-tint); }
+  .autofill-note { font-size: 13px; color: var(--gray-700); margin: -6px 0 12px; }
+
+  /* ---------- Backup ---------- */
+  .small { font-size: 14px; color: var(--gray-700); margin: 0 0 10px; }
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(20px);
+    background: var(--black); color: var(--white);
+    padding: 12px 18px; border-radius: 10px;
+    font-size: 15px; font-weight: 600;
+    max-width: calc(100% - 32px);
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transition: transform 0.2s ease, opacity 0.2s ease, visibility 0.2s;
+    z-index: 40;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; visibility: visible; }
+  .toast.error { background: var(--red); }
+
+  /* ---------- Confirm box ---------- */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(17,17,17,0.55);
+    display: grid; place-items: center;
+    padding: 16px;
+  }
+  .modal {
+    background: var(--white);
+    border-radius: var(--radius);
+    border-top: 6px solid var(--red);
+    width: 100%; max-width: 420px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  }
+  .modal p { margin: 0 0 18px; white-space: pre-line; overflow-wrap: anywhere; }
+
+  /* ---------- Keyboard hint (mouse/keyboard devices only) ---------- */
+  .shortcuts { display: none; font-size: 13px; color: var(--gray-700); margin-top: 16px; text-align: center; }
+  kbd {
+    font: 600 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    border: 1px solid var(--gray-300); border-bottom-width: 2px;
+    border-radius: 4px; padding: 1px 5px; background: var(--white);
+  }
+
+  /* Mouse and keyboard: denser controls, hover feedback */
+  @media (hover: hover) and (pointer: fine) {
+    :root { --tap: 40px; }
+    body { font-size: 16px; }
+    .shortcuts { display: block; }
+    .check { width: 34px; height: 34px; font-size: 18px; }
+    .task { padding: 10px 12px; gap: 10px; }
+    .task:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+    .check:hover { border-color: var(--red); }
+    .desc { font-size: 16px; margin-bottom: 4px; }
+    .task-actions { margin-top: 6px; }
+    .task-actions .btn { min-height: 32px; padding: 4px 12px; font-size: 14px; }
+    .btn:hover { filter: brightness(0.94); }
+    .chip { min-height: 34px; padding: 6px 12px; font-size: 14px; }
+    .chip:hover { border-color: var(--black); }
+    input[type="text"], input[type="search"], select, textarea { font-size: 16px; padding: 8px 10px; }
+  }
+
+  @media (max-width: 420px) {
+    .summary { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; scroll-behavior: auto !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">R</div>
+      <h1>Repair Advisor Planner</h1>
+    </div>
+    <div class="today-date" id="todayLabel"></div>
+  </div>
+</header>
+
+<main>
+  <div class="layout">
+
+    <!-- ===== Left column: summary, add/edit form, notes, backup ===== -->
+    <div class="side">
+
+      <section class="card" aria-labelledby="summaryTitle">
+        <h2 id="summaryTitle">Daily summary</h2>
+        <div class="summary">
+          <div class="stat" id="statOpen"><span class="num">0</span><span class="lbl">Open</span></div>
+          <div class="stat" id="statToday"><span class="num">0</span><span class="lbl">Added today</span></div>
+          <div class="stat" id="statStale"><span class="num">0</span><span class="lbl" id="statStaleLabel">Waiting 3+ days</span></div>
+          <div class="stat" id="statDone"><span class="num">0</span><span class="lbl">Done today</span></div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="formTitle" id="formCard">
+        <h2 id="formTitle">Add task</h2>
+        <div class="editing-banner" id="editingBanner" hidden>Editing a task. Save or cancel when done.</div>
+        <form id="taskForm" novalidate autocomplete="off">
+          <p class="form-error" id="formError" role="alert" hidden></p>
+
+          <div class="field">
+            <label for="fDesc">Task</label>
+            <input type="text" id="fDesc" maxlength="300" placeholder="e.g. call Rivera 10452 re supp" enterkeyhint="done">
+          </div>
+          <p class="autofill-note" id="autofillNote" aria-live="polite" hidden></p>
+
+          <div class="row-2">
+            <div class="field">
+              <label for="fCustomer">Customer</label>
+              <input type="text" id="fCustomer" maxlength="60" autocapitalize="words" spellcheck="false" placeholder="Last name">
+            </div>
+            <div class="field">
+              <label for="fFolder">Folder #</label>
+              <input type="text" id="fFolder" maxlength="30" autocapitalize="characters" spellcheck="false" placeholder="e.g. 10452">
+            </div>
+          </div>
+
+          <div class="row-2">
+            <div class="field">
+              <label for="fCategory">Category</label>
+              <select id="fCategory"></select>
+            </div>
+            <div class="field">
+              <label for="fEstimator">Estimator <span class="hint">(optional)</span></label>
+              <input type="text" id="fEstimator" list="estimatorList" maxlength="40" autocapitalize="words" spellcheck="false" placeholder="Name">
+            </div>
+          </div>
+          <datalist id="estimatorList"></datalist>
+
+          <div class="date-line">
+            <span id="dateLineLabel">Date added</span>
+            <strong id="dateLineValue"></strong>
+          </div>
+
+          <div class="btn-row">
+            <button type="submit" class="btn btn-primary" id="submitBtn">Add task</button>
+            <button type="button" class="btn" id="cancelEditBtn" hidden>Cancel</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card" aria-labelledby="notesTitle" id="notesCard">
+        <h2 id="notesTitle">Add from notes or snippets</h2>
+        <div class="drop-zone" id="dropZone">
+          <strong>Drop or paste a screenshot or snippet here</strong><br>
+          The text is read on this device and turned into tasks.
+          <div style="margin-top:8px">
+            <button type="button" class="btn" id="chooseImageBtn">Choose image</button>
+          </div>
+        </div>
+        <input type="file" id="imageFile" accept="image/*" multiple class="visually-hidden" tabindex="-1" aria-hidden="true">
+        <div class="ocr-status" id="ocrStatus" role="status" aria-live="polite" hidden>
+          <span id="ocrStatusText"></span>
+          <span class="ocr-bar" id="ocrBar"><span></span></span>
+        </div>
+        <div class="field">
+          <label for="notesInput">Or type or paste text, one task per line</label>
+          <textarea id="notesInput" rows="5" spellcheck="false" placeholder="RO 90452 Rivera&#10;call adjuster re supplement&#10;bumper on backorder&#10;&#10;90470 sublet alignment"></textarea>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-dark" id="readNotesBtn">Read notes</button>
+          <button type="button" class="btn" id="clearNotesBtn">Clear</button>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="backupTitle">
+        <h2 id="backupTitle">Backup</h2>
+        <p class="small">Tasks are saved only in this browser on this device. Export a backup file regularly.</p>
+        <div class="btn-row">
+          <button type="button" class="btn btn-dark" id="exportBtn">Export backup</button>
+          <button type="button" class="btn" id="importBtn">Import backup</button>
+        </div>
+        <input type="file" id="importFile" accept=".json,application/json" class="visually-hidden" tabindex="-1" aria-hidden="true">
+      </section>
+
+      <p class="shortcuts">
+        <kbd>N</kbd> new task · <kbd>/</kbd> search · <kbd>Ctrl</kbd>+<kbd>V</kbd> paste snippet · <kbd>Esc</kbd> cancel
+      </p>
+    </div>
+
+    <!-- ===== Right column: review, filters and task lists ===== -->
+    <div class="main-col">
+
+      <section class="card review" id="reviewPanel" aria-labelledby="reviewTitle" hidden>
+        <h2 id="reviewTitle">Review before adding</h2>
+        <p class="small" id="reviewSummary"></p>
+        <div class="review-list" id="reviewList"></div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-primary" id="applyNotesBtn">Add tasks</button>
+          <button type="button" class="btn" id="cancelReviewBtn">Cancel</button>
+        </div>
+      </section>
+
+      <div class="examples-banner" id="examplesBanner" hidden>
+        <span>Showing fictional <strong>example tasks</strong> for demonstration.</span>
+        <button type="button" class="btn btn-danger" id="deleteExamplesBtn">Delete examples</button>
+      </div>
+
+      <section class="card filters" aria-label="Filters">
+        <div class="filter-row" id="filterRow">
+          <div>
+            <label for="search" class="visually-hidden">Find by folder number or customer</label>
+            <input type="search" id="search" placeholder="Find folder # or customer" spellcheck="false">
+          </div>
+          <div id="estimatorFilterWrap" hidden>
+            <label for="estimatorFilter" class="visually-hidden">Filter by estimator</label>
+            <select id="estimatorFilter"></select>
+          </div>
+        </div>
+        <div class="chips" id="categoryChips" role="group" aria-label="Filter by category"></div>
+        <div class="filter-note" id="filterNote" hidden>
+          <span id="filterNoteText"></span>
+          <button type="button" class="link-btn" id="clearFiltersBtn">Clear filters</button>
+        </div>
+      </section>
+
+      <div class="sections">
+        <section class="section today" aria-labelledby="todayTitle">
+          <div class="section-head"><h2 id="todayTitle">Today</h2><span class="count" id="todayCount">0</span></div>
+          <ul class="task-list" id="todayList"></ul>
+        </section>
+
+        <section class="section" aria-labelledby="carriedTitle">
+          <div class="section-head"><h2 id="carriedTitle">Carried over</h2><span class="count" id="carriedCount">0</span><span class="sub">oldest first</span></div>
+          <ul class="task-list" id="carriedList"></ul>
+        </section>
+
+        <section class="section" aria-labelledby="completedTitle">
+          <div class="section-head"><h2 id="completedTitle">Completed</h2><span class="count" id="completedCount">0</span></div>
+          <ul class="task-list" id="completedList"></ul>
+        </section>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<div class="drop-overlay" id="dropOverlay" hidden><div>Drop image to read its text</div></div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="modal-backdrop" id="confirmBox" hidden>
+  <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="confirmText">
+    <p id="confirmText"></p>
+    <div class="btn-row">
+      <button type="button" class="btn" id="confirmCancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="confirmOk">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==============================================================
+   Repair Advisor Planner v1.2
+   Single-file app. No backend, no accounts, no tracking.
+   All tasks live in this browser's localStorage.
+
+   The only outside code is the free text reader (Tesseract.js),
+   loaded from jsDelivr the first time you drop or paste an image.
+   Images are read inside the browser and are never uploaded.
+
+   Sections in this script:
+     1. Constants
+     2. Date helpers
+     3. Storage (load / save, examples)
+     4. Task helpers (validate, sort)
+     5. Rendering
+     6. Actions (add, edit, complete, delete)
+     7. Backup (export / import)
+     8. Smart reader and Add from notes (turn text into tasks)
+     9. Read text from images (snippets, photos)
+    10. Event wiring, keyboard shortcuts and startup
+   ============================================================== */
+(function () {
+  "use strict";
+
+  /* ---------- 1. Constants ---------- */
+  var STORAGE_KEY = "repairAdvisorPlanner.tasks.v1";
+  var ESTIMATOR_KEY = "repairAdvisorPlanner.lastEstimator";
+  var APP_ID = "repair-advisor-planner";
+  var DATA_VERSION = 2;
+  var CATEGORIES = ["Parts", "Supplements", "Sublet", "Customer", "Scheduling", "Delivery", "Other"];
+  var STALE_DAYS = 3;          // open this many days or more = highlighted red
+  var MAX_NOTE_LINES = 50;
+
+  // Text reader, loaded only when an image is dropped or pasted.
+  var OCR_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+  var OCR_LANGUAGE = "eng";
+  var MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+
+  // Words that point a note to a category ("Add from notes").
+  // The category with the most matching words wins; ties go to the one
+  // listed first. Add your shop's own shorthand here. Lowercase only.
+  var CATEGORY_KEYWORDS = {
+    Supplements: ["supplement", "supplements", "supp", "adjuster", "appraiser", "insurance", "ins", "claim", "estimate", "approval", "approved", "reinspect", "re-inspect", "teardown", "hidden damage", "rates"],
+    Sublet: ["sublet", "alignment", "align", "glass", "windshield", "calibrate", "calibration", "adas", "tow", "towing", "mechanical", "mechanic", "a/c", "pdr", "upholstery"],
+    Parts: ["part", "parts", "order", "ordered", "backorder", "backordered", "back order", "back-order", "eta", "bumper", "fender", "hood", "headlamp", "headlight", "mirror", "grille", "quarter panel", "return", "core", "vendor", "dealer", "oem", "aftermarket", "shipped", "arrived"],
+    Delivery: ["deliver", "delivery", "delivered", "pickup", "pick up", "picked up", "release", "ready", "wash", "invoice", "payment", "paid", "keys"],
+    Scheduling: ["schedule", "scheduled", "reschedule", "appointment", "appt", "drop off", "drop-off", "dropoff", "book", "booked", "start date", "booth"],
+    Customer: ["call", "called", "text", "texted", "customer", "cust", "owner", "voicemail", "vm", "left message", "email", "update", "rental"]
+  };
+
+  /* ---------- 2. Date helpers (local time, "YYYY-MM-DD") ---------- */
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+
+  function toDateKey(d) {
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+
+  function todayKey() { return toDateKey(new Date()); }
+
+  function parseDateKey(key) {
+    var p = key.split("-");
+    return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  }
+
+  function addDays(key, days) {
+    var d = parseDateKey(key);
+    d.setDate(d.getDate() + days);
+    return toDateKey(d);
+  }
+
+  function daysBetween(fromKey, toKey) {
+    return Math.round((parseDateKey(toKey) - parseDateKey(fromKey)) / 86400000);
+  }
+
+  function isValidIso(s) { return typeof s === "string" && !isNaN(new Date(s).getTime()); }
+
+  function addedKey(t) { return toDateKey(new Date(t.createdAt)); }
+
+  function formatDate(key) {
+    var today = todayKey();
+    if (key === today) return "Today";
+    if (key === addDays(today, -1)) return "Yesterday";
+    return parseDateKey(key).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  }
+
+  function formatLongDate(key) {
+    return parseDateKey(key).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  }
+
+  /* ---------- 3. Storage ---------- */
+  var tasks = [];
+
+  function makeId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  function exampleTasks() {
+    // Fictional demonstration data only. No real customers or records.
+    function daysAgo(n) { var d = new Date(); d.setDate(d.getDate() - n); return d.toISOString(); }
+    return [
+      { id: makeId(), customer: "Example Rivera", folder: "DEMO-101", desc: "Example: follow up on back-ordered front bumper cover", category: "Parts", estimator: "Example Estimator", createdAt: daysAgo(4), done: false, completedAt: null, example: true },
+      { id: makeId(), customer: "Sample Chen", folder: "DEMO-102", desc: "Example: submit supplement for hidden frame damage", category: "Supplements", estimator: "Example Estimator", createdAt: daysAgo(1), done: false, completedAt: null, example: true },
+      { id: makeId(), customer: "Demo Patel", folder: "", desc: "Example: confirm delivery time with vehicle owner", category: "Delivery", estimator: "", createdAt: daysAgo(0), done: false, completedAt: null, example: true }
+    ];
+  }
+
+  function loadTasks() {
+    var raw;
+    try {
+      raw = localStorage.getItem(STORAGE_KEY);
+    } catch (e) {
+      showToast("Browser storage is unavailable. Tasks won't be saved.", true);
+      return exampleTasks();
+    }
+    if (raw === null) {
+      tasks = exampleTasks();  // first run
+      saveTasks();
+      return tasks;
+    }
+    try {
+      var result = validateTaskArray(JSON.parse(raw));
+      if (result.error) throw new Error(result.error);
+      return result.tasks;
+    } catch (e) {
+      // Keep a copy of the unreadable data so nothing is silently lost.
+      try { localStorage.setItem(STORAGE_KEY + ".corrupt." + Date.now(), raw); } catch (ignore) {}
+      showToast("Saved tasks couldn't be read. Starting fresh; a copy was kept.", true);
+      return [];
+    }
+  }
+
+  function saveTasks() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      return true;
+    } catch (e) {
+      showToast("Couldn't save. Storage may be full or blocked (Private Browsing?).", true);
+      return false;
+    }
+  }
+
+  function loadLastEstimator() {
+    try { return localStorage.getItem(ESTIMATOR_KEY) || ""; } catch (e) { return ""; }
+  }
+
+  function saveLastEstimator(name) {
+    try { localStorage.setItem(ESTIMATOR_KEY, name); } catch (e) { /* not critical */ }
+  }
+
+  /* ---------- 4. Task helpers ---------- */
+
+  function cleanText(v, max) { return typeof v === "string" ? v.trim().slice(0, max) : ""; }
+
+  // Checks one task from storage or a backup file. Returns a clean task or null.
+  // Older v1.0 tasks (with due date and priority) are accepted; those fields are dropped.
+  function normalizeTask(t) {
+    if (!t || typeof t !== "object") return null;
+    var desc = cleanText(t.desc, 300);
+    if (!desc) return null;
+    if (CATEGORIES.indexOf(t.category) === -1) return null;
+    var done = t.done === true;
+    return {
+      id: typeof t.id === "string" && t.id ? t.id : makeId(),
+      customer: cleanText(t.customer, 60),
+      folder: cleanText(t.folder, 30),
+      desc: desc,
+      category: t.category,
+      estimator: cleanText(t.estimator, 40),
+      createdAt: isValidIso(t.createdAt) ? t.createdAt : new Date().toISOString(),
+      done: done,
+      completedAt: done ? (isValidIso(t.completedAt) ? t.completedAt : new Date().toISOString()) : null,
+      example: t.example === true
+    };
+  }
+
+  // Validates a whole list. Rejects the list if any task is invalid.
+  function validateTaskArray(arr) {
+    if (!Array.isArray(arr)) return { error: "No task list found." };
+    var clean = [], seen = {};
+    for (var i = 0; i < arr.length; i++) {
+      var t = normalizeTask(arr[i]);
+      if (!t) return { error: "Task #" + (i + 1) + " is missing a description or has an unknown category." };
+      if (seen[t.id]) t.id = makeId();
+      seen[t.id] = true;
+      clean.push(t);
+    }
+    return { tasks: clean };
+  }
+
+  function daysWaiting(t, today) { return daysBetween(addedKey(t), today); }
+
+  function completedToday(t, today) {
+    return t.done && t.completedAt && toDateKey(new Date(t.completedAt)) === today;
+  }
+
+  function estimatorNames() {
+    var names = {}, list = [];
+    tasks.forEach(function (t) { if (t.estimator) names[t.estimator.toLowerCase()] = names[t.estimator.toLowerCase()] || t.estimator; });
+    var last = loadLastEstimator();
+    if (last && !names[last.toLowerCase()]) names[last.toLowerCase()] = last;
+    Object.keys(names).forEach(function (k) { list.push(names[k]); });
+    return list.sort(function (a, b) { return a.localeCompare(b); });
+  }
+
+  /* ---------- 5. Rendering ---------- */
+  var filters = { category: "All", search: "", estimator: "" };
+  var editingId = null;
+
+  function $(id) { return document.getElementById(id); }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function matchesFilters(t) {
+    if (filters.category !== "All" && t.category !== filters.category) return false;
+    if (filters.estimator && t.estimator.toLowerCase() !== filters.estimator.toLowerCase()) return false;
+    if (filters.search) {
+      var q = filters.search.toLowerCase();
+      if (t.folder.toLowerCase().indexOf(q) === -1 && t.customer.toLowerCase().indexOf(q) === -1) return false;
+    }
+    return true;
+  }
+
+  function render() {
+    var today = todayKey();
+    $("todayLabel").textContent = formatLongDate(today);
+    if (!editingId) $("dateLineValue").textContent = formatLongDate(today);
+
+    renderSummary(today);
+    renderEstimatorControls();
+
+    var visible = tasks.filter(matchesFilters);
+    var todayTasks = visible.filter(function (t) { return !t.done && addedKey(t) === today; })
+      .sort(function (a, b) { return b.createdAt.localeCompare(a.createdAt); });            // newest first
+    var carried = visible.filter(function (t) { return !t.done && addedKey(t) < today; })
+      .sort(function (a, b) { return a.createdAt.localeCompare(b.createdAt); });            // oldest first
+    var completed = visible.filter(function (t) { return t.done; })
+      .sort(function (a, b) { return (b.completedAt || "").localeCompare(a.completedAt || ""); });
+
+    renderList("todayList", "todayCount", todayTasks, today, "Nothing added today yet.");
+    renderList("carriedList", "carriedCount", carried, today, "Nothing carried over. Nice work.");
+    renderList("completedList", "completedCount", completed, today, "No completed tasks yet.");
+
+    renderFilterNote(visible.length);
+    $("examplesBanner").hidden = !tasks.some(function (t) { return t.example; });
+  }
+
+  function renderSummary(today) {
+    var open = tasks.filter(function (t) { return !t.done; });
+    setStat("statOpen", open.length, false);
+    setStat("statToday", open.filter(function (t) { return addedKey(t) === today; }).length, false);
+    var stale = open.filter(function (t) { return daysWaiting(t, today) >= STALE_DAYS; }).length;
+    setStat("statStale", stale, stale > 0);
+    setStat("statDone", tasks.filter(function (t) { return completedToday(t, today); }).length, false);
+  }
+
+  function setStat(id, value, alert) {
+    var el = $(id);
+    el.querySelector(".num").textContent = value;
+    el.classList.toggle("alert", alert);
+  }
+
+  function renderEstimatorControls() {
+    var names = estimatorNames();
+    $("estimatorList").innerHTML = names.map(function (n) { return '<option value="' + esc(n) + '"></option>'; }).join("");
+
+    var used = names.filter(function (n) {
+      return tasks.some(function (t) { return t.estimator.toLowerCase() === n.toLowerCase(); });
+    });
+    if (filters.estimator && !used.some(function (n) { return n.toLowerCase() === filters.estimator.toLowerCase(); })) filters.estimator = "";
+    $("estimatorFilterWrap").hidden = used.length === 0;
+    $("filterRow").classList.toggle("has-estimators", used.length > 0);
+    $("estimatorFilter").innerHTML = '<option value="">All estimators</option>' + used.map(function (n) {
+      return '<option value="' + esc(n) + '"' + (n.toLowerCase() === filters.estimator.toLowerCase() ? " selected" : "") + ">" + esc(n) + "</option>";
+    }).join("");
+  }
+
+  function renderList(listId, countId, list, today, emptyText) {
+    $(countId).textContent = list.length;
+    var ul = $(listId);
+    if (list.length === 0) {
+      ul.innerHTML = '<li class="empty">' + (filtersActive() ? "No tasks match your filters." : emptyText) + "</li>";
+      return;
+    }
+    ul.innerHTML = list.map(function (t) { return taskHtml(t, today); }).join("");
+  }
+
+  function taskHtml(t, today) {
+    var waited = daysWaiting(t, today);
+    var stale = !t.done && waited >= STALE_DAYS;
+    var classes = ["task"];
+    if (!t.done && waited > 0) classes.push("carried");
+    if (stale) classes.push("stale");
+    if (t.done) classes.push("done");
+
+    var who = [];
+    if (t.folder) who.push("#" + esc(t.folder));
+    if (t.customer) who.push(esc(t.customer));
+    var whoHtml = who.length ? '<div class="who">' + who.join(' <span class="sep">·</span> ') + "</div>" : "";
+
+    var badges = '<span class="badge">' + esc(t.category) + "</span>";
+    if (t.estimator) badges += '<span class="badge estimator">' + esc(t.estimator) + "</span>";
+    if (!t.done && waited > 0) badges += '<span class="badge wait' + (stale ? " stale" : "") + '">Waiting ' + waited + (waited === 1 ? " day" : " days") + "</span>";
+    if (t.example) badges += '<span class="badge example">Example</span>';
+
+    var dateText = "Added " + esc(formatDate(addedKey(t)));
+    if (t.done) dateText += " · Completed " + esc(formatDate(toDateKey(new Date(t.completedAt))));
+
+    var id = esc(t.id);
+    var actions = t.done
+      ? '<button type="button" class="btn" data-action="toggle" data-id="' + id + '">Reopen</button>'
+      : '<button type="button" class="btn" data-action="edit" data-id="' + id + '">Edit</button>';
+    actions += '<button type="button" class="btn btn-danger" data-action="delete" data-id="' + id + '">Delete</button>';
+
+    return '<li class="' + classes.join(" ") + '">' +
+      '<button type="button" class="check" data-action="toggle" data-id="' + id + '" aria-label="' + (t.done ? "Mark as not done" : "Mark as done") + ": " + esc(t.desc) + '">' + (t.done ? "&#10003;" : "") + "</button>" +
+      '<div class="task-body">' +
+        whoHtml +
+        '<p class="desc">' + esc(t.desc) + "</p>" +
+        '<div class="meta-top">' + badges + "</div>" +
+        '<div class="meta-bottom">' + dateText + "</div>" +
+        '<div class="task-actions">' + actions + "</div>" +
+      "</div>" +
+    "</li>";
+  }
+
+  function filtersActive() { return filters.category !== "All" || filters.search !== "" || filters.estimator !== ""; }
+
+  function renderFilterNote(visibleCount) {
+    var note = $("filterNote");
+    if (!filtersActive()) { note.hidden = true; return; }
+    var parts = [];
+    if (filters.category !== "All") parts.push(filters.category);
+    if (filters.estimator) parts.push(filters.estimator);
+    if (filters.search) parts.push('"' + filters.search + '"');
+    $("filterNoteText").textContent = "Showing " + visibleCount + " of " + tasks.length + " · " + parts.join(", ");
+    note.hidden = false;
+  }
+
+  function renderCategoryChips() {
+    $("categoryChips").innerHTML = ["All"].concat(CATEGORIES).map(function (c) {
+      return '<button type="button" class="chip" data-category="' + c + '" aria-pressed="' + (filters.category === c) + '">' + c + "</button>";
+    }).join("");
+  }
+
+  function optionList(values, selected) {
+    return values.map(function (v) {
+      return '<option value="' + esc(v) + '"' + (v === selected ? " selected" : "") + ">" + esc(v) + "</option>";
+    }).join("");
+  }
+
+  var toastTimer = null;
+  function showToast(msg, isError) {
+    var el = $("toast");
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.toggle("error", !!isError);
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove("show"); }, isError ? 4500 : 2200);
+  }
+
+  // In-page "Are you sure?" box. Calls onYes only if the user taps the red button.
+  var closeConfirm = null;
+  function askConfirm(message, okLabel, onYes) {
+    var box = $("confirmBox");
+    var prevFocus = document.activeElement;
+    $("confirmText").textContent = message;
+    $("confirmOk").textContent = okLabel;
+    box.hidden = false;
+    $("confirmCancel").focus();
+    closeConfirm = function (yes) {
+      box.hidden = true;
+      closeConfirm = null;
+      $("confirmOk").onclick = $("confirmCancel").onclick = box.onclick = null;
+      if (prevFocus && prevFocus.focus) prevFocus.focus({ preventScroll: true });
+      if (yes) onYes();
+    };
+    $("confirmOk").onclick = function () { closeConfirm(true); };
+    $("confirmCancel").onclick = function () { closeConfirm(false); };
+    box.onclick = function (e) { if (e.target === box) closeConfirm(false); };
+  }
+
+  /* ---------- 6. Actions ---------- */
+  function findTask(id) {
+    for (var i = 0; i < tasks.length; i++) if (tasks[i].id === id) return tasks[i];
+    return null;
+  }
+
+  function resetForm() {
+    editingId = null;
+    $("taskForm").reset();
+    $("fCategory").value = CATEGORIES[0];
+    $("fEstimator").value = loadLastEstimator();
+    $("formTitle").textContent = "Add task";
+    $("submitBtn").textContent = "Add task";
+    $("cancelEditBtn").hidden = true;
+    $("editingBanner").hidden = true;
+    $("formError").hidden = true;
+    $("dateLineLabel").textContent = "Date added";
+    $("dateLineValue").textContent = formatLongDate(todayKey());
+    resetAutoFill();
+  }
+
+  function showFormError(msg) {
+    $("formError").textContent = msg;
+    $("formError").hidden = false;
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    var desc = $("fDesc").value.trim();
+    var values = {
+      customer: $("fCustomer").value.trim(),
+      folder: $("fFolder").value.trim(),
+      desc: desc,
+      category: $("fCategory").value,
+      estimator: $("fEstimator").value.trim()
+    };
+    if (!desc) { showFormError("Please enter what needs to be done."); $("fDesc").focus(); return; }
+
+    // New tasks: save the cleaned-up wording (shorthand expanded, folder # moved to its box).
+    if (!editingId) {
+      var a = analyzeLine(desc, readerContext());
+      if (a.desc && (!a.folder || sameKey(a.folder, values.folder))) values.desc = a.desc;
+      else if (a.desc) values.desc = educateTask(desc);
+    }
+
+    // Remember the estimator for the next new task (editing an old task doesn't change it).
+    if (values.estimator && !editingId) saveLastEstimator(values.estimator);
+
+    if (editingId) {
+      var t = findTask(editingId);
+      if (!t) { showToast("That task no longer exists.", true); resetForm(); render(); return; }
+      t.customer = values.customer; t.folder = values.folder; t.desc = values.desc;
+      t.category = values.category; t.estimator = values.estimator;
+      t.example = false; // once edited, it's yours
+      saveTasks();
+      showToast("Task updated");
+    } else {
+      tasks.push({
+        id: makeId(), customer: values.customer, folder: values.folder, desc: values.desc,
+        category: values.category, estimator: values.estimator,
+        createdAt: new Date().toISOString(), done: false, completedAt: null, example: false
+      });
+      saveTasks();
+      showToast("Task added");
+    }
+    resetForm();
+    render();
+    $("fDesc").focus({ preventScroll: true });
+  }
+
+  function startEdit(id) {
+    var t = findTask(id);
+    if (!t) return;
+    editingId = id;
+    $("fCustomer").value = t.customer;
+    $("fFolder").value = t.folder;
+    $("fDesc").value = t.desc;
+    $("fCategory").value = t.category;
+    $("fEstimator").value = t.estimator;
+    $("formTitle").textContent = "Edit task";
+    $("submitBtn").textContent = "Save changes";
+    $("cancelEditBtn").hidden = false;
+    $("editingBanner").hidden = false;
+    $("formError").hidden = true;
+    $("dateLineLabel").textContent = "Date added";
+    $("dateLineValue").textContent = formatLongDate(addedKey(t));
+    $("formCard").scrollIntoView({ behavior: "smooth", block: "start" });
+    $("fDesc").focus({ preventScroll: true });
+  }
+
+  function toggleDone(id) {
+    var t = findTask(id);
+    if (!t) return;
+    t.done = !t.done;
+    t.completedAt = t.done ? new Date().toISOString() : null;
+    saveTasks();
+    showToast(t.done ? "Marked done" : "Reopened");
+    render();
+  }
+
+  function deleteTask(id) {
+    var t = findTask(id);
+    if (!t) return;
+    var who = [t.folder ? "#" + t.folder : "", t.customer].filter(Boolean).join(" · ");
+    askConfirm("Delete this task?\n\n" + (who ? who + "\n" : "") + t.desc, "Delete", function () {
+      tasks = tasks.filter(function (x) { return x.id !== id; });
+      if (editingId === id) resetForm();
+      saveTasks();
+      showToast("Task deleted");
+      render();
+    });
+  }
+
+  function deleteExamples() {
+    var n = tasks.filter(function (t) { return t.example; }).length;
+    if (!n) return;
+    askConfirm("Delete the " + n + " example task" + (n === 1 ? "" : "s") + "? Your own tasks will not be touched.", "Delete examples", function () {
+      tasks = tasks.filter(function (t) { return !t.example; });
+      if (editingId && !findTask(editingId)) resetForm();
+      saveTasks();
+      showToast("Examples deleted");
+      render();
+    });
+  }
+
+  /* ---------- 7. Backup ---------- */
+  function exportBackup() {
+    try {
+      var data = { app: APP_ID, version: DATA_VERSION, exportedAt: new Date().toISOString(), tasks: tasks };
+      var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "repair-planner-backup-" + todayKey() + ".json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      showToast("Backup exported (" + tasks.length + " tasks)");
+    } catch (e) {
+      showToast("Export failed: " + e.message, true);
+    }
+  }
+
+  function importBackup(file) {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { showToast("That file is too large to be a backup.", true); return; }
+    var reader = new FileReader();
+    reader.onerror = function () { showToast("Couldn't read that file.", true); };
+    reader.onload = function () {
+      var parsed;
+      try { parsed = JSON.parse(reader.result); }
+      catch (e) { showToast("That file isn't valid JSON.", true); return; }
+
+      if (parsed && !Array.isArray(parsed) && parsed.app && parsed.app !== APP_ID) {
+        showToast("That backup is from a different app.", true);
+        return;
+      }
+      // Accept the export format, or a bare array of tasks.
+      var result = validateTaskArray(Array.isArray(parsed) ? parsed : (parsed && parsed.tasks));
+      if (result.error) { showToast("Import cancelled. " + result.error, true); return; }
+
+      var msg = "Replace your current " + tasks.length + " task" + (tasks.length === 1 ? "" : "s") +
+        " with " + result.tasks.length + " task" + (result.tasks.length === 1 ? "" : "s") +
+        " from this backup?\n\nThis cannot be undone. Export a backup first if unsure.";
+      askConfirm(msg, "Replace tasks", function () {
+        tasks = result.tasks;
+        resetForm();
+        saveTasks();
+        render();
+        showToast("Imported " + tasks.length + " tasks");
+      });
+    };
+    reader.readAsText(file);
+  }
+
+  /* ---------- 8. Add from notes ----------
+     The "smart reader". Everything runs on this device.
+     analyzeLine() looks at one line of text and works out the folder #,
+     customer last name, category and estimator, and rewrites shop
+     shorthand into a clean task. It is used by the notes/snippet review
+     and by the Add task form (filling empty boxes as you type).
+     A line that matches an open task (same category and same folder #,
+     or same customer when there's no folder #) is offered as an update. */
+
+  var PHONE_RE = /\(?\b\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}\b|\b\d{3}[-.]\d{4}\b/g;
+  var DATE_RE = /\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g;
+  var FOLDER_PREFIX_RE = /(?:\b(?:folder|fldr|ro|r\/o|job|file|wo)\b\s*(?:#|no\.?|number)?\s*[:#-]?|#)\s*([a-z0-9][a-z0-9-]{1,14})/i;
+  var FOLDER_BARE_RE = /(?:^|[\s(,;:])(\d{4,7})(?=$|[\s),.;:])/;
+  // "Cust: Rivera", "CUSTOMER - ANN LEE", "Owner: Lee"
+  var CUSTOMER_LABEL_RE = /\b(?:cust(?:omer)?|owner|name|insured|claimant)\s*[:\-]\s*([a-z][a-z'.-]+(?:\s+[a-z][a-z'.-]+){0,2})/i;
+  var ESTIMATOR_LABEL_RE = /\b(?:est(?:imator)?|writer|advisor)\s*[:\-]\s*([a-z][a-z'.-]+(?:\s+[a-z][a-z'.-]+)?)/i;
+  var TITLE_NAME_RE = /\b(?:mr|mrs|ms|miss|dr)\.?\s+([a-z][a-z'-]+)/i;
+
+  // Words that come right before a customer name: "call Rivera", "for Lee".
+  var NAME_TRIGGERS = toSet("call called calling text texted email emailed for with tell told update updated notify contact contacted from cust customer owner remind ask asked mr mrs ms see meet");
+
+  // Capitalized words that are NOT people's names. Add to this list if the
+  // reader mistakes a word for a name.
+  var NOT_NAMES = toSet(
+    // everyday words
+    "a an the and or but if then than so to too of in on at by for from with without into onto about above after again against all am any are as be because been before being below between both can could did do does doing down during each few further had has have having he her here hers him his how i is it its just me more most my no nor not now off once only other our out over own same she should some such that their them there these they this those through under until up very was we were what when where which while who whom why will would you your yes ok okay please thanks thank need needs needed still also back left right front rear new old next last first today tomorrow yesterday tonight morning afternoon night week weekend asap eod am pm call text email order get got send sent check checked confirm confirmed follow followup up see waiting wait waiting done ready set make made let lets will hold holding job car truck van suv vehicle vin ro eta oem adas pdr lkq ccc one mitchell audatex cccone note notes info re fyi per via vs pt pts part parts tech techs shop body paint frame team boss manager office desk dept department hi hello hey he she they him her them his hers it" + " " +
+    // days and months
+    "mon monday tue tues tuesday wed wednesday thu thur thurs thursday fri friday sat saturday sun sunday jan january feb february mar march apr april may jun june jul july aug august sep sept september oct october nov november dec december" + " " +
+    // vehicle makes and common models
+    "acura audi bmw buick cadillac chevy chevrolet chrysler dodge fiat ford genesis gmc honda hyundai infiniti jaguar jeep kia land rover lexus lincoln mazda mercedes benz mini mitsubishi nissan porsche ram subaru tesla toyota volkswagen vw volvo camry corolla rav4 highlander tacoma tundra civic accord crv pilot odyssey altima rogue sentra f150 silverado sierra tahoe suburban equinox malibu explorer escape fusion mustang wrangler cherokee charger challenger durango outback forester crosstrek elantra sonata tucson santa fe optima sorento sportage model prius" + " " +
+    // insurance companies and vendors
+    "geico progressive allstate usaa farmers nationwide liberty mutual travelers state farm safeco erie amica esurance insurance ins adjuster appraiser carrier claim lkq keystone napa autozone dealer vendor enterprise hertz avis rental"
+  );
+  // Every category keyword is also "not a name".
+  Object.keys(CATEGORY_KEYWORDS).forEach(function (c) {
+    CATEGORY_KEYWORDS[c].forEach(function (k) { k.split(/\s+/).forEach(function (w) { NOT_NAMES[w] = true; }); });
+  });
+
+  var VEHICLE_WORDS = toSet("car truck van suv vehicle jeep minivan pickup acura audi bmw buick cadillac chevy chevrolet chrysler dodge ford gmc honda hyundai infiniti jaguar kia lexus lincoln mazda mercedes mini mitsubishi nissan porsche ram subaru tesla toyota volkswagen vw volvo camry corolla rav4 highlander tacoma tundra civic accord crv pilot odyssey altima rogue sentra f150 silverado sierra tahoe equinox malibu explorer escape fusion mustang wrangler cherokee charger durango outback forester elantra sonata tucson prius");
+
+  // Shop shorthand expanded when building the task text. Add your own.
+  var SHORTHAND = [
+    ["supp", "supplement"], ["supps", "supplements"], ["appt", "appointment"], ["appts", "appointments"],
+    ["vm", "voicemail"], ["lvm", "left voicemail"], ["lm", "left message"], ["b/o", "back-ordered"],
+    ["p/u", "pick up"], ["d/o", "drop off"], ["f/u", "follow up"], ["txt", "text"], ["msg", "message"],
+    ["cust", "customer"], ["cx", "customer"], ["adj", "adjuster"], ["reinsp", "reinspection"],
+    ["calib", "calibration"], ["recal", "recalibration"], ["pls", "please"], ["plz", "please"],
+    ["tmrw", "tomorrow"], ["tmw", "tomorrow"], ["tmrrw", "tomorrow"], ["approx", "approximately"],
+    ["pts", "parts"], ["qty", "quantity"], ["eod", "end of day"], ["sched", "schedule"],
+    ["deliv", "delivery"], ["rdy", "ready"], ["ins", "insurance"], ["est", "estimate"], ["w/", "with "]
+  ];
+  var ACRONYMS = ["eta", "oem", "adas", "pdr", "lkq", "vin", "ro", "asap", "a/c", "ccc"];
+
+  function toSet(str) {
+    var s = {};
+    str.split(/\s+/).forEach(function (w) { if (w) s[w.toLowerCase()] = true; });
+    return s;
+  }
+
+  function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&"); }
+
+  function wordPattern(word, flags) {
+    return new RegExp("(^|[^a-z0-9])" + escapeRegex(word) + "(?=$|[^a-z0-9])", flags || "i");
+  }
+
+  var KEYWORD_PATTERNS = {};
+  Object.keys(CATEGORY_KEYWORDS).forEach(function (cat) {
+    KEYWORD_PATTERNS[cat] = CATEGORY_KEYWORDS[cat].map(function (k) { return wordPattern(k); });
+  });
+
+  function categoryScores(line) {
+    var best = "Other", bestScore = 0;
+    Object.keys(KEYWORD_PATTERNS).forEach(function (cat) {
+      var score = KEYWORD_PATTERNS[cat].filter(function (re) { return re.test(line); }).length;
+      if (score > bestScore) { best = cat; bestScore = score; }
+    });
+    return { category: best, score: bestScore };
+  }
+
+  function titleCase(s) {
+    return s.toLowerCase().replace(/(^|[\s'-])([a-z])/g, function (m, p, c) { return p + c.toUpperCase(); })
+      .replace(/^Mc([a-z])/, function (m, c) { return "Mc" + c.toUpperCase(); });
+  }
+
+  // Finds a folder number. Returns { folder, text } or null.
+  function detectFolder(line) {
+    var scan = line.replace(PHONE_RE, " ").replace(DATE_RE, " ");
+    var m = scan.match(FOLDER_PREFIX_RE);
+    if (m && /\d/.test(m[1])) return { folder: m[1].toUpperCase(), text: m[0].trim() };
+    m = scan.match(FOLDER_BARE_RE);
+    if (m) {
+      var n = Number(m[1]);
+      var looksLikeYear = m[1].length === 4 && n >= 1980 && n <= 2039;
+      if (!looksLikeYear) return { folder: m[1], text: m[1] };
+    }
+    return null;
+  }
+
+  function isNameWord(w) {
+    var lower = w.toLowerCase().replace(/'s$/, "");
+    return /^[a-z][a-z'-]*[a-z]$/i.test(lower) && lower.length >= 2 && !NOT_NAMES[lower];
+  }
+
+  function findKnown(text, names) {
+    // Longest names first so "Ann Lee" wins over "Lee".
+    var sorted = names.slice().sort(function (a, b) { return b.length - a.length; });
+    for (var i = 0; i < sorted.length; i++) {
+      if (sorted[i] && wordPattern(sorted[i]).test(text)) return sorted[i];
+    }
+    return "";
+  }
+
+  // Looks for a customer last name with no label. Returns { name, source } or null.
+  // source: "known" (used before), "title" (Mr./Mrs.), "guess" (check it).
+  function guessCustomer(text, ctx) {
+    var known = findKnown(text, ctx.knownCustomers);
+    if (known) return { name: known, source: "known" };
+
+    var t = text.match(TITLE_NAME_RE);
+    if (t && isNameWord(t[1])) return { name: titleCase(t[1]), source: "title" };
+
+    var words = text.split(/\s+/).map(function (w) { return w.replace(/^[^a-z]+|[^a-z']+$/gi, ""); }).filter(Boolean);
+    var letters = text.replace(/[^a-z]/gi, "");
+    var allCaps = letters.length > 3 && letters === letters.toUpperCase();
+    var allLower = letters === letters.toLowerCase();
+
+    function take(i) {
+      var name = words[i].replace(/'s$/i, "");
+      if (words[i + 1] && isNameWord(words[i + 1]) && /^[A-Z]/.test(words[i + 1]) && /^[A-Z]/.test(words[i]) && !allCaps) {
+        name += " " + words[i + 1];           // "Ann Lee"
+      }
+      return titleCase(name);
+    }
+    function notEstimator(n) { return !findKnown(n, ctx.knownEstimators); }
+
+    // "Rivera's car"
+    for (var i = 0; i < words.length; i++) {
+      if (/'s$/i.test(words[i]) && (allCaps || /^[A-Z]/.test(words[i])) && isNameWord(words[i])) {
+        var pn = take(i); if (notEstimator(pn)) return { name: pn, source: "guess" };
+      }
+    }
+    // "call Rivera", "for LEE", "text rivera"
+    for (var j = 0; j < words.length - 1; j++) {
+      if (NAME_TRIGGERS[words[j].toLowerCase()] && isNameWord(words[j + 1])) {
+        var capsOk = allCaps || allLower || /^[A-Z]/.test(words[j + 1]);
+        if (capsOk) { var tn = take(j + 1); if (notEstimator(tn)) return { name: tn, source: "guess" }; }
+      }
+    }
+    // "Hernandez truck ready", "RIVERA CAMRY IN BOOTH": a name right before a vehicle word
+    if (words.length > 1 && isNameWord(words[0]) && VEHICLE_WORDS[words[1].toLowerCase()] &&
+        (allCaps || allLower || /^[A-Z]/.test(words[0]))) {
+      var vn = titleCase(words[0]); if (notEstimator(vn)) return { name: vn, source: "guess" };
+    }
+    // Any other capitalized word after the first one: "Bumper for Camry Rivera"
+    if (!allCaps && !allLower) {
+      for (var k = 1; k < words.length; k++) {
+        if (/^[A-Z][a-z]/.test(words[k]) && isNameWord(words[k])) {
+          var cn = take(k); if (notEstimator(cn)) return { name: cn, source: "guess" };
+        }
+      }
+    }
+    return null;
+  }
+
+  function detectEstimator(text, ctx) {
+    var label = text.match(ESTIMATOR_LABEL_RE);
+    if (label) {
+      var parts = label[1].split(/\s+/);
+      if (isNameWord(parts[0])) {
+        var full = parts[0] + (parts[1] && isNameWord(parts[1]) ? " " + parts[1] : "");
+        var labelText = label[0].slice(0, label[0].indexOf(parts[0]) + full.length);
+        return { name: titleCase(full), text: labelText };
+      }
+    }
+    var known = findKnown(text, ctx.knownEstimators);
+    return known ? { name: known, text: "" } : null;
+  }
+
+  function cleanDescription(s) {
+    return s
+      .replace(/^\s*(?:[-*•·▪◦>]+|\(?\d{1,2}[.)])\s+/, "")  // bullets and "1." numbering
+      .replace(/\s{2,}/g, " ")
+      .replace(/^[\s\-–—:;,.|]+|[\s\-–—:;,|]+$/g, "")
+      .trim();
+  }
+
+  // Turns shop shorthand into a clean, readable task.
+  function educateTask(s) {
+    // Sentence case for ALL-CAPS text (common in shop-system screenshots).
+    var letters = s.replace(/[^a-z]/gi, "");
+    if (letters.length > 3 && letters === letters.toUpperCase()) s = s.toLowerCase();
+    var out = " " + s + " ";
+    out = out.replace(/(^|\s)re:?\s+/gi, "$1about ");
+    SHORTHAND.forEach(function (pair) {
+      var re = pair[0] === "w/"
+        ? /(^|[^a-z0-9])w\/(?=[a-z\s])/gi
+        : new RegExp("(^|[^a-z0-9/])" + escapeRegex(pair[0]) + "(?=$|[^a-z0-9/])", "gi");
+      out = out.replace(re, function (m, p) { return p + pair[1]; });
+    });
+    ACRONYMS.forEach(function (a) {
+      out = out.replace(new RegExp("(^|[^a-z0-9/])" + escapeRegex(a) + "(?=$|[^a-z0-9/])", "gi"), function (m, p) { return p + a.toUpperCase(); });
+    });
+    out = out.replace(/\s{2,}/g, " ").trim();
+    return out.charAt(0).toUpperCase() + out.slice(1);
+  }
+
+  // The main reader for one line. ctx = { knownCustomers, knownEstimators }.
+  function analyzeLine(raw, ctx) {
+    var out = { folder: "", customer: "", customerSource: "", estimator: "", category: "Other",
+                categoryScore: 0, desc: "", header: false, nameInText: "" };
+    var desc = raw;
+
+    var f = detectFolder(raw);
+    if (f) { out.folder = f.folder; desc = desc.replace(f.text, " "); }
+
+    var lab = desc.match(CUSTOMER_LABEL_RE);
+    if (lab && isNameWord(lab[1].split(/\s+/)[0])) {
+      // Keep only the leading name words: "Cust: Ann Lee call about rental" -> "Ann Lee"
+      var labWords = lab[1].split(/\s+/), nameParts = [];
+      for (var w = 0; w < labWords.length && isNameWord(labWords[w]); w++) nameParts.push(labWords[w]);
+      var labName = nameParts.join(" ");
+      out.customer = titleCase(labName);
+      out.customerSource = "label";
+      desc = desc.replace(lab[0].slice(0, lab[0].indexOf(nameParts[0]) + labName.length), " ");
+    }
+
+    var est = detectEstimator(desc, ctx);
+    if (est) { out.estimator = est.name; if (est.text) desc = desc.replace(est.text, " "); }
+
+    desc = cleanDescription(desc);
+
+    // Header line: just a folder # and/or a name, e.g. "RO 90452 RIVERA" or "90452 - Ann Lee".
+    var leftover = desc.split(/[\s,]+/).filter(Boolean);
+    var nameWords = leftover.filter(isNameWord);
+    var onlyNames = nameWords.length > 0 && leftover.length <= 3 &&
+      leftover.every(function (w) { return isNameWord(w) || NOT_NAMES[w.toLowerCase()]; }) &&
+      !categoryScores(desc).score;
+    if (!desc || ((f || lab) && onlyNames)) {
+      out.header = !!(f || lab);
+      if (!out.customer && nameWords.length) {
+        var knownH = findKnown(desc, ctx.knownCustomers);
+        out.customer = knownH || titleCase(nameWords.join(" "));
+        out.customerSource = knownH ? "known" : "header";
+      }
+      return out;
+    }
+
+    if (!out.customer) {
+      var g = guessCustomer(desc, ctx);
+      if (g) { out.customer = g.name; out.customerSource = g.source; out.nameInText = g.name; }
+    }
+
+    out.desc = educateTask(desc);
+    if (out.customer) {
+      out.desc = out.desc.replace(wordPattern(out.customer, "gi"), function (m, p) { return p + out.customer; });
+      out.desc = out.desc.charAt(0).toUpperCase() + out.desc.slice(1);
+    }
+    var scored = categoryScores(raw + " " + out.desc);
+    out.category = scored.category;
+    out.categoryScore = scored.score;
+    return out;
+  }
+
+  function readerContext() {
+    var customers = {}, list = [];
+    tasks.forEach(function (t) { if (t.customer) customers[t.customer.toLowerCase()] = t.customer; });
+    Object.keys(customers).forEach(function (k) { list.push(customers[k]); });
+    return { knownCustomers: list, knownEstimators: estimatorNames() };
+  }
+
+  function parseNotes(text, existing, ctx, defaultEstimator) {
+    var lines = String(text || "").split(/\r?\n/);
+    var proposals = [];
+    var group = { folder: "", customer: "", source: "" };  // a header line applies to the lines under it, until a blank line
+    var skipped = 0;
+    ctx = ctx || { knownCustomers: [], knownEstimators: [] };
+
+    for (var i = 0; i < lines.length; i++) {
+      var raw = lines[i].trim();
+      if (!raw) { group = { folder: "", customer: "", source: "" }; continue; }
+      if (raw.length < 3) continue;
+      if (proposals.length >= MAX_NOTE_LINES) { skipped++; continue; }
+
+      var a = analyzeLine(raw, ctx);
+      if (a.header || !a.desc) {
+        if (a.header) group = { folder: a.folder, customer: a.customer, source: a.customerSource };
+        continue;
+      }
+      if (!/[a-z]/i.test(a.desc)) continue;
+
+      // A name found in the line itself wins over the group's name only when it was certain.
+      var useGroupName = group.customer && (!a.customer || a.customerSource === "guess");
+      var p = {
+        include: true,
+        customer: useGroupName ? group.customer : a.customer,
+        customerSource: useGroupName ? group.source : a.customerSource,
+        folder: a.folder || group.folder,
+        desc: a.desc,
+        category: a.category,
+        estimator: a.estimator || defaultEstimator || "",
+        matchId: null,
+        duplicate: false
+      };
+      findMatch(p, existing);
+      proposals.push(p);
+    }
+    return { proposals: proposals, skipped: skipped };
+  }
+
+  function sameKey(a, b) { return !!a && !!b && a.toLowerCase() === b.toLowerCase(); }
+
+  // Sets p.duplicate or p.matchId by comparing with open tasks.
+  function findMatch(p, existing) {
+    var best = null;
+    var lowerDesc = p.desc.toLowerCase();
+    for (var j = 0; j < existing.length; j++) {
+      var t = existing[j];
+      if (t.done) continue;
+      if (t.desc.toLowerCase() === lowerDesc) { p.duplicate = true; p.include = false; p.matchId = null; return; }
+      if (t.category !== p.category) continue;
+      var same = p.folder ? sameKey(t.folder, p.folder) : sameKey(t.customer, p.customer);
+      if (same && (!best || t.createdAt > best.createdAt)) best = t;
+    }
+    p.matchId = best ? best.id : null;
+  }
+
+  /* Fills empty boxes in the Add task form from what you type in Task.
+     Boxes you've typed in yourself are never changed. */
+  var touched = {};       // fields the user changed by hand
+  var autoFilled = {};    // fields the reader filled
+  var autoTimer = null;
+
+  function autoFillForm() {
+    if (editingId) return;
+    var text = $("fDesc").value.trim();
+    var a = text.length >= 3 ? analyzeLine(text, readerContext()) : null;
+    var filled = [];
+
+    function setField(key, id, value, label) {
+      if (touched[key]) return;
+      var el = $(id);
+      if (value) {
+        el.value = value;
+        autoFilled[key] = true;
+        filled.push(label);
+      } else if (autoFilled[key]) {
+        el.value = key === "category" ? CATEGORIES[0] : (key === "estimator" ? loadLastEstimator() : "");
+        autoFilled[key] = false;
+      }
+    }
+
+    setField("customer", "fCustomer", a && a.customer, a && a.customerSource === "guess" ? "Customer (guessed)" : "Customer");
+    setField("folder", "fFolder", a && a.folder, "Folder #");
+    setField("category", "fCategory", a && a.categoryScore ? a.category : "", "Category");
+    if (a && a.estimator) setField("estimator", "fEstimator", a.estimator, "Estimator");
+
+    $("fCustomer").classList.toggle("guess", !!(autoFilled.customer && a && a.customerSource === "guess"));
+    $("autofillNote").hidden = !filled.length;
+    $("autofillNote").textContent = filled.length ? "Filled in from your task: " + filled.join(", ") + ". Change anything that's wrong." : "";
+  }
+
+  function resetAutoFill() {
+    touched = {};
+    autoFilled = {};
+    clearTimeout(autoTimer);
+    $("fCustomer").classList.remove("guess");
+    $("autofillNote").hidden = true;
+  }
+
+  var proposals = [];
+
+  function readNotes() {
+    var text = $("notesInput").value;
+    if (!text.trim()) { showToast("Paste some notes first.", true); $("notesInput").focus(); return; }
+    var result = parseNotes(text, tasks, readerContext(), (editingId ? "" : $("fEstimator").value.trim()) || loadLastEstimator());
+    proposals = result.proposals;
+    if (!proposals.length) { showToast("No tasks found. Put each task on its own line.", true); return; }
+
+    var matches = proposals.filter(function (p) { return p.matchId; }).length;
+    var dupes = proposals.filter(function (p) { return p.duplicate; }).length;
+    var summary = "Found " + proposals.length + " task" + (proposals.length === 1 ? "" : "s") + ".";
+    if (matches) summary += " " + matches + (matches === 1 ? " matches an open task and will update it" : " match open tasks and will update them") + " unless you change the action.";
+    if (dupes) summary += " " + dupes + " already on your list (unchecked).";
+    if (result.skipped) summary += " Only the first " + MAX_NOTE_LINES + " lines were read.";
+    summary += " Check the details, then add.";
+    $("reviewSummary").textContent = summary;
+
+    renderReview();
+    $("reviewPanel").hidden = false;
+    $("reviewPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function renderReview() {
+    $("reviewList").innerHTML = proposals.map(function (p, i) {
+      var match = p.matchId ? findTask(p.matchId) : null;
+      var html = '<div class="review-item' + (p.include ? "" : " off") + '" data-i="' + i + '">' +
+        '<div class="review-top">' +
+          '<input type="checkbox" id="rv-inc-' + i + '" data-field="include"' + (p.include ? " checked" : "") + ' aria-label="Include this task">' +
+          '<input type="text" id="rv-desc-' + i + '" data-field="desc" maxlength="300" value="' + esc(p.desc) + '" aria-label="Task">' +
+        "</div>" +
+        '<div class="review-grid">' +
+          '<label>Customer<input type="text" id="rv-cust-' + i + '" data-field="customer" maxlength="60" autocapitalize="words" spellcheck="false"' + (p.customerSource === "guess" ? ' class="guess"' : "") + ' value="' + esc(p.customer) + '"></label>' +
+          '<label>Folder #<input type="text" id="rv-folder-' + i + '" data-field="folder" maxlength="30" autocapitalize="characters" spellcheck="false" value="' + esc(p.folder) + '"></label>' +
+          '<label>Category<select id="rv-cat-' + i + '" data-field="category">' + optionList(CATEGORIES, p.category) + "</select></label>" +
+          '<label>Estimator<input type="text" id="rv-est-' + i + '" data-field="estimator" list="estimatorList" maxlength="40" autocapitalize="words" spellcheck="false" value="' + esc(p.estimator) + '"></label>' +
+        "</div>";
+      if (match) {
+        html += '<label>Action<select id="rv-act-' + i + '" data-field="action">' +
+          '<option value="update" selected>Update existing task</option>' +
+          '<option value="new">Add as a new task</option></select></label>' +
+          '<p class="review-note match">Existing: ' + esc(match.desc) + "</p>";
+      }
+      if (p.customerSource === "guess") html += '<p class="review-note guess-note">Customer name guessed from the text. Check it.</p>';
+      if (p.duplicate) html += '<p class="review-note">Already on your list, so it\'s unchecked.</p>';
+      return html + "</div>";
+    }).join("");
+    updateApplyLabel();
+  }
+
+  function readReviewItem(el) {
+    function val(f) { var x = el.querySelector('[data-field="' + f + '"]'); return x ? x.value : ""; }
+    var p = proposals[Number(el.getAttribute("data-i"))];
+    return {
+      include: el.querySelector('[data-field="include"]').checked,
+      desc: val("desc").trim(),
+      customer: val("customer").trim(),
+      folder: val("folder").trim(),
+      category: val("category"),
+      estimator: val("estimator").trim(),
+      matchId: p.matchId,
+      action: p.matchId ? val("action") : "new"
+    };
+  }
+
+  function willUpdate(r) {
+    if (r.action !== "update" || !r.matchId) return false;
+    var t = findTask(r.matchId);
+    if (!t || t.done) return false;
+    // If the folder # or customer was edited away from the match, treat it as new.
+    return r.folder ? sameKey(t.folder, r.folder) : (sameKey(t.customer, r.customer) || (!t.customer && !r.customer));
+  }
+
+  function updateApplyLabel() {
+    var add = 0, update = 0;
+    var items = $("reviewList").querySelectorAll(".review-item");
+    for (var i = 0; i < items.length; i++) {
+      var r = readReviewItem(items[i]);
+      if (!r.include) continue;
+      if (willUpdate(r)) update++; else add++;
+    }
+    var parts = [];
+    if (add) parts.push("Add " + add);
+    if (update) parts.push((add ? "update " : "Update ") + update);
+    $("applyNotesBtn").textContent = parts.length ? parts.join(", ") + (add + update === 1 ? " task" : " tasks") : "Nothing selected";
+    $("applyNotesBtn").disabled = !parts.length;
+  }
+
+  function applyProposals() {
+    var items = $("reviewList").querySelectorAll(".review-item");
+    var reviewed = [];
+    for (var i = 0; i < items.length; i++) {
+      var r = readReviewItem(items[i]);
+      if (!r.include) continue;
+      if (!r.desc) {
+        showToast("A checked task has no description. Fill it in or uncheck it.", true);
+        items[i].querySelector('[data-field="desc"]').focus();
+        return;
+      }
+      reviewed.push(r);
+    }
+
+    var added = 0, updated = 0, now = new Date().toISOString();
+    reviewed.forEach(function (r) {
+      if (r.estimator) saveLastEstimator(r.estimator);
+      if (willUpdate(r)) {
+        var t = findTask(r.matchId);
+        if (t.desc.toLowerCase().indexOf(r.desc.toLowerCase()) === -1) t.desc = (t.desc + " | " + r.desc).slice(0, 300);
+        if (!t.customer && r.customer) t.customer = r.customer;
+        if (!t.folder && r.folder) t.folder = r.folder;
+        if (!t.estimator && r.estimator) t.estimator = r.estimator;
+        t.example = false;
+        updated++;
+      } else {
+        tasks.push({
+          id: makeId(), customer: r.customer, folder: r.folder, desc: r.desc, category: r.category,
+          estimator: r.estimator, createdAt: now, done: false, completedAt: null, example: false
+        });
+        added++;
+      }
+    });
+
+    saveTasks();
+    closeReview();
+    $("notesInput").value = "";
+    if (!editingId) $("fEstimator").value = loadLastEstimator();
+    render();
+    var msg = [];
+    if (added) msg.push("Added " + added);
+    if (updated) msg.push((added ? "updated " : "Updated ") + updated);
+    showToast(msg.join(", ") + (added + updated === 1 ? " task" : " tasks"));
+  }
+
+  function closeReview() {
+    proposals = [];
+    $("reviewList").innerHTML = "";
+    $("reviewPanel").hidden = true;
+  }
+
+  /* ---------- 9. Read text from images ----------
+     Uses Tesseract.js, which runs inside this browser. The engine and
+     English language data (a few MB) download from jsDelivr the first
+     time; after that the browser usually has them cached. The image
+     itself is never uploaded anywhere. */
+
+  var ocrLoad = null;   // promise for the script
+  var ocrWorker = null; // promise for a ready worker
+  var ocrBusy = false;
+
+  function loadOcrScript() {
+    if (window.Tesseract) return Promise.resolve();
+    if (ocrLoad) return ocrLoad;
+    ocrLoad = new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.src = OCR_SCRIPT_URL;
+      s.async = true;
+      s.onload = function () { window.Tesseract ? resolve() : reject(new Error("missing")); };
+      s.onerror = function () { reject(new Error("load")); };
+      document.head.appendChild(s);
+    });
+    ocrLoad.catch(function () { ocrLoad = null; });  // allow a retry later
+    return ocrLoad;
+  }
+
+  function getOcrWorker() {
+    if (ocrWorker) return ocrWorker;
+    ocrWorker = loadOcrScript().then(function () {
+      return window.Tesseract.createWorker(OCR_LANGUAGE, 1, {
+        logger: function (m) {
+          if (m.status === "recognizing text") setOcrStatus("Reading text…", m.progress);
+          else if (/load|initializ/i.test(m.status || "")) setOcrStatus("Getting the text reader ready…", m.progress);
+        }
+      });
+    });
+    ocrWorker.catch(function () { ocrWorker = null; });
+    return ocrWorker;
+  }
+
+  function setOcrStatus(text, progress, isError) {
+    var box = $("ocrStatus");
+    box.hidden = !text;
+    box.classList.toggle("error", !!isError);
+    $("ocrStatusText").textContent = text || "";
+    $("ocrBar").hidden = isError || typeof progress !== "number";
+    if (typeof progress === "number") $("ocrBar").firstChild.style.width = Math.round(progress * 100) + "%";
+  }
+
+  function cleanOcrText(text) {
+    return String(text || "")
+      .split(/\r?\n/)
+      .map(function (l) { return l.replace(/[|_]{2,}/g, " ").replace(/\s{2,}/g, " ").trim(); })
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+
+  // Reads one or more images, adds their text to the notes box, then opens the review.
+  function readImages(files) {
+    var images = Array.prototype.filter.call(files || [], function (f) { return f && /^image\//.test(f.type); });
+    if (!images.length) { showToast("That isn't an image. Drop a screenshot, snippet or photo.", true); return; }
+    if (ocrBusy) { showToast("Still reading the last image. One moment.", true); return; }
+    var tooBig = images.filter(function (f) { return f.size > MAX_IMAGE_BYTES; });
+    if (tooBig.length) { showToast("That image is too large (over 15 MB).", true); return; }
+
+    ocrBusy = true;
+    setOcrStatus("Getting the text reader ready…", 0);
+    var allText = [];
+
+    getOcrWorker().then(function (worker) {
+      var chain = Promise.resolve();
+      images.forEach(function (img, i) {
+        chain = chain.then(function () {
+          setOcrStatus("Reading image " + (i + 1) + " of " + images.length + "…", 0);
+          return worker.recognize(img).then(function (res) {
+            var t = cleanOcrText(res && res.data && res.data.text);
+            if (t) allText.push(t);
+          });
+        });
+      });
+      return chain;
+    }).then(function () {
+      ocrBusy = false;
+      if (!allText.length) {
+        setOcrStatus("No text found in that image. Try a sharper or larger snippet.", null, true);
+        return;
+      }
+      setOcrStatus("");
+      var box = $("notesInput");
+      box.value = (box.value.trim() ? box.value.trim() + "\n\n" : "") + allText.join("\n\n");
+      readNotes();
+    }).catch(function (err) {
+      ocrBusy = false;
+      var offline = err && /load|missing|fetch|network/i.test(String(err.message || err));
+      setOcrStatus(offline
+        ? "Couldn't load the text reader. It needs an internet connection the first time you read an image."
+        : "Couldn't read that image. Try again, or paste the text instead.", null, true);
+    });
+  }
+
+  function imagesFromClipboard(e) {
+    var items = (e.clipboardData && e.clipboardData.items) || [];
+    var files = [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].kind === "file" && /^image\//.test(items[i].type)) {
+        var f = items[i].getAsFile();
+        if (f) files.push(f);
+      }
+    }
+    return files;
+  }
+
+  /* ---------- 10. Event wiring, keyboard shortcuts and startup ---------- */
+  function isTyping(el) {
+    return el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable);
+  }
+
+  function wireEvents() {
+    $("taskForm").addEventListener("submit", handleSubmit);
+    $("cancelEditBtn").addEventListener("click", function () { resetForm(); render(); });
+    $("fDesc").addEventListener("input", function () {
+      $("formError").hidden = true;
+      clearTimeout(autoTimer);
+      autoTimer = setTimeout(autoFillForm, 300);
+    });
+    $("fDesc").addEventListener("blur", function () { clearTimeout(autoTimer); autoFillForm(); });
+    // Once you type in a box yourself, the smart reader leaves it alone.
+    [["customer", "fCustomer"], ["folder", "fFolder"], ["category", "fCategory"], ["estimator", "fEstimator"]].forEach(function (pair) {
+      $(pair[1]).addEventListener("input", function () { touched[pair[0]] = true; $(pair[1]).classList.remove("guess"); });
+      $(pair[1]).addEventListener("change", function () { touched[pair[0]] = true; });
+    });
+
+    $("categoryChips").addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-category]");
+      if (!b) return;
+      filters.category = b.getAttribute("data-category");
+      renderCategoryChips();
+      render();
+    });
+    $("search").addEventListener("input", function (e) { filters.search = e.target.value.trim(); render(); });
+    $("estimatorFilter").addEventListener("change", function (e) { filters.estimator = e.target.value; render(); });
+    $("clearFiltersBtn").addEventListener("click", function () {
+      filters = { category: "All", search: "", estimator: "" };
+      $("search").value = "";
+      renderCategoryChips();
+      render();
+    });
+
+    // One listener handles buttons on every task card.
+    $("todayList").parentNode.parentNode.addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-action]");
+      if (!b) return;
+      var id = b.getAttribute("data-id");
+      var action = b.getAttribute("data-action");
+      if (action === "toggle") toggleDone(id);
+      else if (action === "edit") startEdit(id);
+      else if (action === "delete") deleteTask(id);
+    });
+
+    // Notes, review
+    $("readNotesBtn").addEventListener("click", readNotes);
+    $("clearNotesBtn").addEventListener("click", function () { $("notesInput").value = ""; setOcrStatus(""); $("notesInput").focus(); });
+    $("applyNotesBtn").addEventListener("click", applyProposals);
+    $("cancelReviewBtn").addEventListener("click", closeReview);
+    $("reviewList").addEventListener("change", function (e) {
+      var item = e.target.closest(".review-item");
+      if (item && e.target.getAttribute("data-field") === "include") item.classList.toggle("off", !e.target.checked);
+      updateApplyLabel();
+    });
+    $("reviewList").addEventListener("input", updateApplyLabel);
+    $("notesInput").addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); readNotes(); }
+    });
+
+    // Images: choose, paste, drag and drop
+    $("chooseImageBtn").addEventListener("click", function () { $("imageFile").click(); });
+    $("imageFile").addEventListener("change", function (e) { readImages(e.target.files); e.target.value = ""; });
+
+    document.addEventListener("paste", function (e) {
+      var files = imagesFromClipboard(e);
+      if (!files.length) return;            // plain text pastes work as normal
+      e.preventDefault();
+      readImages(files);
+    });
+
+    var dragDepth = 0;
+    function hasFiles(e) {
+      var types = e.dataTransfer && e.dataTransfer.types;
+      return types && Array.prototype.indexOf.call(types, "Files") !== -1;
+    }
+    document.addEventListener("dragenter", function (e) {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      dragDepth++;
+      $("dropOverlay").hidden = false;
+      $("dropZone").classList.add("active");
+    });
+    document.addEventListener("dragover", function (e) { if (hasFiles(e)) e.preventDefault(); });
+    document.addEventListener("dragleave", function (e) {
+      if (!hasFiles(e)) return;
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (!dragDepth) { $("dropOverlay").hidden = true; $("dropZone").classList.remove("active"); }
+    });
+    document.addEventListener("drop", function (e) {
+      dragDepth = 0;
+      $("dropOverlay").hidden = true;
+      $("dropZone").classList.remove("active");
+      if (hasFiles(e)) {
+        e.preventDefault();
+        readImages(e.dataTransfer.files);
+        return;
+      }
+      // Dragged text (e.g. selected from an email) dropped outside the notes box
+      var text = e.dataTransfer && e.dataTransfer.getData("text/plain");
+      if (text && e.target !== $("notesInput")) {
+        e.preventDefault();
+        var box = $("notesInput");
+        box.value = (box.value.trim() ? box.value.trim() + "\n" : "") + text.trim();
+        readNotes();
+      }
+    });
+
+    // Backup and examples
+    $("deleteExamplesBtn").addEventListener("click", deleteExamples);
+    $("exportBtn").addEventListener("click", exportBackup);
+    $("importBtn").addEventListener("click", function () { $("importFile").click(); });
+    $("importFile").addEventListener("change", function (e) { importBackup(e.target.files[0]); e.target.value = ""; });
+
+    // Keyboard shortcuts (desktop)
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        if (closeConfirm) { closeConfirm(false); return; }
+        if (!$("reviewPanel").hidden) { closeReview(); return; }
+        if (editingId) { resetForm(); render(); return; }
+        if (isTyping(document.activeElement)) document.activeElement.blur();
+        return;
+      }
+      if (closeConfirm || isTyping(document.activeElement) || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "n" || e.key === "N") { e.preventDefault(); $("fDesc").focus(); }
+      else if (e.key === "/") { e.preventDefault(); $("search").focus(); }
+    });
+
+    // If the app stays open past midnight, refresh when you come back.
+    var lastDay = todayKey();
+    function checkDayChange() {
+      if (todayKey() !== lastDay) { lastDay = todayKey(); render(); }
+    }
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) checkDayChange(); });
+    setInterval(checkDayChange, 60000);
+  }
+
+  function init() {
+    $("fCategory").innerHTML = optionList(CATEGORIES, CATEGORIES[0]);
+    $("statStaleLabel").textContent = "Waiting " + STALE_DAYS + "+ days";
+    renderCategoryChips();
+    tasks = loadTasks();
+    resetForm();
+    wireEvents();
+    render();
+  }
+
+  window.addEventListener("error", function () {
+    showToast("Something went wrong. Your saved tasks are safe; try refreshing.", true);
+  });
+
+  init();
+
+  // Read-only hook for automated tests of the notes reader.
+  window.RepairPlannerTest = { parseNotes: parseNotes, analyzeLine: analyzeLine };
+})();
+</script>
+</body>
+</html>
