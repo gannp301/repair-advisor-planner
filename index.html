@@ -283,6 +283,23 @@
   .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; visibility: visible; }
   .toast.error { background: var(--red); }
 
+  /* ---------- Confirm box ---------- */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 20;
+    background: rgba(17,17,17,0.55);
+    display: grid; place-items: center;
+    padding: 16px;
+  }
+  .modal {
+    background: var(--white);
+    border-radius: var(--radius);
+    border-top: 6px solid var(--red);
+    width: 100%; max-width: 420px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  }
+  .modal p { margin: 0 0 18px; white-space: pre-line; overflow-wrap: anywhere; }
+
   @media (max-width: 420px) {
     .summary { grid-template-columns: repeat(2, 1fr); }
   }
@@ -410,6 +427,16 @@
 </main>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="modal-backdrop" id="confirmBox" hidden>
+  <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="confirmText">
+    <p id="confirmText"></p>
+    <div class="btn-row">
+      <button type="button" class="btn" id="confirmCancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="confirmOk">Delete</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ==============================================================
@@ -750,6 +777,26 @@
     toastTimer = setTimeout(function () { el.classList.remove("show"); }, isError ? 4500 : 2200);
   }
 
+  // In-page "Are you sure?" box. Calls onYes only if the user taps the red button.
+  function askConfirm(message, okLabel, onYes) {
+    var box = $("confirmBox");
+    var prevFocus = document.activeElement;
+    $("confirmText").textContent = message;
+    $("confirmOk").textContent = okLabel;
+    box.hidden = false;
+    $("confirmCancel").focus();
+    function close(yes) {
+      box.hidden = true;
+      $("confirmOk").onclick = $("confirmCancel").onclick = box.onclick = document.onkeydown = null;
+      if (prevFocus && prevFocus.focus) prevFocus.focus({ preventScroll: true });
+      if (yes) onYes();
+    }
+    $("confirmOk").onclick = function () { close(true); };
+    $("confirmCancel").onclick = function () { close(false); };
+    box.onclick = function (e) { if (e.target === box) close(false); };
+    document.onkeydown = function (e) { if (e.key === "Escape") close(false); };
+  }
+
   /* ---------- 6. Actions ---------- */
   function findTask(id) {
     for (var i = 0; i < tasks.length; i++) if (tasks[i].id === id) return tasks[i];
@@ -836,23 +883,25 @@
     var t = findTask(id);
     if (!t) return;
     var label = (t.folder ? "#" + t.folder + " – " : "") + t.desc;
-    if (!confirm("Delete this task?\n\n" + label)) return;
-    tasks = tasks.filter(function (x) { return x.id !== id; });
-    if (editingId === id) resetForm();
-    saveTasks();
-    showToast("Task deleted");
-    render();
+    askConfirm("Delete this task?\n\n" + label, "Delete", function () {
+      tasks = tasks.filter(function (x) { return x.id !== id; });
+      if (editingId === id) resetForm();
+      saveTasks();
+      showToast("Task deleted");
+      render();
+    });
   }
 
   function deleteExamples() {
     var n = tasks.filter(function (t) { return t.example; }).length;
     if (!n) return;
-    if (!confirm("Delete the " + n + " example task" + (n === 1 ? "" : "s") + "? Your own tasks will not be touched.")) return;
-    tasks = tasks.filter(function (t) { return !t.example; });
-    if (editingId && !findTask(editingId)) resetForm();
-    saveTasks();
-    showToast("Examples deleted");
-    render();
+    askConfirm("Delete the " + n + " example task" + (n === 1 ? "" : "s") + "? Your own tasks will not be touched.", "Delete examples", function () {
+      tasks = tasks.filter(function (t) { return !t.example; });
+      if (editingId && !findTask(editingId)) resetForm();
+      saveTasks();
+      showToast("Examples deleted");
+      render();
+    });
   }
 
   /* ---------- 7. Backup ---------- */
@@ -898,13 +947,13 @@
 
       var msg = "Replace your current " + tasks.length + " task" + (tasks.length === 1 ? "" : "s") +
         " with " + result.tasks.length + " task" + (result.tasks.length === 1 ? "" : "s") + " from this backup?\n\nThis cannot be undone. Export a backup first if unsure.";
-      if (!confirm(msg)) return;
-
-      tasks = result.tasks;
-      resetForm();
-      saveTasks();
-      render();
-      showToast("Imported " + tasks.length + " tasks");
+      askConfirm(msg, "Replace tasks", function () {
+        tasks = result.tasks;
+        resetForm();
+        saveTasks();
+        render();
+        showToast("Imported " + tasks.length + " tasks");
+      });
     };
     reader.readAsText(file);
   }
