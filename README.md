@@ -2,10 +2,11 @@
 
 A simple, private planner for tracking daily follow-ups and tasks in a collision repair shop.
 
-**Version 1.1** · one file (`index.html`) · HTML, CSS and plain JavaScript · no accounts, no server, no tracking.
+**Version 1.2** · one file (`index.html`) · HTML, CSS and plain JavaScript · no accounts, no server, no tracking.
 
 ## What it does
 
+- **Smart fill:** type the task the way you'd jot it down (`call rivera 10452 re supp`) and the Customer, Folder #, Category and Estimator boxes fill themselves. The task is saved in clean wording (`Call Rivera about supplement`). Boxes you type in yourself are never changed, and a guessed name is outlined in red so you can check it.
 - **Add a task** with a customer name and/or folder number, what needs doing, a category (Parts, Supplements, Sublet, Customer, Scheduling, Delivery, Other) and an optional estimator. Each task is stamped with the date it was added.
 - **Three sections:** Today (added today), Carried over (still open from earlier days, oldest first) and Completed. Open tasks show how many days they've been waiting; 3 days or more turns red.
 - **Mark done, reopen, edit or delete** tasks. Deleting always asks first.
@@ -50,13 +51,23 @@ Open `index.html` in Chrome, Edge or Safari. No install or build step.
 9. **Export backup**, delete a task, then **Import backup** and confirm. The task comes back.
 10. Tap **Delete examples**.
 
-## How notes and snippets are read
+## How the smart reader works
+
+Everything runs on your device; nothing is sent anywhere.
 
 - **Folder #:** a number after RO, Folder, Job, WO or `#`, or a standalone 4–7 digit number. Phone numbers, dates and years are skipped.
-- **Customer:** a name after "Cust:", "Customer:", "Owner:" or "Name:", or a name on the same line as a folder #, like `RO 90452 Rivera`.
-- **Groups:** a line with just a folder # and/or name applies to the lines under it, until a blank line.
-- **Category:** keywords, e.g. "adjuster" or "supplement" → Supplements, "backorder" or "bumper" → Parts, "alignment" → Sublet. No keywords → Other.
+- **Customer last name**, most certain first:
+  1. A name you've used before on any task (it learns as you go).
+  2. A label: "Cust:", "Customer:", "Owner:", "Name:", "Insured:".
+  3. "Mr. / Mrs. / Ms. Rivera".
+  4. A line that's just a folder # and a name, like `RO 90452 RIVERA`. It applies to the lines under it until a blank line.
+  5. A guess: "Rivera's car", "call Rivera", "text rivera", "for Rivera", "Rivera truck…", or another capitalized word that isn't a common word, car make or model, insurer or shop term. Guesses are outlined in red.
 - **Estimator:** "Est: Name", or any estimator name you've used before. Otherwise your current estimator.
-- **Updates:** a line with the same category as an open task, and the same folder # (or the same customer when there's no folder #), is offered as an update. The note is added to that task.
+- **Category:** keywords, e.g. "adjuster" or "supp" → Supplements, "backorder" or "bumper" → Parts, "alignment" → Sublet. No keywords → Other.
+- **Clean wording:** shop shorthand is expanded (supp → supplement, vm → voicemail, lvm → left voicemail, b/o → back-ordered, p/u → pick up, f/u → follow up, re → about, tmrw → tomorrow, w/ → with…), ALL-CAPS screenshot text becomes normal sentence case, and the customer's name is capitalized.
+- **Updates:** a line with the same category as an open task, and the same folder # (or the same customer when there's no folder #), is offered as an update.
 
-To teach it your shop's shorthand, add words to `CATEGORY_KEYWORDS` near the top of the script in `index.html`.
+**Teach it your shop's words** (near the top of the script in `index.html`):
+- `CATEGORY_KEYWORDS`: words that point to each category.
+- `SHORTHAND`: abbreviations to expand.
+- `NOT_NAMES`: words it should never treat as a name, if it ever guesses wrong.

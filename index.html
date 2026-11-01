@@ -10,7 +10,7 @@
 <title>Repair Advisor Planner</title>
 <style>
   /* ============================================================
-     Repair Advisor Planner v1.1 — styles
+     Repair Advisor Planner v1.2 — styles
      Palette: red / white / black. Change colors here only.
      ============================================================ */
   :root {
@@ -335,6 +335,11 @@
   .review-item label input, .review-item label select { min-height: 44px; min-width: 0; max-width: 100%; }
   .review-note { margin: 0; font-size: 14px; color: var(--gray-700); overflow-wrap: anywhere; }
   .review-note.match { color: var(--ink); }
+  .review-note.guess-note { color: var(--red); font-weight: 600; }
+
+  /* Boxes the smart reader filled with a guess */
+  input.guess { border-color: var(--red); border-style: dashed; background: var(--red-tint); }
+  .autofill-note { font-size: 13px; color: var(--gray-700); margin: -6px 0 12px; }
 
   /* ---------- Backup ---------- */
   .small { font-size: 14px; color: var(--gray-700); margin: 0 0 10px; }
@@ -444,6 +449,12 @@
         <form id="taskForm" novalidate autocomplete="off">
           <p class="form-error" id="formError" role="alert" hidden></p>
 
+          <div class="field">
+            <label for="fDesc">Task</label>
+            <input type="text" id="fDesc" maxlength="300" placeholder="e.g. call Rivera 10452 re supp" enterkeyhint="done">
+          </div>
+          <p class="autofill-note" id="autofillNote" aria-live="polite" hidden></p>
+
           <div class="row-2">
             <div class="field">
               <label for="fCustomer">Customer</label>
@@ -453,11 +464,6 @@
               <label for="fFolder">Folder #</label>
               <input type="text" id="fFolder" maxlength="30" autocapitalize="characters" spellcheck="false" placeholder="e.g. 10452">
             </div>
-          </div>
-
-          <div class="field">
-            <label for="fDesc">Task</label>
-            <input type="text" id="fDesc" maxlength="300" placeholder="e.g. Call parts on back-ordered bumper" enterkeyhint="done">
           </div>
 
           <div class="row-2">
@@ -596,7 +602,7 @@
 
 <script>
 /* ==============================================================
-   Repair Advisor Planner v1.1
+   Repair Advisor Planner v1.2
    Single-file app. No backend, no accounts, no tracking.
    All tasks live in this browser's localStorage.
 
@@ -612,7 +618,7 @@
      5. Rendering
      6. Actions (add, edit, complete, delete)
      7. Backup (export / import)
-     8. Add from notes (turn text into tasks)
+     8. Smart reader and Add from notes (turn text into tasks)
      9. Read text from images (snippets, photos)
     10. Event wiring, keyboard shortcuts and startup
    ============================================================== */
@@ -999,6 +1005,7 @@
     $("formError").hidden = true;
     $("dateLineLabel").textContent = "Date added";
     $("dateLineValue").textContent = formatLongDate(todayKey());
+    resetAutoFill();
   }
 
   function showFormError(msg) {
@@ -1017,6 +1024,13 @@
       estimator: $("fEstimator").value.trim()
     };
     if (!desc) { showFormError("Please enter what needs to be done."); $("fDesc").focus(); return; }
+
+    // New tasks: save the cleaned-up wording (shorthand expanded, folder # moved to its box).
+    if (!editingId) {
+      var a = analyzeLine(desc, readerContext());
+      if (a.desc && (!a.folder || sameKey(a.folder, values.folder))) values.desc = a.desc;
+      else if (a.desc) values.desc = educateTask(desc);
+    }
 
     // Remember the estimator for the next new task (editing an old task doesn't change it).
     if (values.estimator && !editingId) saveLastEstimator(values.estimator);
@@ -1040,7 +1054,7 @@
     }
     resetForm();
     render();
-    $("fCustomer").focus({ preventScroll: true });
+    $("fDesc").focus({ preventScroll: true });
   }
 
   function startEdit(id) {
@@ -1150,29 +1164,73 @@
   }
 
   /* ---------- 8. Add from notes ----------
-     Turns pasted or image-read text into proposed tasks, which the user
-     reviews before anything is saved. A line that matches an open task
-     (same category and same folder #, or same customer when there's no
-     folder #) is offered as an update to that task. */
+     The "smart reader". Everything runs on this device.
+     analyzeLine() looks at one line of text and works out the folder #,
+     customer last name, category and estimator, and rewrites shop
+     shorthand into a clean task. It is used by the notes/snippet review
+     and by the Add task form (filling empty boxes as you type).
+     A line that matches an open task (same category and same folder #,
+     or same customer when there's no folder #) is offered as an update. */
 
   var PHONE_RE = /\(?\b\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}\b|\b\d{3}[-.]\d{4}\b/g;
   var DATE_RE = /\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g;
-  var FOLDER_PREFIX_RE = /(?:\b(?:folder|fldr|ro|r\/o|job|file|wo|w\/o)\b\s*(?:#|no\.?|number)?\s*[:#-]?|#)\s*([a-z0-9][a-z0-9-]{1,14})/i;
+  var FOLDER_PREFIX_RE = /(?:\b(?:folder|fldr|ro|r\/o|job|file|wo)\b\s*(?:#|no\.?|number)?\s*[:#-]?|#)\s*([a-z0-9][a-z0-9-]{1,14})/i;
   var FOLDER_BARE_RE = /(?:^|[\s(,;:])(\d{4,7})(?=$|[\s),.;:])/;
-  // "Cust: Rivera", "Customer - Ann Lee", "Owner: Lee" (names must start with a capital)
-  var CUSTOMER_LABEL_RE = /\b(?:[Cc]ust(?:omer)?|CUST(?:OMER)?|[Oo]wner|OWNER|[Nn]ame|NAME)\s*[:\-]\s*([A-Z][A-Za-z'.-]+(?:\s+[A-Z][A-Za-z'.-]+){0,2})/;
-  var ESTIMATOR_LABEL_RE = /\b(?:[Ee]st(?:imator)?|EST(?:IMATOR)?|[Ww]riter|WRITER)\s*[:\-]\s*([A-Z][A-Za-z'.-]+(?:\s+[A-Z][A-Za-z'.-]+)?)/;
-  var NAME_ONLY_RE = /^[A-Z][A-Za-z'.-]+(?:,?\s+[A-Z][A-Za-z'.-]+){0,2}$/;
+  // "Cust: Rivera", "CUSTOMER - ANN LEE", "Owner: Lee"
+  var CUSTOMER_LABEL_RE = /\b(?:cust(?:omer)?|owner|name|insured|claimant)\s*[:\-]\s*([a-z][a-z'.-]+(?:\s+[a-z][a-z'.-]+){0,2})/i;
+  var ESTIMATOR_LABEL_RE = /\b(?:est(?:imator)?|writer|advisor)\s*[:\-]\s*([a-z][a-z'.-]+(?:\s+[a-z][a-z'.-]+)?)/i;
+  var TITLE_NAME_RE = /\b(?:mr|mrs|ms|miss|dr)\.?\s+([a-z][a-z'-]+)/i;
+
+  // Words that come right before a customer name: "call Rivera", "for Lee".
+  var NAME_TRIGGERS = toSet("call called calling text texted email emailed for with tell told update updated notify contact contacted from cust customer owner remind ask asked mr mrs ms see meet");
+
+  // Capitalized words that are NOT people's names. Add to this list if the
+  // reader mistakes a word for a name.
+  var NOT_NAMES = toSet(
+    // everyday words
+    "a an the and or but if then than so to too of in on at by for from with without into onto about above after again against all am any are as be because been before being below between both can could did do does doing down during each few further had has have having he her here hers him his how i is it its just me more most my no nor not now off once only other our out over own same she should some such that their them there these they this those through under until up very was we were what when where which while who whom why will would you your yes ok okay please thanks thank need needs needed still also back left right front rear new old next last first today tomorrow yesterday tonight morning afternoon night week weekend asap eod am pm call text email order get got send sent check checked confirm confirmed follow followup up see waiting wait waiting done ready set make made let lets will hold holding job car truck van suv vehicle vin ro eta oem adas pdr lkq ccc one mitchell audatex cccone note notes info re fyi per via vs pt pts part parts tech techs shop body paint frame team boss manager office desk dept department hi hello hey he she they him her them his hers it" + " " +
+    // days and months
+    "mon monday tue tues tuesday wed wednesday thu thur thurs thursday fri friday sat saturday sun sunday jan january feb february mar march apr april may jun june jul july aug august sep sept september oct october nov november dec december" + " " +
+    // vehicle makes and common models
+    "acura audi bmw buick cadillac chevy chevrolet chrysler dodge fiat ford genesis gmc honda hyundai infiniti jaguar jeep kia land rover lexus lincoln mazda mercedes benz mini mitsubishi nissan porsche ram subaru tesla toyota volkswagen vw volvo camry corolla rav4 highlander tacoma tundra civic accord crv pilot odyssey altima rogue sentra f150 silverado sierra tahoe suburban equinox malibu explorer escape fusion mustang wrangler cherokee charger challenger durango outback forester crosstrek elantra sonata tucson santa fe optima sorento sportage model prius" + " " +
+    // insurance companies and vendors
+    "geico progressive allstate usaa farmers nationwide liberty mutual travelers state farm safeco erie amica esurance insurance ins adjuster appraiser carrier claim lkq keystone napa autozone dealer vendor enterprise hertz avis rental"
+  );
+  // Every category keyword is also "not a name".
+  Object.keys(CATEGORY_KEYWORDS).forEach(function (c) {
+    CATEGORY_KEYWORDS[c].forEach(function (k) { k.split(/\s+/).forEach(function (w) { NOT_NAMES[w] = true; }); });
+  });
+
+  var VEHICLE_WORDS = toSet("car truck van suv vehicle jeep minivan pickup acura audi bmw buick cadillac chevy chevrolet chrysler dodge ford gmc honda hyundai infiniti jaguar kia lexus lincoln mazda mercedes mini mitsubishi nissan porsche ram subaru tesla toyota volkswagen vw volvo camry corolla rav4 highlander tacoma tundra civic accord crv pilot odyssey altima rogue sentra f150 silverado sierra tahoe equinox malibu explorer escape fusion mustang wrangler cherokee charger durango outback forester elantra sonata tucson prius");
+
+  // Shop shorthand expanded when building the task text. Add your own.
+  var SHORTHAND = [
+    ["supp", "supplement"], ["supps", "supplements"], ["appt", "appointment"], ["appts", "appointments"],
+    ["vm", "voicemail"], ["lvm", "left voicemail"], ["lm", "left message"], ["b/o", "back-ordered"],
+    ["p/u", "pick up"], ["d/o", "drop off"], ["f/u", "follow up"], ["txt", "text"], ["msg", "message"],
+    ["cust", "customer"], ["cx", "customer"], ["adj", "adjuster"], ["reinsp", "reinspection"],
+    ["calib", "calibration"], ["recal", "recalibration"], ["pls", "please"], ["plz", "please"],
+    ["tmrw", "tomorrow"], ["tmw", "tomorrow"], ["tmrrw", "tomorrow"], ["approx", "approximately"],
+    ["pts", "parts"], ["qty", "quantity"], ["eod", "end of day"], ["sched", "schedule"],
+    ["deliv", "delivery"], ["rdy", "ready"], ["ins", "insurance"], ["est", "estimate"], ["w/", "with "]
+  ];
+  var ACRONYMS = ["eta", "oem", "adas", "pdr", "lkq", "vin", "ro", "asap", "a/c", "ccc"];
+
+  function toSet(str) {
+    var s = {};
+    str.split(/\s+/).forEach(function (w) { if (w) s[w.toLowerCase()] = true; });
+    return s;
+  }
 
   function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&"); }
 
-  function wordPattern(word) {
-    return new RegExp("(^|[^a-z0-9])" + escapeRegex(word) + "(?=$|[^a-z0-9])", "i");
+  function wordPattern(word, flags) {
+    return new RegExp("(^|[^a-z0-9])" + escapeRegex(word) + "(?=$|[^a-z0-9])", flags || "i");
   }
 
   var KEYWORD_PATTERNS = {};
   Object.keys(CATEGORY_KEYWORDS).forEach(function (cat) {
-    KEYWORD_PATTERNS[cat] = CATEGORY_KEYWORDS[cat].map(wordPattern);
+    KEYWORD_PATTERNS[cat] = CATEGORY_KEYWORDS[cat].map(function (k) { return wordPattern(k); });
   });
 
   function categoryScores(line) {
@@ -1182,6 +1240,11 @@
       if (score > bestScore) { best = cat; bestScore = score; }
     });
     return { category: best, score: bestScore };
+  }
+
+  function titleCase(s) {
+    return s.toLowerCase().replace(/(^|[\s'-])([a-z])/g, function (m, p, c) { return p + c.toUpperCase(); })
+      .replace(/^Mc([a-z])/, function (m, c) { return "Mc" + c.toUpperCase(); });
   }
 
   // Finds a folder number. Returns { folder, text } or null.
@@ -1198,13 +1261,84 @@
     return null;
   }
 
-  function detectKnownEstimator(line, names) {
-    var label = line.match(ESTIMATOR_LABEL_RE);
-    if (label) return { name: label[1], text: label[0] };
-    for (var i = 0; i < names.length; i++) {
-      if (wordPattern(names[i]).test(line)) return { name: names[i], text: "" };
+  function isNameWord(w) {
+    var lower = w.toLowerCase().replace(/'s$/, "");
+    return /^[a-z][a-z'-]*[a-z]$/i.test(lower) && lower.length >= 2 && !NOT_NAMES[lower];
+  }
+
+  function findKnown(text, names) {
+    // Longest names first so "Ann Lee" wins over "Lee".
+    var sorted = names.slice().sort(function (a, b) { return b.length - a.length; });
+    for (var i = 0; i < sorted.length; i++) {
+      if (sorted[i] && wordPattern(sorted[i]).test(text)) return sorted[i];
+    }
+    return "";
+  }
+
+  // Looks for a customer last name with no label. Returns { name, source } or null.
+  // source: "known" (used before), "title" (Mr./Mrs.), "guess" (check it).
+  function guessCustomer(text, ctx) {
+    var known = findKnown(text, ctx.knownCustomers);
+    if (known) return { name: known, source: "known" };
+
+    var t = text.match(TITLE_NAME_RE);
+    if (t && isNameWord(t[1])) return { name: titleCase(t[1]), source: "title" };
+
+    var words = text.split(/\s+/).map(function (w) { return w.replace(/^[^a-z]+|[^a-z']+$/gi, ""); }).filter(Boolean);
+    var letters = text.replace(/[^a-z]/gi, "");
+    var allCaps = letters.length > 3 && letters === letters.toUpperCase();
+    var allLower = letters === letters.toLowerCase();
+
+    function take(i) {
+      var name = words[i].replace(/'s$/i, "");
+      if (words[i + 1] && isNameWord(words[i + 1]) && /^[A-Z]/.test(words[i + 1]) && /^[A-Z]/.test(words[i]) && !allCaps) {
+        name += " " + words[i + 1];           // "Ann Lee"
+      }
+      return titleCase(name);
+    }
+    function notEstimator(n) { return !findKnown(n, ctx.knownEstimators); }
+
+    // "Rivera's car"
+    for (var i = 0; i < words.length; i++) {
+      if (/'s$/i.test(words[i]) && (allCaps || /^[A-Z]/.test(words[i])) && isNameWord(words[i])) {
+        var pn = take(i); if (notEstimator(pn)) return { name: pn, source: "guess" };
+      }
+    }
+    // "call Rivera", "for LEE", "text rivera"
+    for (var j = 0; j < words.length - 1; j++) {
+      if (NAME_TRIGGERS[words[j].toLowerCase()] && isNameWord(words[j + 1])) {
+        var capsOk = allCaps || allLower || /^[A-Z]/.test(words[j + 1]);
+        if (capsOk) { var tn = take(j + 1); if (notEstimator(tn)) return { name: tn, source: "guess" }; }
+      }
+    }
+    // "Hernandez truck ready", "RIVERA CAMRY IN BOOTH": a name right before a vehicle word
+    if (words.length > 1 && isNameWord(words[0]) && VEHICLE_WORDS[words[1].toLowerCase()] &&
+        (allCaps || allLower || /^[A-Z]/.test(words[0]))) {
+      var vn = titleCase(words[0]); if (notEstimator(vn)) return { name: vn, source: "guess" };
+    }
+    // Any other capitalized word after the first one: "Bumper for Camry Rivera"
+    if (!allCaps && !allLower) {
+      for (var k = 1; k < words.length; k++) {
+        if (/^[A-Z][a-z]/.test(words[k]) && isNameWord(words[k])) {
+          var cn = take(k); if (notEstimator(cn)) return { name: cn, source: "guess" };
+        }
+      }
     }
     return null;
+  }
+
+  function detectEstimator(text, ctx) {
+    var label = text.match(ESTIMATOR_LABEL_RE);
+    if (label) {
+      var parts = label[1].split(/\s+/);
+      if (isNameWord(parts[0])) {
+        var full = parts[0] + (parts[1] && isNameWord(parts[1]) ? " " + parts[1] : "");
+        var labelText = label[0].slice(0, label[0].indexOf(parts[0]) + full.length);
+        return { name: titleCase(full), text: labelText };
+      }
+    }
+    var known = findKnown(text, ctx.knownEstimators);
+    return known ? { name: known, text: "" } : null;
   }
 
   function cleanDescription(s) {
@@ -1215,52 +1349,120 @@
       .trim();
   }
 
-  function parseNotes(text, existing, knownEstimators, defaultEstimator) {
+  // Turns shop shorthand into a clean, readable task.
+  function educateTask(s) {
+    // Sentence case for ALL-CAPS text (common in shop-system screenshots).
+    var letters = s.replace(/[^a-z]/gi, "");
+    if (letters.length > 3 && letters === letters.toUpperCase()) s = s.toLowerCase();
+    var out = " " + s + " ";
+    out = out.replace(/(^|\s)re:?\s+/gi, "$1about ");
+    SHORTHAND.forEach(function (pair) {
+      var re = pair[0] === "w/"
+        ? /(^|[^a-z0-9])w\/(?=[a-z\s])/gi
+        : new RegExp("(^|[^a-z0-9/])" + escapeRegex(pair[0]) + "(?=$|[^a-z0-9/])", "gi");
+      out = out.replace(re, function (m, p) { return p + pair[1]; });
+    });
+    ACRONYMS.forEach(function (a) {
+      out = out.replace(new RegExp("(^|[^a-z0-9/])" + escapeRegex(a) + "(?=$|[^a-z0-9/])", "gi"), function (m, p) { return p + a.toUpperCase(); });
+    });
+    out = out.replace(/\s{2,}/g, " ").trim();
+    return out.charAt(0).toUpperCase() + out.slice(1);
+  }
+
+  // The main reader for one line. ctx = { knownCustomers, knownEstimators }.
+  function analyzeLine(raw, ctx) {
+    var out = { folder: "", customer: "", customerSource: "", estimator: "", category: "Other",
+                categoryScore: 0, desc: "", header: false, nameInText: "" };
+    var desc = raw;
+
+    var f = detectFolder(raw);
+    if (f) { out.folder = f.folder; desc = desc.replace(f.text, " "); }
+
+    var lab = desc.match(CUSTOMER_LABEL_RE);
+    if (lab && isNameWord(lab[1].split(/\s+/)[0])) {
+      // Keep only the leading name words: "Cust: Ann Lee call about rental" -> "Ann Lee"
+      var labWords = lab[1].split(/\s+/), nameParts = [];
+      for (var w = 0; w < labWords.length && isNameWord(labWords[w]); w++) nameParts.push(labWords[w]);
+      var labName = nameParts.join(" ");
+      out.customer = titleCase(labName);
+      out.customerSource = "label";
+      desc = desc.replace(lab[0].slice(0, lab[0].indexOf(nameParts[0]) + labName.length), " ");
+    }
+
+    var est = detectEstimator(desc, ctx);
+    if (est) { out.estimator = est.name; if (est.text) desc = desc.replace(est.text, " "); }
+
+    desc = cleanDescription(desc);
+
+    // Header line: just a folder # and/or a name, e.g. "RO 90452 RIVERA" or "90452 - Ann Lee".
+    var leftover = desc.split(/[\s,]+/).filter(Boolean);
+    var nameWords = leftover.filter(isNameWord);
+    var onlyNames = nameWords.length > 0 && leftover.length <= 3 &&
+      leftover.every(function (w) { return isNameWord(w) || NOT_NAMES[w.toLowerCase()]; }) &&
+      !categoryScores(desc).score;
+    if (!desc || ((f || lab) && onlyNames)) {
+      out.header = !!(f || lab);
+      if (!out.customer && nameWords.length) {
+        var knownH = findKnown(desc, ctx.knownCustomers);
+        out.customer = knownH || titleCase(nameWords.join(" "));
+        out.customerSource = knownH ? "known" : "header";
+      }
+      return out;
+    }
+
+    if (!out.customer) {
+      var g = guessCustomer(desc, ctx);
+      if (g) { out.customer = g.name; out.customerSource = g.source; out.nameInText = g.name; }
+    }
+
+    out.desc = educateTask(desc);
+    if (out.customer) {
+      out.desc = out.desc.replace(wordPattern(out.customer, "gi"), function (m, p) { return p + out.customer; });
+      out.desc = out.desc.charAt(0).toUpperCase() + out.desc.slice(1);
+    }
+    var scored = categoryScores(raw + " " + out.desc);
+    out.category = scored.category;
+    out.categoryScore = scored.score;
+    return out;
+  }
+
+  function readerContext() {
+    var customers = {}, list = [];
+    tasks.forEach(function (t) { if (t.customer) customers[t.customer.toLowerCase()] = t.customer; });
+    Object.keys(customers).forEach(function (k) { list.push(customers[k]); });
+    return { knownCustomers: list, knownEstimators: estimatorNames() };
+  }
+
+  function parseNotes(text, existing, ctx, defaultEstimator) {
     var lines = String(text || "").split(/\r?\n/);
     var proposals = [];
-    var group = { folder: "", customer: "" };  // a header line applies to the lines under it, until a blank line
+    var group = { folder: "", customer: "", source: "" };  // a header line applies to the lines under it, until a blank line
     var skipped = 0;
-    knownEstimators = knownEstimators || [];
+    ctx = ctx || { knownCustomers: [], knownEstimators: [] };
 
     for (var i = 0; i < lines.length; i++) {
       var raw = lines[i].trim();
-      if (!raw) { group = { folder: "", customer: "" }; continue; }
+      if (!raw) { group = { folder: "", customer: "", source: "" }; continue; }
       if (raw.length < 3) continue;
       if (proposals.length >= MAX_NOTE_LINES) { skipped++; continue; }
 
-      var desc = raw;
-      var folderHit = detectFolder(raw);
-      if (folderHit) desc = desc.replace(folderHit.text, " ");
-
-      var customer = "";
-      var custHit = desc.match(CUSTOMER_LABEL_RE);
-      if (custHit) { customer = custHit[1]; desc = desc.replace(custHit[0], " "); }
-
-      var estHit = detectKnownEstimator(desc, knownEstimators);
-      if (estHit && estHit.text) desc = desc.replace(estHit.text, " ");
-
-      desc = cleanDescription(desc);
-
-      // Header line: just a folder # and/or a customer name, e.g. "RO 90452 Rivera".
-      var scored = categoryScores(desc);
-      if (!desc || (folderHit || custHit) && !scored.score && NAME_ONLY_RE.test(desc)) {
-        if (folderHit || custHit) {
-          group = {
-            folder: folderHit ? folderHit.folder : "",
-            customer: customer || (desc && NAME_ONLY_RE.test(desc) ? desc.replace(/,/g, "") : "")
-          };
-        }
+      var a = analyzeLine(raw, ctx);
+      if (a.header || !a.desc) {
+        if (a.header) group = { folder: a.folder, customer: a.customer, source: a.customerSource };
         continue;
       }
-      if (!/[a-z]/i.test(desc)) continue;
+      if (!/[a-z]/i.test(a.desc)) continue;
 
+      // A name found in the line itself wins over the group's name only when it was certain.
+      var useGroupName = group.customer && (!a.customer || a.customerSource === "guess");
       var p = {
         include: true,
-        customer: customer || group.customer,
-        folder: folderHit ? folderHit.folder : group.folder,
-        desc: desc.charAt(0).toUpperCase() + desc.slice(1),
-        category: categoryScores(raw).category,
-        estimator: estHit ? estHit.name : (defaultEstimator || ""),
+        customer: useGroupName ? group.customer : a.customer,
+        customerSource: useGroupName ? group.source : a.customerSource,
+        folder: a.folder || group.folder,
+        desc: a.desc,
+        category: a.category,
+        estimator: a.estimator || defaultEstimator || "",
         matchId: null,
         duplicate: false
       };
@@ -1287,12 +1489,55 @@
     p.matchId = best ? best.id : null;
   }
 
+  /* Fills empty boxes in the Add task form from what you type in Task.
+     Boxes you've typed in yourself are never changed. */
+  var touched = {};       // fields the user changed by hand
+  var autoFilled = {};    // fields the reader filled
+  var autoTimer = null;
+
+  function autoFillForm() {
+    if (editingId) return;
+    var text = $("fDesc").value.trim();
+    var a = text.length >= 3 ? analyzeLine(text, readerContext()) : null;
+    var filled = [];
+
+    function setField(key, id, value, label) {
+      if (touched[key]) return;
+      var el = $(id);
+      if (value) {
+        el.value = value;
+        autoFilled[key] = true;
+        filled.push(label);
+      } else if (autoFilled[key]) {
+        el.value = key === "category" ? CATEGORIES[0] : (key === "estimator" ? loadLastEstimator() : "");
+        autoFilled[key] = false;
+      }
+    }
+
+    setField("customer", "fCustomer", a && a.customer, a && a.customerSource === "guess" ? "Customer (guessed)" : "Customer");
+    setField("folder", "fFolder", a && a.folder, "Folder #");
+    setField("category", "fCategory", a && a.categoryScore ? a.category : "", "Category");
+    if (a && a.estimator) setField("estimator", "fEstimator", a.estimator, "Estimator");
+
+    $("fCustomer").classList.toggle("guess", !!(autoFilled.customer && a && a.customerSource === "guess"));
+    $("autofillNote").hidden = !filled.length;
+    $("autofillNote").textContent = filled.length ? "Filled in from your task: " + filled.join(", ") + ". Change anything that's wrong." : "";
+  }
+
+  function resetAutoFill() {
+    touched = {};
+    autoFilled = {};
+    clearTimeout(autoTimer);
+    $("fCustomer").classList.remove("guess");
+    $("autofillNote").hidden = true;
+  }
+
   var proposals = [];
 
   function readNotes() {
     var text = $("notesInput").value;
     if (!text.trim()) { showToast("Paste some notes first.", true); $("notesInput").focus(); return; }
-    var result = parseNotes(text, tasks, estimatorNames(), $("fEstimator").value.trim() || loadLastEstimator());
+    var result = parseNotes(text, tasks, readerContext(), (editingId ? "" : $("fEstimator").value.trim()) || loadLastEstimator());
     proposals = result.proposals;
     if (!proposals.length) { showToast("No tasks found. Put each task on its own line.", true); return; }
 
@@ -1319,7 +1564,7 @@
           '<input type="text" id="rv-desc-' + i + '" data-field="desc" maxlength="300" value="' + esc(p.desc) + '" aria-label="Task">' +
         "</div>" +
         '<div class="review-grid">' +
-          '<label>Customer<input type="text" id="rv-cust-' + i + '" data-field="customer" maxlength="60" autocapitalize="words" spellcheck="false" value="' + esc(p.customer) + '"></label>' +
+          '<label>Customer<input type="text" id="rv-cust-' + i + '" data-field="customer" maxlength="60" autocapitalize="words" spellcheck="false"' + (p.customerSource === "guess" ? ' class="guess"' : "") + ' value="' + esc(p.customer) + '"></label>' +
           '<label>Folder #<input type="text" id="rv-folder-' + i + '" data-field="folder" maxlength="30" autocapitalize="characters" spellcheck="false" value="' + esc(p.folder) + '"></label>' +
           '<label>Category<select id="rv-cat-' + i + '" data-field="category">' + optionList(CATEGORIES, p.category) + "</select></label>" +
           '<label>Estimator<input type="text" id="rv-est-' + i + '" data-field="estimator" list="estimatorList" maxlength="40" autocapitalize="words" spellcheck="false" value="' + esc(p.estimator) + '"></label>' +
@@ -1330,6 +1575,7 @@
           '<option value="new">Add as a new task</option></select></label>' +
           '<p class="review-note match">Existing: ' + esc(match.desc) + "</p>";
       }
+      if (p.customerSource === "guess") html += '<p class="review-note guess-note">Customer name guessed from the text. Check it.</p>';
       if (p.duplicate) html += '<p class="review-note">Already on your list, so it\'s unchecked.</p>';
       return html + "</div>";
     }).join("");
@@ -1545,7 +1791,17 @@
   function wireEvents() {
     $("taskForm").addEventListener("submit", handleSubmit);
     $("cancelEditBtn").addEventListener("click", function () { resetForm(); render(); });
-    $("fDesc").addEventListener("input", function () { $("formError").hidden = true; });
+    $("fDesc").addEventListener("input", function () {
+      $("formError").hidden = true;
+      clearTimeout(autoTimer);
+      autoTimer = setTimeout(autoFillForm, 300);
+    });
+    $("fDesc").addEventListener("blur", function () { clearTimeout(autoTimer); autoFillForm(); });
+    // Once you type in a box yourself, the smart reader leaves it alone.
+    [["customer", "fCustomer"], ["folder", "fFolder"], ["category", "fCategory"], ["estimator", "fEstimator"]].forEach(function (pair) {
+      $(pair[1]).addEventListener("input", function () { touched[pair[0]] = true; $(pair[1]).classList.remove("guess"); });
+      $(pair[1]).addEventListener("change", function () { touched[pair[0]] = true; });
+    });
 
     $("categoryChips").addEventListener("click", function (e) {
       var b = e.target.closest("button[data-category]");
@@ -1653,7 +1909,7 @@
         return;
       }
       if (closeConfirm || isTyping(document.activeElement) || e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key === "n" || e.key === "N") { e.preventDefault(); $("fCustomer").focus(); }
+      if (e.key === "n" || e.key === "N") { e.preventDefault(); $("fDesc").focus(); }
       else if (e.key === "/") { e.preventDefault(); $("search").focus(); }
     });
 
@@ -1683,7 +1939,7 @@
   init();
 
   // Read-only hook for automated tests of the notes reader.
-  window.RepairPlannerTest = { parseNotes: parseNotes };
+  window.RepairPlannerTest = { parseNotes: parseNotes, analyzeLine: analyzeLine };
 })();
 </script>
 </body>
