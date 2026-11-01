@@ -10,7 +10,7 @@
 <title>Repair Advisor Planner</title>
 <style>
   /* ============================================================
-     Repair Advisor Planner v1.2 — styles
+     Repair Advisor Planner v1.3 — styles
      Palette: red / white / black. Change colors here only.
      ============================================================ */
   :root {
@@ -306,36 +306,9 @@
   .task-actions { display: flex; gap: 8px; margin-top: 10px; }
   .task-actions .btn { min-height: 44px; padding: 8px 14px; font-size: 15px; }
 
-  /* ---------- Review (from notes) ---------- */
+  /* ---------- Review (smart import) ---------- */
   .review { margin-bottom: 16px; border: 2px solid var(--black); }
-  .review-list { display: grid; gap: 10px; margin-bottom: 14px; }
   @media (min-width: 1280px) { .review-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  .review-item {
-    border: 1.5px solid var(--gray-300);
-    border-radius: 10px;
-    padding: 10px;
-    display: grid;
-    gap: 8px;
-    align-content: start;
-    min-width: 0;
-  }
-  .review-item.off { opacity: 0.5; }
-  .review-top { display: flex; gap: 10px; align-items: center; }
-  .review-top input[type="checkbox"] {
-    flex: none; width: 28px; height: 28px; margin: 0;
-    accent-color: var(--red);
-  }
-  .review-top input[type="text"] { flex: 1; min-width: 0; }
-  .review-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 8px;
-  }
-  .review-item label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--gray-700); min-width: 0; }
-  .review-item label input, .review-item label select { min-height: 44px; min-width: 0; max-width: 100%; }
-  .review-note { margin: 0; font-size: 14px; color: var(--gray-700); overflow-wrap: anywhere; }
-  .review-note.match { color: var(--ink); }
-  .review-note.guess-note { color: var(--red); font-weight: 600; }
 
   /* Boxes the smart reader filled with a guess */
   input.guess { border-color: var(--red); border-style: dashed; background: var(--red-tint); }
@@ -380,6 +353,206 @@
   }
   .modal p { margin: 0 0 18px; white-space: pre-line; overflow-wrap: anywhere; }
 
+  /* ============ v1.3: views, daily notes, smart import ============ */
+  :root {
+    --hl: #FFF2A8;          /* highlighter yellow */
+    --hl-edge: #E8C900;
+    --blue: #1F4E9E;
+    --green: #1E7A3A;
+  }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tab {
+    min-height: 44px; padding: 8px 14px;
+    border-radius: 999px; border: 1.5px solid #555;
+    background: transparent; color: var(--white);
+    font-weight: 700; font-size: 15px;
+  }
+  .tab[aria-pressed="true"] { background: var(--white); color: var(--black); border-color: var(--white); }
+  .tab-count { font-variant-numeric: tabular-nums; opacity: 0.85; }
+
+  /* Only the cards for the current view are shown. */
+  body[data-view="notes"] [data-view]:not([data-view~="notes"]),
+  body[data-view="open"] [data-view]:not([data-view~="open"]),
+  body[data-view="tasks"] [data-view]:not([data-view~="tasks"]) { display: none !important; }
+
+  /* On phones the notebook comes before the side cards. */
+  @media (max-width: 759px) {
+    body[data-view="notes"] .main-col, body[data-view="open"] .main-col { order: -1; }
+    .layout { display: flex; flex-direction: column; }
+  }
+
+  /* Notebook page */
+  .page { padding: 0; overflow: hidden; }
+  .page-head {
+    display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center;
+    padding: 12px; border-bottom: 2px solid var(--black);
+  }
+  .page-title { text-align: center; min-width: 0; }
+  .page-title h2 { margin: 0; font-size: 20px; text-transform: none; letter-spacing: 0; color: var(--ink); }
+  .page-sub { font-size: 14px; color: var(--gray-700); }
+  .icon-btn { min-width: var(--tap); font-size: 24px; line-height: 1; padding: 6px 12px; }
+  .page-tools {
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    padding: 10px 12px; border-bottom: 1px solid var(--gray-300); background: #FAFAFA;
+  }
+  .page-tools .btn { min-height: 44px; padding: 8px 12px; font-size: 15px; }
+  .btn[aria-pressed="true"] { background: var(--hl); border-color: var(--hl-edge); }
+  .toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; min-height: 44px; }
+  .toggle input { width: 24px; height: 24px; accent-color: var(--red); margin: 0; }
+  .page-lines { padding: 4px 0; }
+  .page-empty { color: var(--gray-500); padding: 16px; font-size: 15px; }
+  .block { padding: 6px 0 2px; border-bottom: 1px dashed var(--gray-300); }
+  .block:last-child { border-bottom: none; }
+  .block-time { font-size: 12px; color: var(--gray-500); padding: 0 12px 0 64px; }
+
+  .line {
+    display: grid; grid-template-columns: auto 1fr auto auto; gap: 4px 8px; align-items: start;
+    padding: 2px 8px 2px 8px;
+  }
+  .line + .line { border-top: 1px solid #F0F0F0; }
+  .lchk {
+    width: 44px; height: 44px; border-radius: 10px;
+    border: 2px solid var(--gray-300); background: var(--white);
+    font-size: 20px; font-weight: 800; line-height: 1; color: transparent;
+  }
+  .line.done .lchk { background: var(--black); border-color: var(--black); color: var(--white); }
+  .ltext {
+    min-width: 0; padding: 10px 6px; border-radius: 6px;
+    white-space: pre-wrap; overflow-wrap: anywhere; cursor: pointer;
+    font-size: 17px; line-height: 1.35;
+  }
+  .line.hl .ltext .words { background: var(--hl); box-shadow: 0 0 0 3px var(--hl); border-radius: 2px; }
+  .line.done .ltext .words { text-decoration: line-through; color: var(--gray-700); }
+  .line.info .ltext .words { color: var(--gray-700); }
+  .line.resolved .ltext .words { color: var(--gray-700); }
+  .flash { animation: flash 1.6s ease; }
+  @keyframes flash { 0%, 60% { box-shadow: 0 0 0 3px var(--red); } 100% { box-shadow: none; } }
+  #confirmBox { z-index: 60; }
+  .lbtn {
+    width: 44px; height: 44px; border-radius: 10px;
+    border: 1.5px solid transparent; background: transparent;
+    font-size: 18px; font-weight: 800; color: var(--gray-700);
+  }
+  .lbtn.hlbtn[aria-pressed="true"] { background: var(--hl); border-color: var(--hl-edge); color: var(--ink); }
+  .lchips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .chip-s {
+    display: inline-block; font-size: 12px; font-weight: 700; line-height: 1.3;
+    border-radius: 6px; padding: 1px 6px; border: 1px solid var(--gray-300); color: var(--gray-700);
+    white-space: nowrap;
+  }
+  .chip-s.k-followup { border-color: var(--red); color: var(--red); }
+  .chip-s.k-appointment { border-color: var(--blue); color: var(--blue); }
+  .chip-s.k-reference { border-color: var(--gray-500); }
+  .chip-s.k-uncertain, .chip-s.warn { border-color: #B26B00; color: #8A5300; background: #FFF6E5; }
+  .chip-s.k-completion { border-color: var(--green); color: var(--green); }
+  .chip-s.task-open { background: var(--red-tint); border-color: var(--red); color: var(--red-dark); }
+  .chip-s.task-done { background: #E9F5EC; border-color: var(--green); color: var(--green); }
+  .chip-s.vis { border-style: dashed; }
+  .line-prompt {
+    grid-column: 2 / -1; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    font-size: 14px; color: var(--red-dark); padding: 0 6px 8px;
+  }
+  .line-prompt .btn { min-height: 40px; padding: 6px 12px; font-size: 14px; }
+
+  .entry { padding: 12px; border-top: 2px solid var(--black); background: #FFFDF5; }
+  .entry textarea { min-height: 88px; background: var(--white); }
+  .entry .btn-row { margin-top: 8px; }
+  .entry-hint { font-size: 13px; color: var(--gray-500); margin: 6px 0 0; }
+
+  .appt-box { margin: 10px 12px 0; padding: 10px 12px; border: 1.5px solid var(--blue); border-radius: 10px; font-size: 15px; }
+  .appt-box h3 { margin: 0 0 4px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--blue); }
+  .appt-box ul { margin: 0; padding-left: 18px; }
+
+  /* Days, search, settings */
+  .day-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 4px; }
+  .day-list button {
+    width: 100%; text-align: left; min-height: 44px; padding: 8px 10px;
+    border-radius: 8px; border: 1.5px solid var(--gray-300); background: var(--white);
+    display: flex; justify-content: space-between; gap: 8px; font-size: 15px;
+  }
+  .day-list button[aria-current="date"] { border-color: var(--black); font-weight: 700; }
+  .day-list .dl-meta { color: var(--gray-700); font-size: 13px; white-space: nowrap; }
+  .day-list .dl-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .seg { display: flex; gap: 6px; flex-wrap: wrap; }
+  .seg button {
+    flex: 1 1 auto; min-height: 44px; padding: 8px 10px; border-radius: 10px;
+    border: 1.5px solid var(--gray-300); background: var(--white); font-weight: 700; font-size: 15px;
+  }
+  .seg button[aria-pressed="true"] { background: var(--black); border-color: var(--black); color: var(--white); }
+  input[type="date"], input[type="time"] {
+    width: 100%; min-height: var(--tap); padding: 8px 10px;
+    border: 1.5px solid var(--gray-300); border-radius: 10px; background: var(--white); font-size: 17px;
+  }
+  details.history summary { cursor: pointer; font-weight: 700; font-size: 14px; min-height: 40px; display: flex; align-items: center; }
+  .history-item { border-top: 1px solid var(--gray-300); padding: 8px 0; font-size: 14px; }
+  .history-item pre {
+    white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace;
+    background: var(--gray-100); padding: 8px; border-radius: 6px; max-height: 220px; overflow: auto; margin: 6px 0;
+  }
+
+  /* Unresolved view */
+  .open-day { margin-bottom: 14px; }
+  .open-day h3 { margin: 0 0 4px; font-size: 15px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .open-day .line { border: 1px solid #EEE; border-radius: 10px; margin-bottom: 6px; }
+
+  /* Line sheet */
+  .sheet { max-width: 560px; max-height: calc(100vh - 32px); overflow-y: auto; border-top-color: var(--black); }
+  .sheet h3 { margin: 0 0 10px; font-size: 18px; }
+  .sheet .field { margin-bottom: 14px; }
+  .sheet-box { border: 1.5px solid var(--gray-300); border-radius: 10px; padding: 10px; margin-bottom: 14px; font-size: 15px; }
+  .sheet-box .btn-row { margin-top: 8px; }
+
+  /* Review (smart import) */
+  .review-images { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .review-images button { padding: 0; border: 1.5px solid var(--gray-300); border-radius: 8px; background: var(--white); overflow: hidden; }
+  .review-images img { display: block; height: 96px; width: auto; max-width: 160px; object-fit: cover; }
+  .review-list { display: grid; gap: 10px; margin-bottom: 14px; align-items: start; }
+  .rv {
+    border: 2px solid var(--gray-300); border-radius: 12px; padding: 10px;
+    display: grid; gap: 8px; min-width: 0; background: var(--white);
+  }
+  .rv.approved { border-color: var(--green); }
+  .rv.pending { border-color: #D98E04; background: #FFFBF2; }
+  .rv.skipped { opacity: 0.6; }
+  .rv-head { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .rv-crop { max-width: 100%; border: 1px solid var(--gray-300); border-radius: 6px; display: block; }
+  .rv-orig { font-size: 14px; color: var(--gray-700); overflow-wrap: anywhere; margin: 0; }
+  .rv-orig q { color: var(--ink); font-weight: 600; }
+  .rv label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--gray-700); min-width: 0; }
+  .rv label input, .rv label select { min-height: 44px; min-width: 0; max-width: 100%; }
+  .rv-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+  .rv label.toggle { display: flex; font-size: 15px; color: var(--ink); }
+  .rv small { color: var(--gray-700); font-size: 13px; }
+  .hl-swatch { display: inline-block; width: 20px; height: 20px; border-radius: 4px; background: var(--hl); border: 2px solid var(--hl-edge); vertical-align: middle; }
+  .rv-match { border: 1.5px solid var(--gray-300); border-radius: 10px; padding: 6px 10px 10px; margin: 0; min-width: 0; }
+  .rv-match legend { font-size: 13px; font-weight: 700; color: var(--gray-700); padding: 0 4px; }
+  .rv-cand { display: grid !important; grid-template-columns: 28px 1fr; gap: 8px !important; align-items: start; padding: 6px 0; font-weight: 400 !important; color: var(--ink) !important; font-size: 15px !important; }
+  .rv-cand input { width: 24px; height: 24px; margin: 2px 0 0; min-height: 0 !important; accent-color: var(--red); }
+  .rv-cand small { display: block; color: var(--gray-700); font-size: 13px; }
+  .conf { font-size: 12px; font-weight: 800; border-radius: 6px; padding: 1px 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .conf.high { background: #E9F5EC; color: var(--green); }
+  .conf.medium { background: #FFF6E5; color: #8A5300; }
+  .conf.low { background: var(--gray-100); color: var(--gray-700); }
+  .rv-notes { margin: 0; padding-left: 18px; font-size: 14px; color: #8A5300; }
+  .rv-notes li { overflow-wrap: anywhere; }
+  .rv-decide { display: flex; gap: 8px; }
+  .rv-decide button { flex: 1; min-height: 44px; border-radius: 10px; border: 1.5px solid var(--gray-300); background: var(--white); font-weight: 700; }
+  .rv-decide button[data-d="approve"][aria-pressed="true"] { background: var(--green); border-color: var(--green); color: var(--white); }
+  .rv-decide button[data-d="skip"][aria-pressed="true"] { background: var(--gray-700); border-color: var(--gray-700); color: var(--white); }
+  .review-bar {
+    position: sticky; bottom: 0; z-index: 5;
+    background: var(--white); border-top: 1px solid var(--gray-300);
+    padding: 10px 0 calc(4px + env(safe-area-inset-bottom));
+  }
+  .review-section-title { font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gray-700); margin: 6px 0 0; }
+  .image-view { max-width: min(96vw, 1100px); }
+  .image-view img { max-width: 100%; height: auto; display: block; border-radius: 6px; }
+  .task-src { font-size: 13px; color: var(--gray-700); margin-top: 2px; overflow-wrap: anywhere; }
+
+  .kbd-only { display: none; }
+
   /* ---------- Keyboard hint (mouse/keyboard devices only) ---------- */
   .shortcuts { display: none; font-size: 13px; color: var(--gray-700); margin-top: 16px; text-align: center; }
   kbd {
@@ -393,6 +566,7 @@
     :root { --tap: 40px; }
     body { font-size: 16px; }
     .shortcuts { display: block; }
+    .kbd-only { display: inline; }
     .check { width: 34px; height: 34px; font-size: 18px; }
     .task { padding: 10px 12px; gap: 10px; }
     .task:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
@@ -415,7 +589,7 @@
   }
 </style>
 </head>
-<body>
+<body data-view="notes">
 
 <header class="app-header">
   <div class="header-inner">
@@ -423,6 +597,11 @@
       <div class="brand-mark" aria-hidden="true">R</div>
       <h1>Repair Advisor Planner</h1>
     </div>
+    <nav class="tabs" aria-label="Views">
+      <button type="button" class="tab" data-tab="notes" aria-pressed="true">Daily notes</button>
+      <button type="button" class="tab" data-tab="open" aria-pressed="false">Unresolved <span class="tab-count" id="openTabCount"></span></button>
+      <button type="button" class="tab" data-tab="tasks" aria-pressed="false">Task board <span class="tab-count" id="taskTabCount"></span></button>
+    </nav>
     <div class="today-date" id="todayLabel"></div>
   </div>
 </header>
@@ -433,7 +612,7 @@
     <!-- ===== Left column: summary, add/edit form, notes, backup ===== -->
     <div class="side">
 
-      <section class="card" aria-labelledby="summaryTitle">
+      <section class="card" aria-labelledby="summaryTitle" data-view="tasks">
         <h2 id="summaryTitle">Daily summary</h2>
         <div class="summary">
           <div class="stat" id="statOpen"><span class="num">0</span><span class="lbl">Open</span></div>
@@ -443,7 +622,7 @@
         </div>
       </section>
 
-      <section class="card" aria-labelledby="formTitle" id="formCard">
+      <section class="card" aria-labelledby="formTitle" id="formCard" data-view="tasks">
         <h2 id="formTitle">Add task</h2>
         <div class="editing-banner" id="editingBanner" hidden>Editing a task. Save or cancel when done.</div>
         <form id="taskForm" novalidate autocomplete="off">
@@ -490,11 +669,40 @@
         </form>
       </section>
 
+      <section class="card" aria-labelledby="daysTitle" data-view="notes open">
+        <h2 id="daysTitle">Days</h2>
+        <div class="field">
+          <label for="dayPicker">Go to date</label>
+          <input type="date" id="dayPicker">
+        </div>
+        <ul class="day-list" id="dayList"></ul>
+        <div class="field">
+          <label for="noteSearch">Find in notes</label>
+          <input type="search" id="noteSearch" placeholder="Folder #, name or word" spellcheck="false">
+        </div>
+        <ul class="day-list" id="noteSearchResults"></ul>
+      </section>
+
+      <section class="card" aria-labelledby="hlTitle" data-view="notes open">
+        <h2 id="hlTitle">Highlighted lines mean</h2>
+        <div class="seg" id="hlMeaning" role="group" aria-label="What a highlight means">
+          <button type="button" data-v="done" aria-pressed="false">Done</button>
+          <button type="button" data-v="important" aria-pressed="false">Important</button>
+          <button type="button" data-v="nothing" aria-pressed="false">Nothing</button>
+        </div>
+        <p class="small" id="hlMeaningHelp" style="margin:8px 0 0"></p>
+      </section>
+
       <section class="card" aria-labelledby="notesTitle" id="notesCard">
-        <h2 id="notesTitle">Add from notes or snippets</h2>
+        <h2 id="notesTitle">Import notes</h2>
+        <p class="small">Screenshots, photos or pasted text. Each line is sorted into follow-ups, appointments and info. You review everything before anything changes.</p>
+        <div class="field">
+          <label for="importDate">These notes are from</label>
+          <input type="date" id="importDate">
+        </div>
         <div class="drop-zone" id="dropZone">
-          <strong>Drop or paste a screenshot or snippet here</strong><br>
-          The text is read on this device and turned into tasks.
+          <strong>Drop or paste a screenshot here</strong><br>
+          Read on this device. Highlights, cross-outs and checkmarks are looked for too.
           <div style="margin-top:8px">
             <button type="button" class="btn" id="chooseImageBtn">Choose image</button>
           </div>
@@ -505,27 +713,35 @@
           <span class="ocr-bar" id="ocrBar"><span></span></span>
         </div>
         <div class="field">
-          <label for="notesInput">Or type or paste text, one task per line</label>
-          <textarea id="notesInput" rows="5" spellcheck="false" placeholder="RO 90452 Rivera&#10;call adjuster re supplement&#10;bumper on backorder&#10;&#10;90470 sublet alignment"></textarea>
+          <label for="notesInput">Or paste text, one note per line</label>
+          <textarea id="notesInput" rows="5" spellcheck="false" placeholder="10452 Jones - check bumper bracket order&#10;Smith called to schedule estimate Thursday at 9:30&#10;10518 - follow up with parts on mirror ETA"></textarea>
         </div>
         <div class="btn-row">
-          <button type="button" class="btn btn-dark" id="readNotesBtn">Read notes</button>
+          <button type="button" class="btn btn-dark" id="readNotesBtn">Read &amp; sort</button>
           <button type="button" class="btn" id="clearNotesBtn">Clear</button>
         </div>
+        <details class="history" id="importHistory">
+          <summary>Import history (<span id="importHistoryCount">0</span>)</summary>
+          <p class="small">The text read from each import. Screenshots themselves are not kept.</p>
+          <div id="importHistoryList"></div>
+        </details>
       </section>
 
       <section class="card" aria-labelledby="backupTitle">
         <h2 id="backupTitle">Backup</h2>
-        <p class="small">Tasks are saved only in this browser on this device. Export a backup file regularly.</p>
+        <p class="small">Notes and tasks are saved only in this browser on this device. Export a backup file regularly.</p>
         <div class="btn-row">
           <button type="button" class="btn btn-dark" id="exportBtn">Export backup</button>
           <button type="button" class="btn" id="importBtn">Import backup</button>
         </div>
+        <p class="small" id="undoRestoreRow" style="margin:10px 0 0" hidden>
+          <button type="button" class="link-btn" id="undoRestoreBtn">Undo last backup import</button>
+        </p>
         <input type="file" id="importFile" accept=".json,application/json" class="visually-hidden" tabindex="-1" aria-hidden="true">
       </section>
 
       <p class="shortcuts">
-        <kbd>N</kbd> new task · <kbd>/</kbd> search · <kbd>Ctrl</kbd>+<kbd>V</kbd> paste snippet · <kbd>Esc</kbd> cancel
+        <kbd>N</kbd> write note / new task · <kbd>/</kbd> search · <kbd>Ctrl</kbd>+<kbd>V</kbd> paste screenshot · <kbd>Esc</kbd> cancel
       </p>
     </div>
 
@@ -533,21 +749,67 @@
     <div class="main-col">
 
       <section class="card review" id="reviewPanel" aria-labelledby="reviewTitle" hidden>
-        <h2 id="reviewTitle">Review before adding</h2>
+        <h2 id="reviewTitle">Review suggestions</h2>
         <p class="small" id="reviewSummary"></p>
+        <div class="review-images" id="reviewImages"></div>
+        <details class="history" id="reviewTextBox">
+          <summary>Text that was read</summary>
+          <div class="history-item"><pre id="reviewText"></pre></div>
+        </details>
         <div class="review-list" id="reviewList"></div>
-        <div class="btn-row">
-          <button type="button" class="btn btn-primary" id="applyNotesBtn">Add tasks</button>
-          <button type="button" class="btn" id="cancelReviewBtn">Cancel</button>
+        <label class="toggle" id="showUnchangedRow" hidden><input type="checkbox" id="showUnchanged"> <span id="showUnchangedText"></span></label>
+        <div class="review-list" id="reviewUnchanged" hidden></div>
+        <div class="review-bar">
+          <div class="btn-row">
+            <button type="button" class="btn" id="approveAllBtn">Approve all suggested</button>
+            <button type="button" class="btn btn-primary" id="applyNotesBtn">Apply</button>
+            <button type="button" class="btn" id="cancelReviewBtn">Cancel</button>
+          </div>
         </div>
       </section>
 
-      <div class="examples-banner" id="examplesBanner" hidden>
+      <section class="card page" id="notesPage" data-view="notes" aria-labelledby="pageTitle">
+        <div class="page-head">
+          <button type="button" class="btn icon-btn" id="prevDayBtn" aria-label="Previous workday">&#8249;</button>
+          <div class="page-title">
+            <h2 id="pageTitle"></h2>
+            <div class="page-sub" id="pageSub"></div>
+          </div>
+          <button type="button" class="btn icon-btn" id="nextDayBtn" aria-label="Next workday">&#8250;</button>
+        </div>
+        <div class="page-tools">
+          <button type="button" class="btn" id="todayBtn">Today</button>
+          <button type="button" class="btn" id="hlModeBtn" aria-pressed="false" title="Tap lines to highlight them"><span class="hl-swatch" aria-hidden="true"></span> Highlighter</button>
+          <label class="toggle"><input type="checkbox" id="hideDone"> Hide done</label>
+          <button type="button" class="btn" id="reviewPageBtn">Suggest tasks</button>
+          <button type="button" class="btn" id="writeBtn">Write</button>
+        </div>
+        <div class="appt-box" id="apptBox" hidden></div>
+        <div class="page-lines" id="pageLines"></div>
+        <div class="entry">
+          <label for="noteEntry" class="visually-hidden">Write a note</label>
+          <textarea id="noteEntry" rows="3" spellcheck="true" autocapitalize="sentences" placeholder="Write a note. Each line can be checked off on its own."></textarea>
+          <div class="btn-row">
+            <button type="button" class="btn btn-primary" id="addNoteBtn">Add to page</button>
+          </div>
+          <p class="entry-hint" id="entryHint">Return starts a new line. <span class="kbd-only">Ctrl+Enter (&#8984;+Enter) adds.</span> Your unsaved text is kept if the page reloads.</p>
+        </div>
+      </section>
+
+      <section class="card" id="openView" data-view="open" aria-labelledby="openTitle">
+        <h2 id="openTitle">Unresolved from earlier days</h2>
+        <p class="small">Lines from before today that aren't checked off, highlighted as done or marked as info. They stay on their own day; nothing is copied to today's page.</p>
+        <div id="openList"></div>
+        <label class="toggle" id="openInfoRow" hidden><input type="checkbox" id="openShowInfo"> <span id="openInfoText"></span></label>
+        <div id="openInfoList" hidden></div>
+      </section>
+
+      <div class="examples-banner" id="examplesBanner" data-view="tasks" hidden>
         <span>Showing fictional <strong>example tasks</strong> for demonstration.</span>
         <button type="button" class="btn btn-danger" id="deleteExamplesBtn">Delete examples</button>
       </div>
 
-      <section class="card filters" aria-label="Filters">
+      <section class="card filters" aria-label="Filters" data-view="tasks">
         <div class="filter-row" id="filterRow">
           <div>
             <label for="search" class="visually-hidden">Find by folder number or customer</label>
@@ -565,7 +827,7 @@
         </div>
       </section>
 
-      <div class="sections">
+      <div class="sections" data-view="tasks">
         <section class="section today" aria-labelledby="todayTitle">
           <div class="section-head"><h2 id="todayTitle">Today</h2><span class="count" id="todayCount">0</span></div>
           <ul class="task-list" id="todayList"></ul>
@@ -600,44 +862,107 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="lineSheet" hidden>
+  <div class="modal sheet" role="dialog" aria-modal="true" aria-labelledby="lsTitle">
+    <h3 id="lsTitle">Note line</h3>
+    <div class="field">
+      <label for="lsText">Text</label>
+      <textarea id="lsText" rows="3" maxlength="1000"></textarea>
+    </div>
+    <p class="small" id="lsMeta"></p>
+    <div class="field">
+      <span class="label" id="lsKindLabel">This line is</span>
+      <div class="seg" id="lsKind" role="group" aria-labelledby="lsKindLabel">
+        <button type="button" data-v="followup" aria-pressed="false">Follow-up</button>
+        <button type="button" data-v="appointment" aria-pressed="false">Appointment</button>
+        <button type="button" data-v="reference" aria-pressed="false">Just info</button>
+        <button type="button" data-v="" aria-pressed="false">Not set</button>
+      </div>
+    </div>
+    <div class="sheet-box" id="lsAppt" hidden>
+      <div class="row-2">
+        <div class="field"><label for="lsApptDate">Appointment date</label><input type="date" id="lsApptDate"></div>
+        <div class="field"><label for="lsApptTime">Time</label><input type="time" id="lsApptTime" step="300"></div>
+      </div>
+      <label class="toggle"><input type="checkbox" id="lsApptOk"> Date and time confirmed</label>
+    </div>
+    <div class="sheet-box" id="lsTask"></div>
+    <div class="btn-row">
+      <button type="button" class="btn btn-danger" id="lsDelete">Delete line</button>
+      <button type="button" class="btn" id="lsCancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="lsSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="imageView" hidden>
+  <div class="modal image-view" role="dialog" aria-modal="true" aria-label="Screenshot">
+    <img id="imageViewImg" alt="Imported screenshot">
+    <div class="btn-row" style="margin-top:12px"><button type="button" class="btn" id="imageViewClose">Close</button></div>
+  </div>
+</div>
+
 <script>
 /* ==============================================================
-   Repair Advisor Planner v1.2
+   Repair Advisor Planner v1.3
    Single-file app. No backend, no accounts, no tracking.
-   All tasks live in this browser's localStorage.
+   Notes and tasks live in this browser's localStorage.
 
    The only outside code is the free text reader (Tesseract.js),
-   loaded from jsDelivr the first time you drop or paste an image.
-   Images are read inside the browser and are never uploaded.
+   loaded from jsDelivr the first time you read an image. Images
+   are read inside the browser and are never uploaded or stored.
 
    Sections in this script:
      1. Constants
      2. Date helpers
-     3. Storage (load / save, examples)
+     3. Storage (tasks, notebook, settings, import log, migration)
      4. Task helpers (validate, sort)
-     5. Rendering
+     5. Rendering (task board)
      6. Actions (add, edit, complete, delete)
-     7. Backup (export / import)
-     8. Smart reader and Add from notes (turn text into tasks)
-     9. Read text from images (snippets, photos)
-    10. Event wiring, keyboard shortcuts and startup
+     7. Backup (export / import / undo)
+     8. Smart reader (folder #, customer, category, shorthand)
+     9. Daily notes (pages, lines, unresolved, line sheet)
+    10. Smart import (classify, match tasks, review, apply)
+    11. Visual marks and reading images (highlighter, cross-outs, checks)
+    12. Event wiring, keyboard shortcuts and startup
    ============================================================== */
 (function () {
   "use strict";
 
   /* ---------- 1. Constants ---------- */
-  var STORAGE_KEY = "repairAdvisorPlanner.tasks.v1";
+  var STORAGE_KEY = "repairAdvisorPlanner.tasks.v1";        // unchanged since v1.0 so older versions still read it
   var ESTIMATOR_KEY = "repairAdvisorPlanner.lastEstimator";
+  var NOTEBOOK_KEY = "repairAdvisorPlanner.notebook.v1";
+  var SETTINGS_KEY = "repairAdvisorPlanner.settings.v1";
+  var IMPORTS_KEY = "repairAdvisorPlanner.imports.v1";
+  var DRAFT_KEY = "repairAdvisorPlanner.noteDraft";
+  var SCHEMA_KEY = "repairAdvisorPlanner.schemaVersion";
+  var PRE_V13_KEY = "repairAdvisorPlanner.tasks.v1.beforeV1_3";  // copy of v1.2 tasks taken once, before migrating
+  var UNDO_RESTORE_KEY = "repairAdvisorPlanner.beforeRestore";    // everything as it was before the last backup import
   var APP_ID = "repair-advisor-planner";
-  var DATA_VERSION = 2;
+  var SCHEMA_VERSION = 3;   // storage layout: 1-2 = tasks only, 3 = tasks + notebook + settings + import log
+  var DATA_VERSION = 3;     // backup file format (v1.0 = 1, v1.1-1.2 = 2, v1.3 = 3)
   var CATEGORIES = ["Parts", "Supplements", "Sublet", "Customer", "Scheduling", "Delivery", "Other"];
+  var KINDS = ["followup", "appointment", "reference"];   // a note line's type ("" = not set)
+  var KIND_LABEL = { followup: "Follow-up", appointment: "Appointment", reference: "Info", uncertain: "Unsure", completion: "Looks done", "": "Not set" };
+  var HL_MEANINGS = ["done", "important", "nothing"];
   var STALE_DAYS = 3;          // open this many days or more = highlighted red
-  var MAX_NOTE_LINES = 50;
+  var MAX_NOTE_LINES = 50;     // per paste in the old task reader
+  var MAX_IMPORT_LINES = 150;  // per import review
+  var MAX_IMPORT_LOG = 40;
+  var MAX_LINE_LEN = 1000;
 
-  // Text reader, loaded only when an image is dropped or pasted.
+  // Text reader, loaded only when an image is read. Versions are pinned.
   var OCR_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+  var OCR_SCRIPT_SRI = "sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F";
+  var OCR_PATHS = {
+    workerPath: "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",
+    corePath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1",
+    langPath: "https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int"
+  };
   var OCR_LANGUAGE = "eng";
   var MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+  var OCR_LOW_CONFIDENCE = 75;  // lines read below this are flagged "check the text"
 
   // Words that point a note to a category ("Add from notes").
   // The category with the most matching words wins; ties go to the one
@@ -716,6 +1041,7 @@
       return exampleTasks();
     }
     if (raw === null) {
+      if (storageGet(SCHEMA_KEY) !== null) return [];  // examples were deleted with everything else
       tasks = exampleTasks();  // first run
       saveTasks();
       return tasks;
@@ -750,6 +1076,167 @@
     try { localStorage.setItem(ESTIMATOR_KEY, name); } catch (e) { /* not critical */ }
   }
 
+  function storageGet(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+  function storageSet(key, value) {
+    try { localStorage.setItem(key, value); return true; } catch (e) { return false; }
+  }
+
+  /* Notebook: one page per day, each a list of lines in the order written.
+       { version: 1, days: { "2026-11-02": { lines: [ line, ... ] } } }
+     A line:
+       id, text, at (when written), block (lines written together share it),
+       done / doneAt (checked off), hl (highlighted),
+       kind ("followup" | "appointment" | "reference" | "" = not set),
+       taskId (linked task on the board, if any),
+       appt { date, time, confirmed } (appointment details, if known),
+       src ("typed" | "text" | "image"), importId,
+       vis [ { mark: "highlight"|"strike"|"check", level: "likely"|"possible" } ]
+           (what was seen in a screenshot -- kept apart from done/hl),
+       orig (the original wording, kept if the text is ever edited),
+       editedAt. */
+  var notebook = { version: 1, days: {} };
+  var settings = { highlightMeans: "done", hideDone: false, view: "notes" };
+  var importLog = [];
+
+  var DATE_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
+  var TIME_RE_HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+  function isDateKey(k) { return typeof k === "string" && DATE_KEY_RE.test(k) && !isNaN(parseDateKey(k).getTime()); }
+
+  function normalizeVis(v) {
+    if (!Array.isArray(v)) return [];
+    return v.filter(function (m) {
+      return m && ["highlight", "strike", "check"].indexOf(m.mark) !== -1 && ["likely", "possible"].indexOf(m.level) !== -1;
+    }).slice(0, 3).map(function (m) { return { mark: m.mark, level: m.level }; });
+  }
+
+  function normalizeAppt(a) {
+    if (!a || typeof a !== "object") return null;
+    return {
+      date: isDateKey(a.date) ? a.date : "",
+      time: typeof a.time === "string" && TIME_RE_HHMM.test(a.time) ? a.time : "",
+      confirmed: a.confirmed === true
+    };
+  }
+
+  function normalizeLine(l) {
+    if (!l || typeof l !== "object") return null;
+    var text = typeof l.text === "string" ? l.text.replace(/\r\n?/g, "\n").trim().slice(0, MAX_LINE_LEN) : "";
+    if (!text) return null;
+    var done = l.done === true;
+    return {
+      id: typeof l.id === "string" && l.id ? l.id.slice(0, 40) : makeId(),
+      text: text,
+      at: isValidIso(l.at) ? l.at : new Date().toISOString(),
+      block: typeof l.block === "string" ? l.block.slice(0, 40) : "",
+      done: done,
+      doneAt: done ? (isValidIso(l.doneAt) ? l.doneAt : new Date().toISOString()) : null,
+      hl: l.hl === true,
+      kind: KINDS.indexOf(l.kind) !== -1 ? l.kind : "",
+      taskId: typeof l.taskId === "string" ? l.taskId.slice(0, 40) : "",
+      appt: normalizeAppt(l.appt),
+      src: ["typed", "text", "image"].indexOf(l.src) !== -1 ? l.src : "typed",
+      importId: typeof l.importId === "string" ? l.importId.slice(0, 40) : "",
+      vis: normalizeVis(l.vis),
+      orig: typeof l.orig === "string" ? l.orig.slice(0, MAX_LINE_LEN) : "",
+      editedAt: isValidIso(l.editedAt) ? l.editedAt : null
+    };
+  }
+
+  // Validates a whole notebook. Returns { notebook } or { error }.
+  function normalizeNotebook(nb) {
+    if (!nb || typeof nb !== "object" || Array.isArray(nb) || !nb.days || typeof nb.days !== "object" || Array.isArray(nb.days)) {
+      return { error: "No notebook found." };
+    }
+    var out = { version: 1, days: {} }, seen = {};
+    var keys = Object.keys(nb.days);
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i], day = nb.days[k];
+      if (!isDateKey(k)) return { error: "Notebook has a page with a bad date (" + String(k).slice(0, 20) + ")." };
+      if (!day || !Array.isArray(day.lines)) return { error: "Notebook page " + k + " is damaged." };
+      var lines = [];
+      for (var j = 0; j < day.lines.length; j++) {
+        var line = normalizeLine(day.lines[j]);
+        if (!line) return { error: "Notebook page " + k + ", line " + (j + 1) + " is empty or damaged." };
+        if (seen[line.id]) line.id = makeId();
+        seen[line.id] = true;
+        lines.push(line);
+      }
+      if (lines.length) out.days[k] = { lines: lines };
+    }
+    return { notebook: out };
+  }
+
+  function normalizeSettings(x) {
+    x = x && typeof x === "object" ? x : {};
+    return {
+      highlightMeans: HL_MEANINGS.indexOf(x.highlightMeans) !== -1 ? x.highlightMeans : "done",
+      hideDone: x.hideDone === true,
+      view: ["notes", "open", "tasks"].indexOf(x.view) !== -1 ? x.view : "notes"
+    };
+  }
+
+  function normalizeImportLog(arr) {
+    if (!Array.isArray(arr)) return [];
+    return arr.filter(function (e) { return e && typeof e === "object" && typeof e.text === "string"; }).map(function (e) {
+      return {
+        id: typeof e.id === "string" ? e.id.slice(0, 40) : makeId(),
+        at: isValidIso(e.at) ? e.at : new Date().toISOString(),
+        date: isDateKey(e.date) ? e.date : "",
+        src: e.src === "image" ? "image" : "text",
+        name: typeof e.name === "string" ? e.name.slice(0, 120) : "",
+        text: e.text.slice(0, 20000),
+        lines: typeof e.lines === "number" && e.lines >= 0 ? Math.floor(e.lines) : 0
+      };
+    }).slice(0, MAX_IMPORT_LOG);
+  }
+
+  function loadNotebook() {
+    var raw = storageGet(NOTEBOOK_KEY);
+    if (raw === null) return { version: 1, days: {} };
+    try {
+      var r = normalizeNotebook(JSON.parse(raw));
+      if (r.error) throw new Error(r.error);
+      return r.notebook;
+    } catch (e) {
+      storageSet(NOTEBOOK_KEY + ".corrupt." + Date.now(), raw);
+      showToast("Saved notes couldn't be read. Starting fresh; a copy was kept.", true);
+      return { version: 1, days: {} };
+    }
+  }
+
+  function saveNotebook() {
+    // Drop empty pages so storage stays small.
+    Object.keys(notebook.days).forEach(function (k) { if (!notebook.days[k].lines.length) delete notebook.days[k]; });
+    if (storageSet(NOTEBOOK_KEY, JSON.stringify(notebook))) return true;
+    showToast("Couldn't save notes. Storage may be full or blocked (Private Browsing?).", true);
+    return false;
+  }
+
+  function loadSettings() {
+    try { return normalizeSettings(JSON.parse(storageGet(SETTINGS_KEY) || "{}")); } catch (e) { return normalizeSettings({}); }
+  }
+  function saveSettings() { storageSet(SETTINGS_KEY, JSON.stringify(settings)); }
+
+  function loadImportLog() {
+    try { return normalizeImportLog(JSON.parse(storageGet(IMPORTS_KEY) || "[]")); } catch (e) { return []; }
+  }
+  function saveImportLog() { storageSet(IMPORTS_KEY, JSON.stringify(importLog)); }
+
+  /* Migration. v1.0-v1.2 stored only the task list (same key, same shape),
+     so tasks need no conversion. The first time v1.3 runs, a copy of the
+     task list is kept under PRE_V13_KEY, the empty notebook is created and
+     the storage version is recorded. Nothing is deleted. */
+  function migrateStorage() {
+    var from = Number(storageGet(SCHEMA_KEY)) || 0;
+    if (from >= SCHEMA_VERSION) return from;
+    var oldTasks = storageGet(STORAGE_KEY);
+    if (oldTasks !== null && storageGet(PRE_V13_KEY) === null) storageSet(PRE_V13_KEY, oldTasks);
+    if (storageGet(NOTEBOOK_KEY) === null) storageSet(NOTEBOOK_KEY, JSON.stringify({ version: 1, days: {} }));
+    storageSet(SCHEMA_KEY, String(SCHEMA_VERSION));
+    return from;
+  }
+
   /* ---------- 4. Task helpers ---------- */
 
   function cleanText(v, max) { return typeof v === "string" ? v.trim().slice(0, max) : ""; }
@@ -772,7 +1259,12 @@
       createdAt: isValidIso(t.createdAt) ? t.createdAt : new Date().toISOString(),
       done: done,
       completedAt: done ? (isValidIso(t.completedAt) ? t.completedAt : new Date().toISOString()) : null,
-      example: t.example === true
+      example: t.example === true,
+      // v1.3: where a task came from in the daily notes, and a short history.
+      noteRef: t.noteRef && isDateKey(t.noteRef.date) && typeof t.noteRef.lineId === "string"
+        ? { date: t.noteRef.date, lineId: t.noteRef.lineId.slice(0, 40) } : null,
+      log: Array.isArray(t.log) ? t.log.filter(function (e) { return e && isValidIso(e.at) && typeof e.text === "string"; })
+        .slice(-20).map(function (e) { return { at: e.at, text: e.text.slice(0, 400) }; }) : []
     };
   }
 
@@ -827,7 +1319,21 @@
     return true;
   }
 
+  // Draws everything: task board, notes page, unresolved list and side cards.
   function render() {
+    renderBoard();
+    renderNotesPage();
+    renderOpenView();
+    renderDayList();
+    renderNoteSearch();
+    renderHlMeaning();
+    renderImportHistory();
+    $("taskTabCount").textContent = "(" + tasks.filter(function (t) { return !t.done; }).length + " open)";
+    $("undoRestoreRow").hidden = storageGet(UNDO_RESTORE_KEY) === null;
+  }
+  var renderAll = render;
+
+  function renderBoard() {
     var today = todayKey();
     $("todayLabel").textContent = formatLongDate(today);
     if (!editingId) $("dateLineValue").textContent = formatLongDate(today);
@@ -911,6 +1417,10 @@
 
     var dateText = "Added " + esc(formatDate(addedKey(t)));
     if (t.done) dateText += " · Completed " + esc(formatDate(toDateKey(new Date(t.completedAt))));
+    var srcHtml = "";
+    if (t.noteRef) srcHtml += '<div class="task-src">From daily notes, ' + esc(formatDate(t.noteRef.date)) + "</div>";
+    var lastLog = t.log && t.log.length ? t.log[t.log.length - 1] : null;
+    if (lastLog) srcHtml += '<div class="task-src">' + esc(lastLog.text) + "</div>";
 
     var id = esc(t.id);
     var actions = t.done
@@ -924,7 +1434,7 @@
         whoHtml +
         '<p class="desc">' + esc(t.desc) + "</p>" +
         '<div class="meta-top">' + badges + "</div>" +
-        '<div class="meta-bottom">' + dateText + "</div>" +
+        '<div class="meta-bottom">' + dateText + "</div>" + srcHtml +
         '<div class="task-actions">' + actions + "</div>" +
       "</div>" +
     "</li>";
@@ -1112,11 +1622,28 @@
     });
   }
 
-  /* ---------- 7. Backup ---------- */
+  /* ---------- 7. Backup ----------
+     v1.3 backups hold tasks, daily notes, settings and the import log.
+     Older backups (v1.0-v1.2: tasks only, or a bare task list) still import;
+     they replace the tasks and leave the daily notes alone. Before any
+     import replaces data, everything is copied to UNDO_RESTORE_KEY so the
+     last import can be undone. */
+  function backupData() {
+    return {
+      app: APP_ID, version: DATA_VERSION, exportedAt: new Date().toISOString(),
+      tasks: tasks, notebook: notebook, settings: settings, imports: importLog
+    };
+  }
+
+  function countLines(nb) {
+    var n = 0;
+    Object.keys(nb.days).forEach(function (k) { n += nb.days[k].lines.length; });
+    return n;
+  }
+
   function exportBackup() {
     try {
-      var data = { app: APP_ID, version: DATA_VERSION, exportedAt: new Date().toISOString(), tasks: tasks };
-      var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      var blob = new Blob([JSON.stringify(backupData(), null, 2)], { type: "application/json" });
       var url = URL.createObjectURL(blob);
       var a = document.createElement("a");
       a.href = url;
@@ -1125,52 +1652,108 @@
       a.click();
       document.body.removeChild(a);
       setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-      showToast("Backup exported (" + tasks.length + " tasks)");
+      showToast("Backup exported (" + tasks.length + " tasks, " + countLines(notebook) + " note lines)");
     } catch (e) {
       showToast("Export failed: " + e.message, true);
     }
   }
 
+  // Checks a parsed backup file. Returns { tasks, notebook|null, settings|null, imports|null, legacy } or { error }.
+  function parseBackup(parsed) {
+    if (parsed && !Array.isArray(parsed) && typeof parsed === "object" && parsed.app && parsed.app !== APP_ID) {
+      return { error: "That backup is from a different app." };
+    }
+    var legacy = Array.isArray(parsed) || !parsed || !parsed.notebook;
+    var taskResult = validateTaskArray(Array.isArray(parsed) ? parsed : (parsed && parsed.tasks));
+    if (taskResult.error) return { error: taskResult.error };
+    if (legacy) return { tasks: taskResult.tasks, notebook: null, settings: null, imports: null, legacy: true };
+    if (typeof parsed.version === "number" && parsed.version > DATA_VERSION) {
+      return { error: "That backup is from a newer version of the planner." };
+    }
+    var nb = normalizeNotebook(parsed.notebook);
+    if (nb.error) return { error: nb.error };
+    return {
+      tasks: taskResult.tasks, notebook: nb.notebook,
+      settings: parsed.settings ? normalizeSettings(parsed.settings) : null,
+      imports: normalizeImportLog(parsed.imports), legacy: false
+    };
+  }
+
   function importBackup(file) {
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { showToast("That file is too large to be a backup.", true); return; }
+    if (file.size > 20 * 1024 * 1024) { showToast("That file is too large to be a backup.", true); return; }
     var reader = new FileReader();
     reader.onerror = function () { showToast("Couldn't read that file.", true); };
     reader.onload = function () {
       var parsed;
       try { parsed = JSON.parse(reader.result); }
       catch (e) { showToast("That file isn't valid JSON.", true); return; }
+      var b = parseBackup(parsed);
+      if (b.error) { showToast("Import cancelled. " + b.error, true); return; }
 
-      if (parsed && !Array.isArray(parsed) && parsed.app && parsed.app !== APP_ID) {
-        showToast("That backup is from a different app.", true);
-        return;
-      }
-      // Accept the export format, or a bare array of tasks.
-      var result = validateTaskArray(Array.isArray(parsed) ? parsed : (parsed && parsed.tasks));
-      if (result.error) { showToast("Import cancelled. " + result.error, true); return; }
-
-      var msg = "Replace your current " + tasks.length + " task" + (tasks.length === 1 ? "" : "s") +
-        " with " + result.tasks.length + " task" + (result.tasks.length === 1 ? "" : "s") +
-        " from this backup?\n\nThis cannot be undone. Export a backup first if unsure.";
-      askConfirm(msg, "Replace tasks", function () {
-        tasks = result.tasks;
+      var plural = function (n, w) { return n + " " + w + (n === 1 ? "" : "s"); };
+      var msg = b.legacy
+        ? "This is an older backup with tasks only.\n\nReplace your current " + plural(tasks.length, "task") + " with " +
+          plural(b.tasks.length, "task") + " from it? Your daily notes are kept as they are."
+        : "Replace your current " + plural(tasks.length, "task") + " and " + plural(countLines(notebook), "note line") +
+          " with " + plural(b.tasks.length, "task") + " and " + plural(countLines(b.notebook), "note line") + " from this backup?";
+      msg += "\n\nYou can undo this once with \u201cUndo last backup import\u201d.";
+      askConfirm(msg, "Replace", function () {
+        var before = JSON.stringify(backupData());
+        if (!storageSet(UNDO_RESTORE_KEY, before)) {
+          showToast("Not enough storage to keep an undo copy. Export a backup first, then try again.", true);
+          return;
+        }
+        tasks = b.tasks;
+        if (!b.legacy) {
+          notebook = b.notebook;
+          if (b.settings) settings = b.settings;
+          importLog = b.imports || [];
+        }
+        commitAll();
         resetForm();
-        saveTasks();
-        render();
-        showToast("Imported " + tasks.length + " tasks");
+        renderAll();
+        showToast("Imported " + plural(tasks.length, "task") + (b.legacy ? "" : " and " + plural(countLines(notebook), "note line")));
       });
     };
     reader.readAsText(file);
   }
 
-  /* ---------- 8. Add from notes ----------
-     The "smart reader". Everything runs on this device.
+  function undoRestore() {
+    var raw = storageGet(UNDO_RESTORE_KEY);
+    if (!raw) return;
+    var b;
+    try { b = parseBackup(JSON.parse(raw)); } catch (e) { b = { error: "The undo copy is damaged." }; }
+    if (b.error) { showToast(b.error, true); return; }
+    askConfirm("Put back the notes and tasks you had before the last backup import?", "Undo import", function () {
+      tasks = b.tasks;
+      notebook = b.notebook || notebook;
+      if (b.settings) settings = b.settings;
+      importLog = b.imports || [];
+      commitAll();
+      try { localStorage.removeItem(UNDO_RESTORE_KEY); } catch (e) { /* ignore */ }
+      resetForm();
+      renderAll();
+      showToast("Last backup import undone");
+    });
+  }
+
+  function commitAll() {
+    var ok = saveTasks();
+    ok = saveNotebook() && ok;
+    saveSettings();
+    saveImportLog();
+    return ok;
+  }
+
+  /* ---------- 8. Smart reader ----------
+     Everything runs on this device.
      analyzeLine() looks at one line of text and works out the folder #,
      customer last name, category and estimator, and rewrites shop
      shorthand into a clean task. It is used by the notes/snippet review
      and by the Add task form (filling empty boxes as you type).
-     A line that matches an open task (same category and same folder #,
-     or same customer when there's no folder #) is offered as an update. */
+     parseNotes()/findMatch() are the v1.2 notes-to-tasks reader, kept for
+     reference and tests; v1.3 imports go through section 10. */
 
   var PHONE_RE = /\(?\b\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}\b|\b\d{3}[-.]\d{4}\b/g;
   var DATE_RE = /\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g;
@@ -1394,6 +1977,17 @@
 
     desc = cleanDescription(desc);
 
+    // "10452 Jones - check bumper bracket order": a name, a dash, then the note.
+    if (!out.customer) {
+      var dash = desc.match(/^([A-Za-z][A-Za-z'.-]+(?:\s+[A-Za-z][A-Za-z'.-]+)?)\s*[-\u2013\u2014:]\s+(\S.*)$/);
+      if (dash && (f || /^[A-Z]/.test(dash[1])) && dash[1].split(/\s+/).every(isNameWord) && !findKnown(dash[1], ctx.knownEstimators)) {
+        var knownD = findKnown(dash[1], ctx.knownCustomers);
+        out.customer = knownD || titleCase(dash[1]);
+        out.customerSource = knownD ? "known" : (f ? "header" : "guess");
+        desc = cleanDescription(dash[2]);
+      }
+    }
+
     // Header line: just a folder # and/or a name, e.g. "RO 90452 RIVERA" or "90452 - Ann Lee".
     var leftover = desc.split(/[\s,]+/).filter(Boolean);
     var nameWords = leftover.filter(isNameWord);
@@ -1532,151 +2126,1508 @@
     $("autofillNote").hidden = true;
   }
 
-  var proposals = [];
 
-  function readNotes() {
-    var text = $("notesInput").value;
-    if (!text.trim()) { showToast("Paste some notes first.", true); $("notesInput").focus(); return; }
-    var result = parseNotes(text, tasks, readerContext(), (editingId ? "" : $("fEstimator").value.trim()) || loadLastEstimator());
-    proposals = result.proposals;
-    if (!proposals.length) { showToast("No tasks found. Put each task on its own line.", true); return; }
+  /* ---------- 9. Daily notes ----------
+     One page per day. Lines keep the wording and order they were written in.
+     Pages appear automatically: today's page is always there; earlier pages
+     exist once something is written on them. Nothing is ever copied from
+     one day to the next -- unfinished lines show up in "Unresolved". */
+  var viewDate = todayKey();   // the page being shown
+  var hlMode = false;          // highlighter mode: tapping a line highlights it
+  var sheetLineId = null;      // line open in the line sheet
+  var sheetKind = "";
+  var kindCache = {};          // guessed type per line text (for the Unresolved view)
+  var VIS_LABEL = { highlight: "Screenshot: highlighted", strike: "Screenshot: crossed out", check: "Screenshot: checked" };
 
-    var matches = proposals.filter(function (p) { return p.matchId; }).length;
-    var dupes = proposals.filter(function (p) { return p.duplicate; }).length;
-    var summary = "Found " + proposals.length + " task" + (proposals.length === 1 ? "" : "s") + ".";
-    if (matches) summary += " " + matches + (matches === 1 ? " matches an open task and will update it" : " match open tasks and will update them") + " unless you change the action.";
-    if (dupes) summary += " " + dupes + " already on your list (unchecked).";
-    if (result.skipped) summary += " Only the first " + MAX_NOTE_LINES + " lines were read.";
-    summary += " Check the details, then add.";
-    $("reviewSummary").textContent = summary;
+  function dayLines(key) { var d = notebook.days[key]; return d ? d.lines : []; }
 
+  function ensureDay(key) {
+    if (!notebook.days[key]) notebook.days[key] = { lines: [] };
+    return notebook.days[key].lines;
+  }
+
+  function findLine(id) {
+    if (!id) return null;
+    var keys = Object.keys(notebook.days);
+    for (var i = 0; i < keys.length; i++) {
+      var lines = notebook.days[keys[i]].lines;
+      for (var j = 0; j < lines.length; j++) if (lines[j].id === id) return { line: lines[j], date: keys[i], index: j };
+    }
+    return null;
+  }
+
+  function newLine(text, block, src, importId) {
+    return normalizeLine({ id: makeId(), text: text, at: new Date().toISOString(), block: block || makeId(), src: src || "typed", importId: importId || "" });
+  }
+
+  function linkedTask(line) { return line && line.taskId ? findTask(line.taskId) : null; }
+
+  function addLog(t, text) {
+    t.log = (t.log || []).concat([{ at: new Date().toISOString(), text: String(text).slice(0, 400) }]).slice(-20);
+  }
+
+  // "done": handled. "open": may still need something. "info": appointment or info.
+  function lineStatus(line) {
+    var t = linkedTask(line);
+    if (line.done) return "done";
+    if (line.hl && settings.highlightMeans === "done") return "done";
+    if (t && t.done) return "done";
+    if (t) return "open";
+    if (line.kind === "reference" || line.kind === "appointment") return "info";
+    return "open";
+  }
+
+  function guessKind(line) {
+    if (line.kind) return line.kind;
+    if (!(line.text in kindCache)) kindCache[line.text] = classifyText(line.text).kind;
+    return kindCache[line.text];
+  }
+
+  function isWorkday(key) { var d = parseDateKey(key).getDay(); return d >= 1 && d <= 5; }
+
+  // Previous / next page: workdays, plus any day that has notes. Never past today.
+  function stepDay(key, dir) {
+    var k = key, today = todayKey();
+    for (var i = 0; i < 31; i++) {
+      k = addDays(k, dir);
+      if (dir > 0 && k > today && viewDate <= today) return null;   // "next" stops at today unless already ahead
+      if (isWorkday(k) || dayLines(k).length || k === today) return k;
+    }
+    return null;
+  }
+
+  function goToDay(key, lineId) {
+    if (!isDateKey(key)) return;
+    viewDate = key;
+    if (!review) $("importDate").value = key;
+    setView("notes");
+    if (lineId) {
+      var el = document.querySelector('#pageLines .line[data-id="' + cssEsc(lineId) + '"]');
+      if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("flash"); setTimeout(function () { el.classList.remove("flash"); }, 1600); }
+    } else {
+      $("notesPage").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  function cssEsc(s) { return String(s).replace(/["\\]/g, "\\$&"); }
+
+  function timeLabel(iso) { return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
+
+  function formatTime12(hhmm) {
+    if (!hhmm) return "";
+    var h = Number(hhmm.slice(0, 2));
+    return ((h % 12) || 12) + ":" + hhmm.slice(3) + " " + (h < 12 ? "AM" : "PM");
+  }
+
+  function apptText(a) {
+    if (!a || (!a.date && !a.time)) return "";
+    var parts = [];
+    if (a.date) parts.push(formatDate(a.date));
+    if (a.time) parts.push(formatTime12(a.time));
+    return parts.join(" ") + (a.confirmed ? "" : " ?");
+  }
+
+  function lineChips(line, opts) {
+    var chips = [];
+    if (opts && opts.day) chips.push('<span class="chip-s">' + esc(formatDate(opts.day)) + "</span>");
+    if (line.kind) chips.push('<span class="chip-s k-' + line.kind + '">' + KIND_LABEL[line.kind] + "</span>");
+    if (line.appt && (line.appt.date || line.appt.time)) {
+      chips.push('<span class="chip-s k-appointment" title="' + (line.appt.confirmed ? "Confirmed" : "Not confirmed yet") + '">' + esc(apptText(line.appt)) + "</span>");
+    }
+    var t = linkedTask(line);
+    if (t) chips.push('<span class="chip-s ' + (t.done ? "task-done" : "task-open") + '">' + (t.done ? "Task done" : "Task open") + "</span>");
+    line.vis.forEach(function (v) {
+      chips.push('<span class="chip-s vis" title="Seen in an imported screenshot">' + VIS_LABEL[v.mark] + (v.level === "possible" ? "?" : "") + "</span>");
+    });
+    if (line.editedAt) chips.push('<span class="chip-s" title="Original wording is kept">Edited</span>');
+    return chips.length ? '<span class="lchips">' + chips.join("") + "</span>" : "";
+  }
+
+  function lineHtml(line, opts) {
+    var st = lineStatus(line), t = linkedTask(line), id = esc(line.id);
+    var cls = ["line"];
+    if (line.done) cls.push("done"); else if (st === "done") cls.push("resolved");
+    if (line.hl) cls.push("hl");
+    if (st === "info") cls.push("info");
+    var extra = "";
+    if (line.done && t && !t.done) {
+      extra = '<div class="line-prompt">The linked task is still open on the board. <button type="button" class="btn" data-act="taskdone" data-id="' + id + '">Mark task done too</button></div>';
+    } else if (opts && opts.infoBtn) {
+      extra = '<div class="line-prompt"><button type="button" class="btn" data-act="info" data-id="' + id + '">Just info</button>' +
+        '<button type="button" class="btn" data-act="goto" data-id="' + id + '">Open day</button></div>';
+    }
+    var short = esc(line.text.slice(0, 80));
+    return '<div class="' + cls.join(" ") + '" data-id="' + id + '">' +
+      '<button type="button" class="lchk" data-act="done" data-id="' + id + '" aria-pressed="' + line.done + '" aria-label="' + (line.done ? "Uncheck: " : "Check off: ") + short + '">&#10003;</button>' +
+      '<div class="ltext" data-act="text" data-id="' + id + '" role="button" tabindex="0" aria-label="' + (hlMode ? "Highlight: " : "Open: ") + short + '"><span class="words">' + esc(line.text) + "</span>" + lineChips(line, opts) + "</div>" +
+      '<button type="button" class="lbtn hlbtn" data-act="hl" data-id="' + id + '" aria-pressed="' + line.hl + '" aria-label="Highlight: ' + short + '" title="Highlight"><span class="hl-swatch" aria-hidden="true"></span></button>' +
+      '<button type="button" class="lbtn" data-act="more" data-id="' + id + '" aria-label="More for: ' + short + '" title="More">&#8943;</button>' +
+      extra + "</div>";
+  }
+
+  function relativeDay(key) {
+    var today = todayKey(), n = daysBetween(key, today);
+    if (n === 0) return "Today";
+    if (n === 1) return "Yesterday";
+    if (n > 1) return n + " days ago";
+    if (n === -1) return "Tomorrow";
+    return "Upcoming";
+  }
+
+  function renderNotesPage() {
+    var today = todayKey();
+    var lines = dayLines(viewDate);
+    $("pageTitle").textContent = parseDateKey(viewDate).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: parseDateKey(viewDate).getFullYear() === new Date().getFullYear() ? undefined : "numeric" });
+    var open = lines.filter(function (l) { return lineStatus(l) === "open"; }).length;
+    var sub = [relativeDay(viewDate)];
+    if (!isWorkday(viewDate)) sub.push("Weekend");
+    sub.push(lines.length + (lines.length === 1 ? " line" : " lines"));
+    if (lines.length) sub.push(open + " open");
+    $("pageSub").textContent = sub.filter(Boolean).join(" · ");
+    $("nextDayBtn").disabled = !stepDay(viewDate, 1);
+    $("todayBtn").disabled = viewDate === today;
+    $("hideDone").checked = settings.hideDone;
+    $("hlModeBtn").setAttribute("aria-pressed", String(hlMode));
+    $("addNoteBtn").textContent = viewDate === today ? "Add to page" : "Add to " + formatDate(viewDate) + "'s page";
+
+    var shown = settings.hideDone ? lines.filter(function (l) { return lineStatus(l) !== "done"; }) : lines;
+    var html = "";
+    if (!lines.length) {
+      html = '<p class="page-empty">' + (viewDate === today ? "Nothing written today yet. Write below, or import a screenshot of your notes." : "No notes on this day.") + "</p>";
+    } else {
+      var block = null;
+      shown.forEach(function (l) {
+        if (l.block !== block) {
+          if (block !== null) html += "</div>";
+          block = l.block;
+          var src = l.src === "image" ? " · from screenshot" : l.src === "text" ? " · pasted" : "";
+          html += '<div class="block"><div class="block-time">' + esc(timeLabel(l.at)) + src + "</div>";
+        }
+        html += lineHtml(l);
+      });
+      if (block !== null) html += "</div>";
+      var hidden = lines.length - shown.length;
+      if (hidden) html += '<p class="page-empty">' + hidden + (hidden === 1 ? " done line is" : " done lines are") + ' hidden. <button type="button" class="link-btn" id="showDoneBtn">Show</button></p>';
+    }
+    $("pageLines").innerHTML = html;
+    renderApptBox();
+  }
+
+  function renderApptBox() {
+    var list = [];
+    Object.keys(notebook.days).forEach(function (k) {
+      notebook.days[k].lines.forEach(function (l) {
+        if (l.kind === "appointment" && l.appt && l.appt.date === viewDate) list.push({ line: l, noted: k });
+      });
+    });
+    var box = $("apptBox");
+    if (!list.length) { box.hidden = true; box.innerHTML = ""; return; }
+    list.sort(function (a, b) { return (a.line.appt.time || "99").localeCompare(b.line.appt.time || "99"); });
+    box.innerHTML = "<h3>Appointments noted for this day</h3><ul>" + list.map(function (x) {
+      var a = x.line.appt;
+      return "<li>" + (a.time ? "<strong>" + esc(formatTime12(a.time)) + "</strong> " : "") + esc(x.line.text) +
+        (a.confirmed ? "" : " <em>(not confirmed)</em>") + (x.noted !== viewDate ? " · noted " + esc(formatDate(x.noted)) : "") + "</li>";
+    }).join("") + "</ul>";
+    box.hidden = false;
+  }
+
+  function unresolvedLines() {
+    var today = todayKey(), act = [], info = [];
+    Object.keys(notebook.days).sort().forEach(function (k) {
+      if (k >= today) return;
+      notebook.days[k].lines.forEach(function (l) {
+        if (lineStatus(l) !== "open") return;
+        var g = guessKind(l);
+        (l.kind === "followup" || linkedTask(l) || (g !== "reference" && g !== "appointment") ? act : info).push({ line: l, date: k });
+      });
+    });
+    return { act: act, info: info };
+  }
+
+  function groupHtml(items) {
+    var byDay = {}, order = [];
+    items.forEach(function (x) { if (!byDay[x.date]) { byDay[x.date] = []; order.push(x.date); } byDay[x.date].push(x.line); });
+    return order.map(function (k) {
+      return '<div class="open-day"><h3><span>' + esc(formatDate(k)) + ' <span class="chip-s">' + byDay[k].length + "</span></span>" +
+        '<button type="button" class="link-btn" data-day="' + esc(k) + '">Open day</button></h3>' +
+        byDay[k].map(function (l) { return lineHtml(l, { infoBtn: true }); }).join("") + "</div>";
+    }).join("");
+  }
+
+  function renderOpenView() {
+    var u = unresolvedLines();
+    $("openList").innerHTML = u.act.length ? groupHtml(u.act) : '<p class="empty">Nothing unresolved from earlier days.</p>';
+    $("openInfoRow").hidden = !u.info.length;
+    $("openInfoText").textContent = "Also show " + u.info.length + (u.info.length === 1 ? " line that looks" : " lines that look") + " like info or appointments";
+    $("openInfoList").hidden = !$("openShowInfo").checked || !u.info.length;
+    $("openInfoList").innerHTML = $("openShowInfo").checked ? groupHtml(u.info) : "";
+    $("openTabCount").textContent = u.act.length ? "(" + u.act.length + ")" : "";
+  }
+
+  function renderDayList() {
+    var today = todayKey();
+    var keys = Object.keys(notebook.days).filter(function (k) { return notebook.days[k].lines.length; });
+    if (keys.indexOf(today) === -1) keys.push(today);
+    if (keys.indexOf(viewDate) === -1) keys.push(viewDate);
+    keys.sort().reverse();
+    $("dayList").innerHTML = keys.slice(0, 10).map(function (k) {
+      var lines = dayLines(k);
+      var open = lines.filter(function (l) { return lineStatus(l) === "open"; }).length;
+      return '<li><button type="button" data-day="' + k + '"' + (k === viewDate ? ' aria-current="date"' : "") + ">" +
+        '<span class="dl-text">' + esc(formatDate(k)) + "</span>" +
+        '<span class="dl-meta">' + (lines.length ? lines.length + " · " + open + " open" : "empty") + "</span></button></li>";
+    }).join("");
+    $("dayPicker").value = viewDate;
+  }
+
+  function renderNoteSearch() {
+    var q = $("noteSearch").value.trim().toLowerCase();
+    if (q.length < 2) { $("noteSearchResults").innerHTML = ""; return; }
+    var hits = [];
+    Object.keys(notebook.days).sort().reverse().forEach(function (k) {
+      notebook.days[k].lines.forEach(function (l) {
+        if (hits.length < 30 && l.text.toLowerCase().indexOf(q) !== -1) hits.push({ k: k, l: l });
+      });
+    });
+    $("noteSearchResults").innerHTML = hits.length ? hits.map(function (h) {
+      return '<li><button type="button" data-day="' + h.k + '" data-line="' + esc(h.l.id) + '"><span class="dl-text">' + esc(h.l.text) +
+        '</span><span class="dl-meta">' + esc(formatDate(h.k)) + "</span></button></li>";
+    }).join("") : '<li class="empty">No notes found.</li>';
+  }
+
+  var HL_HELP = {
+    done: "A highlighted line counts as handled. Highlights in screenshots are suggested as done; you still approve any task change.",
+    important: "A highlighted line stays open and stands out. Highlights in screenshots are kept as highlights only.",
+    nothing: "Highlights are just color and don't change anything."
+  };
+
+  function renderHlMeaning() {
+    Array.prototype.forEach.call($("hlMeaning").querySelectorAll("button"), function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-v") === settings.highlightMeans));
+    });
+    $("hlMeaningHelp").textContent = HL_HELP[settings.highlightMeans];
+  }
+
+  function renderImportHistory() {
+    $("importHistoryCount").textContent = importLog.length;
+    $("importHistoryList").innerHTML = importLog.map(function (e) {
+      return '<div class="history-item"><strong>' + esc(formatDate(toDateKey(new Date(e.at)))) + " " + esc(timeLabel(e.at)) + "</strong> · " +
+        (e.src === "image" ? "screenshot" : "pasted text") + (e.date ? " · notes for " + esc(formatDate(e.date)) : "") +
+        " · " + e.lines + " new " + (e.lines === 1 ? "line" : "lines") +
+        "<pre>" + esc(e.text) + "</pre>" +
+        '<button type="button" class="link-btn" data-forget="' + esc(e.id) + '">Delete this record</button></div>';
+    }).join("") || '<p class="small">Nothing imported yet.</p>';
+  }
+
+  function setView(v) {
+    settings.view = v;
+    saveSettings();
+    document.body.setAttribute("data-view", v);
+    Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-tab") === v));
+    });
+    render();
+  }
+
+  // Adds typed text to a page. Each line is its own line; a blank line starts a new group.
+  function addTypedLines(date, text) {
+    var parts = String(text || "").replace(/\r\n?/g, "\n").split("\n");
+    var lines = ensureDay(date), block = makeId(), n = 0;
+    parts.forEach(function (p) {
+      if (!p.trim()) { if (n) block = makeId(); return; }
+      var l = newLine(p.trim().slice(0, MAX_LINE_LEN), block, "typed");
+      if (l) { lines.push(l); n++; }
+    });
+    return n;
+  }
+
+  function addNoteFromEntry() {
+    var n = addTypedLines(viewDate, $("noteEntry").value);
+    if (!n) { $("noteEntry").focus(); return; }
+    if (!saveNotebook()) return;      // text stays in the box so nothing is lost
+    $("noteEntry").value = "";
+    saveDraft();
+    render();
+    $("noteEntry").focus({ preventScroll: true });
+    $("noteEntry").scrollIntoView({ block: "nearest" });
+  }
+
+  var draftTimer = null;
+  function saveDraft() { storageSet(DRAFT_KEY, $("noteEntry").value); }
+
+  function toggleLineDone(id) {
+    var f = findLine(id);
+    if (!f) return;
+    f.line.done = !f.line.done;
+    f.line.doneAt = f.line.done ? new Date().toISOString() : null;
+    saveNotebook();
+    render();
+  }
+
+  function toggleLineHl(id) {
+    var f = findLine(id);
+    if (!f) return;
+    f.line.hl = !f.line.hl;
+    saveNotebook();
+    render();
+  }
+
+  function setLineKind(id, kind) {
+    var f = findLine(id);
+    if (!f) return;
+    f.line.kind = kind;
+    saveNotebook();
+    render();
+    showToast(kind === "reference" ? "Marked as info" : "Updated");
+  }
+
+  function markLinkedTaskDone(id) {
+    var f = findLine(id), t = f && linkedTask(f.line);
+    if (!t || t.done) return;
+    t.done = true;
+    t.completedAt = new Date().toISOString();
+    addLog(t, "Marked done from daily notes (" + formatDate(f.date) + ")");
+    saveTasks();
+    render();
+    showToast("Task marked done");
+  }
+
+  function onLineAction(e) {
+    var b = e.target.closest("[data-act]");
+    if (b) {
+      var id = b.getAttribute("data-id"), act = b.getAttribute("data-act");
+      if (act === "done") toggleLineDone(id);
+      else if (act === "hl") toggleLineHl(id);
+      else if (act === "more") openLineSheet(id);
+      else if (act === "text") { if (hlMode) toggleLineHl(id); else openLineSheet(id); }
+      else if (act === "taskdone") markLinkedTaskDone(id);
+      else if (act === "info") setLineKind(id, "reference");
+      else if (act === "goto") { var f = findLine(id); if (f) goToDay(f.date, id); }
+      return;
+    }
+    var d = e.target.closest("[data-day]");
+    if (d) goToDay(d.getAttribute("data-day"), d.getAttribute("data-line"));
+  }
+
+  /* Line sheet: edit wording, set the type, appointment details, task link. */
+  function openLineSheet(id) {
+    var f = findLine(id);
+    if (!f) return;
+    sheetLineId = id;
+    sheetKind = f.line.kind;
+    $("lsText").value = f.line.text;
+    var meta = "Written " + formatDate(f.date) + " at " + timeLabel(f.line.at);
+    if (f.line.src === "image") meta += " (from a screenshot)";
+    else if (f.line.src === "text") meta += " (pasted)";
+    if (f.line.orig && f.line.orig !== f.line.text) meta += "\nOriginal wording: " + f.line.orig;
+    $("lsMeta").textContent = meta;
+    $("lsMeta").style.whiteSpace = "pre-line";
+    var a = f.line.appt || { date: "", time: "", confirmed: false };
+    $("lsApptDate").value = a.date;
+    $("lsApptTime").value = a.time;
+    $("lsApptOk").checked = a.confirmed;
+    renderSheetKind();
+    renderSheetTask(f);
+    $("lineSheet").hidden = false;
+    $("lsCancel").focus();
+  }
+
+  function renderSheetKind() {
+    Array.prototype.forEach.call($("lsKind").querySelectorAll("button"), function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-v") === sheetKind));
+    });
+    $("lsAppt").hidden = sheetKind !== "appointment";
+  }
+
+  function renderSheetTask(f) {
+    var t = linkedTask(f.line);
+    var box = $("lsTask");
+    if (t) {
+      box.innerHTML = "<div><strong>On the task board" + (t.done ? " (done)" : " (open)") + ":</strong> " +
+        esc([t.folder ? "#" + t.folder : "", t.customer].filter(Boolean).join(" · ")) + " " + esc(t.desc) + "</div>" +
+        '<div class="btn-row">' + (t.done ? "" : '<button type="button" class="btn" data-sheet="taskdone">Mark task done</button>') +
+        '<button type="button" class="btn" data-sheet="showtask">Show on board</button>' +
+        '<button type="button" class="btn" data-sheet="unlink">Unlink</button></div>';
+    } else {
+      box.innerHTML = "<div>Not on the task board.</div>" +
+        '<div class="btn-row"><button type="button" class="btn btn-dark" data-sheet="maketask">Make it a task…</button>' +
+        '<button type="button" class="btn" data-sheet="linktask">Link to existing task…</button></div>';
+    }
+  }
+
+  function closeLineSheet() {
+    $("lineSheet").hidden = true;
+    var id = sheetLineId;
+    sheetLineId = null;
+    var el = id && document.querySelector('.ltext[data-id="' + cssEsc(id) + '"]');
+    if (el) el.focus({ preventScroll: true });
+  }
+
+  function saveLineSheet() {
+    var f = findLine(sheetLineId);
+    if (!f) { closeLineSheet(); return; }
+    var text = $("lsText").value.replace(/\r\n?/g, "\n").trim().slice(0, MAX_LINE_LEN);
+    if (!text) { showToast("A line can't be empty. Use Delete line instead.", true); return; }
+    var l = f.line;
+    if (text !== l.text) {
+      if (!l.orig) l.orig = l.text;   // the first wording is always kept
+      l.text = text;
+      l.editedAt = new Date().toISOString();
+    }
+    l.kind = sheetKind;
+    if (sheetKind === "appointment") {
+      var d = $("lsApptDate").value, tm = $("lsApptTime").value;
+      l.appt = normalizeAppt({ date: d, time: tm, confirmed: $("lsApptOk").checked && !!(d || tm) });
+    }
+    saveNotebook();
+    closeLineSheet();
+    render();
+    showToast("Line saved");
+  }
+
+  function deleteLineFromSheet() {
+    var f = findLine(sheetLineId);
+    if (!f) return;
+    var t = linkedTask(f.line);
+    askConfirm("Delete this line from " + formatDate(f.date) + "?\n\n" + f.line.text +
+      (t ? "\n\nThe linked task stays on the task board." : ""), "Delete line", function () {
+      var lines = dayLines(f.date);
+      lines.splice(lines.indexOf(f.line), 1);
+      saveNotebook();
+      closeLineSheet();
+      render();
+      showToast("Line deleted");
+    });
+  }
+
+  function onSheetAction(e) {
+    var k = e.target.closest("[data-v]");
+    if (k && $("lsKind").contains(k)) { sheetKind = k.getAttribute("data-v"); renderSheetKind(); return; }
+    var b = e.target.closest("[data-sheet]");
+    if (!b) return;
+    var f = findLine(sheetLineId);
+    if (!f) return;
+    var act = b.getAttribute("data-sheet");
+    if (act === "taskdone") { markLinkedTaskDone(f.line.id); renderSheetTask(f); }
+    else if (act === "unlink") { f.line.taskId = ""; saveNotebook(); renderSheetTask(f); render(); showToast("Unlinked. The task is unchanged."); }
+    else if (act === "showtask") {
+      var t = linkedTask(f.line);
+      closeLineSheet();
+      if (t) showTaskOnBoard(t);
+    } else if (act === "maketask" || act === "linktask") {
+      var id = f.line.id;
+      closeLineSheet();
+      reviewLines([f.line], f.date, act === "maketask" ? "task" : "link");
+    }
+  }
+
+  function showTaskOnBoard(t) {
+    filters = { category: "All", search: t.folder || t.customer || "", estimator: "" };
+    $("search").value = filters.search;
+    renderCategoryChips();
+    setView("tasks");
+    var el = document.querySelector('.task .check[data-id="' + cssEsc(t.id) + '"]');
+    if (el) el.closest(".task").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  /* ---------- 10. Smart import ----------
+     Every imported line (pasted text, screenshot, or lines already on a page)
+     is sorted into one of:
+       followup     something to do or check
+       appointment  a visit, estimate, drop-off or pick-up with a day/time
+       reference    accident details, what someone said, other info
+       completion   looks handled (marked in a screenshot, or "done") AND
+                    matches an open task
+       uncertain    can't tell
+     Then each line is compared with the notes already on that day's page
+     (so re-importing the same notes doesn't duplicate them) and with open
+     tasks (folder #, customer, similar wording). Nothing changes until you
+     press Apply, and completing a task always needs its own approval. */
+
+  // Words at the start of a note that make it a to-do.
+  var FOLLOWUP_START = /^(?:call|phone|text|txt|email|e-mail|check|chk|verify|confirm|follow[\s-]?up|f\/u|order|reorder|send|submit|get|ask|remind|find out|look into|look up|look at|needs? to|have to|must|make sure|don'?t forget|remember to|schedule|sched|book|reschedule|update|tell|notify|let \w+ know|return|request|pick up|p\/u|call back|cb|chase|research|quote|price|review|write|print|scan|upload|set up|setup|arrange|contact|reach out|reply|respond|pay|invoice|bill|move|bring|fix|cancel|refund|recheck|re-check|see if|see about|find|req|pls|please)\b/i;
+  var FOLLOWUP_ANY = /\b(?:needs? to|have to|has to|gotta|must|remember to|don'?t forget|make sure|to ?do|follow[\s-]?up|f\/u|waiting (?:on|for)|pending|asap|call back|eod|by (?:mon|tue|wed|thu|fri|today|tomorrow|tmrw|eod|noon)\w*|when (?:will|is|does)|check (?:on|status|with))\b/i;
+  var APPT_WORDS = /\b(?:appt|appointment|schedul\w*|booked|estimate|drop[\s-]?off|dropping off|d\/o|pick[\s-]?up|picking up|p\/u|coming in|come in|bring(?:ing)? (?:it|the car|the vehicle|car|vehicle|truck) in|in for|inspection|reinspect\w*|walk[\s-]?in)\b/i;
+  var DAY_WORDS = /\b(?:today|tomorrow|tmrw|tmw|tonight|mon(?:day)?|tue(?:s|sday)?|wed(?:s|nesday)?|thu(?:r|rs|rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?|next week)\b|\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/i;
+  var TIME_WORDS = /\b\d{1,2}:[0-5]\d\b|\b\d{1,2}\s*[ap]\.?m\b|\b\d{1,2}[ap]\b|\bnoon\b|\b(?:at|@)\s*\d{1,2}\b(?![\/:\d])/i;
+  var REF_WORDS = /\b(?:said|says|states?|stated|told (?:me|us)|per (?:cust|customer|him|her|adj|adjuster|ins)|accident|rear[\s-]?ended|backed into|t-?boned|deer|hit (?:a|by|the|him|her)|struck|collision|claim|policy|deductible|vin|mileage|miles|injur\w*|police|report(?:ed)?|insured|fyi|info|color|paint code|was|were|already|arrived|came in|received|rcvd|delivered|approved|denied|total(?:ed)?|towed|left (?:vm|voicemail|message)|lvm|no answer)\b/gi;
+  var DONE_TEXT = /(?:^|\s)(?:done|completed?|finished|handled|taken care of|took care of|resolved|all set)(?=$|[\s.!,)])|[✓✔☑]|\[x\]|\(x\)/i;
+
+  // Returns { kind, conf: "high"|"medium"|"low", why, done, apptLike }.
+  function classifyText(raw, a) {
+    raw = String(raw || "");
+    a = a || analyzeLine(raw, readerContext());
+    var body = (a.desc || raw).replace(/^[\s\-–—:;,.|]+/, "");
+    var res = { kind: "uncertain", conf: "low", why: "", done: DONE_TEXT.test(raw), apptLike: false };
+    var letters = raw.replace(/[^a-z]/gi, "").length, visible = raw.replace(/\s/g, "").length || 1;
+    if (letters < 3 || letters / visible < 0.45) { res.why = "Too little readable text"; return res; }
+    var start = FOLLOWUP_START.test(body) || FOLLOWUP_START.test(raw.trim());
+    if (a.header && !start) { res.kind = "reference"; res.conf = "high"; res.why = "Heading with a folder # or name"; res.header = true; return res; }
+
+    var fu = 0, ap = 0, rf = 0;
+    if (start) fu += 3;
+    if (FOLLOWUP_ANY.test(raw)) fu += 2;
+    if (/\?\s*$/.test(raw)) fu += 1;
+
+    var noPhone = raw.replace(PHONE_RE, " ");
+    var hasDay = DAY_WORDS.test(noPhone), hasTime = TIME_WORDS.test(noPhone), apw = APPT_WORDS.test(raw);
+    if (apw) ap += 1;
+    if (hasDay) ap += 1.5;
+    if (hasTime) ap += 1.5;
+    if (!apw && !(hasDay && hasTime)) ap = Math.min(ap, 1.5);   // a day or time alone isn't an appointment
+    if (/\b(?:called|texted|emailed|wants|would like|asked) to (?:schedule|book|set up|come in|drop)/i.test(raw) && (hasDay || hasTime)) ap += 1.5;
+    if (start && apw) fu += 1.5;   // "call Smith to schedule…" is a to-do about an appointment
+
+    var refHits = (raw.match(REF_WORDS) || []).length;
+    rf += Math.min(3, refHits);
+    if (/\b(?:said|says|states?|stated|told (?:me|us)|per (?:cust|customer|him|her|adj|adjuster|ins))\b/i.test(raw)) rf += 1;  // what someone said
+    if (/^[a-z][a-z ]{0,14}:\s*\S/i.test(raw.trim()) && !start) rf += 1;              // "Ins: Geico", "Claim: 123"
+    if (raw.replace(PHONE_RE, "") !== raw) rf += 1;
+    if (/^(?:called|texted|emailed|spoke|talked|left|got|heard)\b/i.test(body) && !/\bto (?:schedule|book|set up)\b/i.test(raw)) rf += 1.5;
+
+    var scores = [["followup", fu], ["appointment", ap], ["reference", rf]].sort(function (x, y) { return y[1] - x[1]; });
+    var top = scores[0], second = scores[1];
+    res.apptLike = ap >= 3;
+    if (top[1] < 1.5) { res.why = "No clear action, appointment or info words"; return res; }
+    if (top[1] - second[1] < 1) { res.why = "Could be " + KIND_LABEL[top[0]].toLowerCase() + " or " + KIND_LABEL[second[0]].toLowerCase(); return res; }
+    res.kind = top[0];
+    res.conf = top[1] >= 3 && top[1] - second[1] >= 2 ? "high" : "medium";
+    return res;
+  }
+
+  /* Appointment day and time. A weekday name gives a likely date, worked
+     out from the day the note was written; anything unclear is left blank
+     and nothing is "confirmed" unless both the date and AM/PM are written. */
+  var WEEKDAY_NUM = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+
+  function parseAppt(raw, baseKey) {
+    var text = String(raw).replace(PHONE_RE, " ");
+    var out = { date: "", time: "", confirmed: false, notes: [] };
+    var dateSure = false, timeSure = false, m;
+
+    if ((m = text.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/))) {
+      var mo = Number(m[1]), da = Number(m[2]);
+      var y = m[3] ? (Number(m[3]) < 100 ? 2000 + Number(m[3]) : Number(m[3])) : parseDateKey(baseKey).getFullYear();
+      var d = new Date(y, mo - 1, da);
+      if (mo >= 1 && mo <= 12 && d.getMonth() === mo - 1) {
+        if (!m[3] && toDateKey(d) < addDays(baseKey, -60)) d.setFullYear(y + 1);
+        out.date = toDateKey(d);
+        dateSure = true;
+      }
+    }
+    if (!out.date && /\b(?:today|tonight)\b/i.test(text)) { out.date = baseKey; dateSure = true; }
+    else if (!out.date && /\b(?:tomorrow|tmrw|tmw|tmrrw)\b/i.test(text)) { out.date = addDays(baseKey, 1); dateSure = true; }
+    else if (!out.date && (m = text.match(/\b(next\s+)?(sun|mon|tue|wed|thu|fri|sat)(?:day|s|sday|nesday|r|rs|rsday|urday)?\b/i))) {
+      var target = WEEKDAY_NUM[m[2].toLowerCase()], diff = (target - parseDateKey(baseKey).getDay() + 7) % 7;
+      if (m[1]) out.notes.push("“" + m[0].trim() + "” could mean this week or the week after, so the date was left blank.");
+      else if (diff === 0) out.notes.push("The note was written on a " + m[2] + " too, so it could mean that day or next week. Date left blank.");
+      else { out.date = addDays(baseKey, diff); out.notes.push("Date worked out from the weekday and the day the note was written. Check it."); }
+    } else if (!out.date && /\bnext week\b/i.test(text)) {
+      out.notes.push("“Next week” has no exact day, so the date was left blank.");
+    }
+
+    function assume(h) {
+      if (h >= 7 && h <= 11) return h;
+      if (h === 12) return 12;
+      if (h >= 1 && h <= 6) return h + 12;
+      return -1;
+    }
+    var h = -1, min = "00";
+    if ((m = text.match(/\b(\d{1,2})(?::([0-5]\d))?\s*([ap])\.?m\b\.?/i)) || (m = text.match(/\b(\d{1,2})(?::([0-5]\d))?([ap])\b/i))) {
+      h = Number(m[1]); min = m[2] || "00";
+      if (h >= 1 && h <= 12) { h = (h % 12) + (/p/i.test(m[3]) ? 12 : 0); timeSure = true; } else h = -1;
+    } else if ((m = text.match(/\b(\d{1,2}):([0-5]\d)\b/))) {
+      h = Number(m[1]); min = m[2];
+      if (h >= 13 && h <= 23) timeSure = true;
+      else { h = assume(h); if (h >= 0) out.notes.push("AM/PM wasn't written; " + formatTime12(pad(h) + ":" + min) + " assumed from shop hours."); }
+    } else if (/\bnoon\b/i.test(text)) { h = 12; timeSure = true; }
+    else if ((m = text.match(/\b(?:at|@)\s*(\d{1,2})\b(?![\/:\d])/i))) {
+      h = assume(Number(m[1]));
+      if (h >= 0) out.notes.push("AM/PM wasn't written; " + formatTime12(pad(h) + ":00") + " assumed from shop hours.");
+    }
+    if (h >= 0 && h <= 23) out.time = pad(h) + ":" + min;
+    out.confirmed = dateSure && timeSure;
+    return out;
+  }
+
+  /* Matching against open tasks. */
+  // Words too common to show two notes are about the same thing.
+  var MATCH_STOP = toSet("a an the and or but to of in on at by for from with about into is was were be been are it its this that these those i me my we our you your he she they him her them his their please re per via up out over just still also again need needs needed get got see make made let do does did has have had will would should can could today tomorrow yesterday asap eod am pm call called calling text texted email emailed check checked checking verify verified confirm confirmed follow followup status update updated ask asked customer owner part parts shop car vehicle job ro folder done complete completed handled back message voicemail left");
+
+  function stem(w) {
+    if (w.length > 5 && /ing$/.test(w)) return w.slice(0, -3);
+    if (w.length > 4 && /ed$/.test(w)) return w.slice(0, -2);
+    if (w.length > 3 && /s$/.test(w) && !/ss$/.test(w)) return w.slice(0, -1);
+    return w;
+  }
+
+  function sigTokens(text, skip) {
+    var out = {};
+    educateTask(String(text || "")).toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).forEach(function (w) {
+      if (!w || w.length < 3 || /^\d+$/.test(w) || MATCH_STOP[w] || (skip && skip[w])) return;
+      var s = stem(w);
+      if (!MATCH_STOP[s]) out[s] = true;
+    });
+    return Object.keys(out);
+  }
+
+  function nameWords(name) { return toSet(String(name || "").toLowerCase()); }
+
+  // True if a and b are the same word or one letter apart (OCR slips).
+  function near(a, b) {
+    if (a === b) return true;
+    if (a.length < 5 || b.length < 5 || Math.abs(a.length - b.length) > 1) return false;
+    var i = 0, j = 0, edits = 0;
+    while (i < a.length && j < b.length) {
+      if (a[i] === b[j]) { i++; j++; continue; }
+      if (++edits > 1) return false;
+      if (a.length > b.length) i++; else if (b.length > a.length) j++; else { i++; j++; }
+    }
+    return edits + (a.length - i) + (b.length - j) <= 1;
+  }
+
+  function folderNear(a, b) {
+    a = a.toLowerCase(); b = b.toLowerCase();
+    if (a.length !== b.length || a.length < 4) return false;
+    var diff = 0;
+    for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) diff++;
+    return diff === 1;
+  }
+
+  function lastName(n) { var p = String(n).toLowerCase().trim().split(/\s+/); return p[p.length - 1]; }
+
+  // f: { folder, customer, category }. Returns up to 5 open tasks, best first:
+  // [{ taskId, level: "high"|"medium"|"low", score, reasons, ambiguous }]
+  function matchTasks(f, text) {
+    var A = sigTokens(text, nameWords(f.customer));
+    var open = tasks.filter(function (t) { return !t.done; });
+    var perFolder = {};
+    open.forEach(function (t) { if (t.folder) perFolder[t.folder.toLowerCase()] = (perFolder[t.folder.toLowerCase()] || 0) + 1; });
+    var out = [];
+    open.forEach(function (t) {
+      var fEq = !!(f.folder && t.folder && sameKey(f.folder, t.folder));
+      var fNear = !fEq && !!(f.folder && t.folder && folderNear(f.folder, t.folder));
+      if (f.folder && t.folder && !fEq && !fNear) return;           // different folder: never the same job
+      var cEq = !!(f.customer && t.customer && lastName(f.customer) === lastName(t.customer));
+      var cConflict = !!(f.customer && t.customer && !cEq);
+      var B = sigTokens(t.desc, nameWords(t.customer));
+      var shared = A.filter(function (a) { return B.some(function (b) { return near(a, b); }); });
+      var sim = A.length && B.length ? 2 * shared.length / (A.length + B.length) : 0;
+      var reasons = [], score = 0;
+      if (fEq) { score += 50; reasons.push("Same folder #"); }
+      if (fNear) { score += 15; reasons.push("Folder # is one digit off (could be a misread)"); }
+      if (cEq) { score += 25; reasons.push("Same customer"); }
+      if (cConflict) { score -= 30; reasons.push("Different customer name"); }
+      if (shared.length) { score += 40 * sim; reasons.push("Same words: " + shared.slice(0, 4).join(", ")); }
+      if (f.category && f.category !== "Other" && f.category === t.category) score += 5;
+
+      var level = null;
+      var noFolderToCompare = !f.folder || !t.folder;
+      if (fEq && sim >= 0.5) level = "high";
+      else if (noFolderToCompare && cEq && sim >= 0.6 && shared.length >= 2) level = "high";
+      else if (fEq && sim >= 0.25) level = "medium";
+      else if (fEq && perFolder[t.folder.toLowerCase()] === 1 && A.length <= 1) level = "medium";
+      else if (fNear && sim >= 0.5) level = "medium";
+      else if (cEq && sim >= 0.3) level = "medium";
+      else if (!cConflict && sim >= 0.75 && shared.length >= 2) level = "medium";
+      else if (fEq || fNear || (cEq && noFolderToCompare) || (!cConflict && sim >= 0.4 && shared.length >= 1)) level = "low";
+      if (level) out.push({ taskId: t.id, level: level, score: score, reasons: reasons, ambiguous: false });
+    });
+    out.sort(function (a, b) { return b.score - a.score; });
+    // Two close candidates: don't call either one "high"; ask.
+    if (out.length > 1 && out[1].level !== "low" && out[0].score - out[1].score < 12) {
+      out.forEach(function (c) {
+        if (c.level !== "low" && out[0].score - c.score < 12) { c.ambiguous = true; if (c.level === "high") c.level = "medium"; }
+      });
+    }
+    return out.slice(0, 5);
+  }
+
+  /* Re-import detection: how alike two lines are, 0..1, tolerant of OCR slips. */
+  function normLine(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
+
+  function bigrams(s) {
+    var out = {};
+    s = s.replace(/ /g, "");
+    for (var i = 0; i < s.length - 1; i++) { var g = s.substr(i, 2); out[g] = (out[g] || 0) + 1; }
+    return out;
+  }
+
+  function lineSim(a, b) {
+    a = normLine(a); b = normLine(b);
+    if (a === b) return a ? 1 : 0;
+    if (a.length < 3 || b.length < 3) return 0;
+    var A = bigrams(a), B = bigrams(b), inter = 0, na = 0, nb = 0, k;
+    for (k in A) { na += A[k]; if (B[k]) inter += Math.min(A[k], B[k]); }
+    for (k in B) nb += B[k];
+    return 2 * inter / (na + nb);
+  }
+
+  // Typed marks: "[x] call Jones", "✓ call Jones", "~~call Jones~~", "call Jones ✓".
+  function textMarks(raw) {
+    var t = String(raw).trim(), marks = [], m;
+    m = t.match(/^(?:[-*•]\s*)?(?:\[[xX✓✔]\]|\([xX✓✔]\)|[✓✔☑√])\s*/);
+    if (m) { marks.push({ mark: "check", level: "likely", detail: "typed check mark" }); t = t.slice(m[0].length); }
+    else if ((m = t.match(/^(?:[-*•]\s*)?(?:\[\s?\]|☐)\s*/))) t = t.slice(m[0].length);
+    if ((m = t.match(/\s+[✓✔☑]$/))) { marks.push({ mark: "check", level: "likely", detail: "typed check mark" }); t = t.slice(0, -m[0].length); }
+    if ((m = t.match(/^~~(.+)~~$/))) { marks.push({ mark: "strike", level: "likely", detail: "typed strike-through" }); t = m[1]; }
+    return { text: t.trim(), marks: marks };
+  }
+
+  var ACTION_LABEL = {
+    task: "Create open task",
+    link: "Link to an existing task",
+    complete: "Mark an existing task complete",
+    followup: "Save as follow-up (no task)",
+    appt: "Save as appointment",
+    info: "Save as info",
+    note: "Save note, type not set",
+    done: "Save note as done (no task change)",
+    update: "Update the existing note line",
+    skip: "Skip this line"
+  };
+  var DEFAULT_ACTION = { followup: "task", appointment: "appt", reference: "info", uncertain: "note", completion: "complete" };
+  var MARK_LABEL = { highlight: "Highlighted", strike: "Crossed out", check: "Checked" };
+
+  var review = null;   // { src, date, items, images, text, name }
+
+  // raw lines: [{ text, raw, group, marks, ocrConf, crop, imageIdx, lineId }]
+  function buildItems(rawLines, opts) {
+    var ctx = readerContext();
+    var defaultEst = loadLastEstimator();
+    var page = opts.src === "notebook" ? [] : dayLines(opts.date);
+    var claimed = {}, seen = [];
+    var group = { key: null, folder: "", customer: "", source: "" };
+    return rawLines.map(function (r, idx) {
+      if (r.group !== group.key) group = { key: r.group, folder: "", customer: "", source: "" };
+      var a = analyzeLine(r.text, ctx);
+      var cls0 = classifyText(r.text, a);
+      if (a.header && !cls0.header) {
+        // Looked like a heading to the v1.2 reader but starts with an action ("check 10452 bracket").
+        a = Object.assign({}, a, { header: false, customer: "", customerSource: "", desc: educateTask(cleanDescription(r.text.replace(a.folder, " "))) });
+      }
+      if (a.header) group = { key: r.group, folder: a.folder, customer: a.customer, source: a.customerSource };
+      var useGroupName = !a.header && group.customer && (!a.customer || a.customerSource === "guess");
+      var it = {
+        i: idx, raw: r.raw || r.text, text: r.text, group: r.group, crop: r.crop || "", imageIdx: r.imageIdx,
+        ocrConf: typeof r.ocrConf === "number" ? r.ocrConf : null, marks: r.marks || [], notes: [],
+        lineId: "", existing: null, unchanged: false, candidates: [], chosenTask: "", decision: "pending",
+        fields: {
+          desc: a.desc || educateTask(cleanDescription(r.text)) || r.text,
+          customer: useGroupName ? group.customer : a.customer,
+          customerGuess: (useGroupName ? group.source : a.customerSource) === "guess",
+          folder: a.folder || group.folder,
+          category: a.category,
+          estimator: a.estimator || defaultEst
+        }
+      };
+      it.cls = cls0;
+      it.kind = it.cls.kind;
+      it.appt = it.cls.kind === "appointment" || it.cls.apptLike ? parseAppt(r.text, opts.date) : null;
+      if (it.appt && it.cls.kind === "appointment") it.notes = it.notes.concat(it.appt.notes);
+      it.candidates = a.header ? [] : matchTasks(it.fields, it.fields.desc);
+
+      // What the marks say: crossed out / checked, or highlighted when highlights mean "done".
+      var doneMarks = it.marks.filter(function (m) {
+        return m.mark === "strike" || m.mark === "check" || (m.mark === "highlight" && settings.highlightMeans === "done");
+      });
+      it.doneSignal = doneMarks.some(function (m) { return m.level === "likely"; }) ? "likely"
+        : doneMarks.length ? "possible" : it.cls.done ? "text" : "";
+
+      // Same line twice in one import (overlapping screenshots).
+      var norm = normLine(r.text);
+      if (seen.some(function (s) { return lineSim(s, norm) >= 0.9; })) {
+        it.unchanged = true; it.action = "skip"; it.decision = "skip";
+        it.notes.push("Same as a line above in this import.");
+        return it;
+      }
+      seen.push(norm);
+
+      if (opts.src === "notebook") {
+        it.existing = { id: r.lineId, sure: true, sim: 1 };
+      } else {
+        var best = null;
+        page.forEach(function (l) {
+          if (claimed[l.id]) return;
+          var s = Math.max(lineSim(l.text, r.text), l.orig ? lineSim(l.orig, r.text) : 0);
+          if (s >= 0.7 && (!best || s > best.sim)) best = { id: l.id, sim: s, text: l.text };
+        });
+        if (best) {
+          it.existing = { id: best.id, sure: best.sim >= 0.85, sim: best.sim, text: best.text };
+          if (it.existing.sure) claimed[best.id] = true;
+        } else {
+          for (var d = 1; d <= 7; d++) {
+            var other = [addDays(opts.date, -d), addDays(opts.date, d)].filter(function (k) {
+              return dayLines(k).some(function (l) { return lineSim(l.text, r.text) >= 0.9; });
+            })[0];
+            if (other) { it.otherDay = other; break; }
+          }
+        }
+      }
+      decide(it, opts);
+      return it;
+    });
+  }
+
+  function setAction(it, kind, action, taskId, decision) {
+    it.kind = kind; it.action = action; it.chosenTask = taskId || ""; it.decision = decision;
+  }
+
+  function markOf(it, mark) { return it.marks.filter(function (m) { return m.mark === mark; })[0] || null; }
+
+  // Picks the suggested type, action and whether it starts approved.
+  function decide(it, opts) {
+    var top = it.candidates[0];
+    var topOk = !!(top && (top.level === "high" || top.level === "medium"));
+    var f = it.existing && it.existing.sure ? findLine(it.existing.id) : null;
+    var L = f && f.line, linked = L ? linkedTask(L) : null;
+    var lowOcr = it.ocrConf !== null && it.ocrConf < OCR_LOW_CONFIDENCE;
+    var unclearMark = it.doneSignal === "possible" || it.marks.some(function (m) { return m.level === "possible"; });
+    if (lowOcr) it.notes.push("The text may be misread (" + Math.round(it.ocrConf) + "% sure). Compare it with the image and fix it if needed.");
+    if (unclearMark) it.notes.push("The marking isn't clear. Compare with the image before approving.");
+    if (it.fields.customerGuess && it.fields.customer) it.notes.push("Customer name “" + it.fields.customer + "” was guessed from the text.");
+    if (it.otherDay) it.notes.push("This line is also on " + formatDate(it.otherDay) + "'s page. Check the notes date above.");
+
+    function completeLinked(t) {
+      it.candidates = [{ taskId: t.id, level: "high", score: 100, reasons: ["Already linked to this note line"], ambiguous: false }]
+        .concat(it.candidates.filter(function (c) { return c.taskId !== t.id; }));
+      setAction(it, "completion", "complete", t.id, "pending");
+    }
+
+    if (L) {
+      it.lineId = L.id;
+      var resolved = lineStatus(L) === "done";
+      if (opts.src === "notebook") {
+        if (resolved) {
+          if (linked && !linked.done) { completeLinked(linked); it.notes.unshift("This line is checked off, but its task is still open."); return; }
+          if (!linked && topOk) { setAction(it, "completion", "complete", top.taskId, "pending"); it.notes.unshift("This line is checked off and looks like an open task."); return; }
+          it.unchanged = true; it.action = "skip"; it.decision = "skip"; it.notes.unshift("Already handled.");
+          return;
+        }
+        if (L.kind || linked) { it.unchanged = true; it.action = "skip"; it.decision = "skip"; it.notes.unshift("Already sorted (" + (linked ? "linked to a task" : KIND_LABEL[L.kind].toLowerCase()) + ")."); return; }
+      } else {
+        if (it.doneSignal && !resolved) {
+          it.notes.unshift("Already in your notes, and now marked in the screenshot.");
+          if (linked && !linked.done) completeLinked(linked);
+          else if (!linked && topOk) setAction(it, "completion", "complete", top.taskId, "pending");
+          else setAction(it, L.kind || it.kind, "done", "", unclearMark || it.doneSignal === "text" ? "pending" : "approve");
+          return;
+        }
+        var hl = markOf(it, "highlight");
+        if (hl && hl.level === "likely" && !L.hl && settings.highlightMeans === "important") {
+          it.notes.unshift("Already in your notes; now highlighted.");
+          setAction(it, L.kind || it.kind, "update", "", "approve");
+          return;
+        }
+        it.unchanged = true; it.action = "skip"; it.decision = "skip";
+        it.notes.unshift("Already in your notes (added " + timeLabel(L.at) + ").");
+        return;
+      }
+    }
+    if (it.existing && !it.existing.sure) {
+      it.notes.push("Looks a lot like a line already on this page: “" + it.existing.text + "”. Skip it if it's the same note.");
+    }
+
+    var pending = lowOcr || unclearMark || (it.existing && !it.existing.sure) || !!it.otherDay;
+    if (it.doneSignal) {
+      if (topOk) { setAction(it, "completion", "complete", top.taskId, "pending"); return; }
+      setAction(it, it.kind, "done", "", pending || it.doneSignal === "text" ? "pending" : "approve");
+      if (top) it.notes.push("Marked as done, but no open task clearly matches. To complete a task, change the action to \u201cMark an existing task complete\u201d and pick it.");
+      return;
+    }
+    switch (it.kind) {
+      case "followup":
+        if (top && top.level === "high") {
+          setAction(it, "followup", "link", top.taskId, pending ? "pending" : "approve");
+          it.notes.push("Already on your task board, so no new task is suggested.");
+        } else {
+          setAction(it, "followup", "task", "", pending || it.cls.conf === "low" ? "pending" : "approve");
+          if (topOk) it.notes.push("A similar open task exists. Choose “Link to an existing task” if it's the same thing.");
+        }
+        break;
+      case "appointment": setAction(it, "appointment", "appt", "", pending ? "pending" : "approve"); break;
+      case "reference": setAction(it, "reference", "info", "", pending ? "pending" : "approve"); break;
+      default:
+        setAction(it, "uncertain", "note", "", "pending");
+        it.notes.push((it.cls.why || "Not sure what this line is") + ". Pick a type, or skip it.");
+    }
+  }
+
+  function startReview(rawLines, opts) {
+    if (review) closeReview();
+    var limited = rawLines.slice(0, MAX_IMPORT_LINES);
+    review = {
+      src: opts.src, date: opts.date, images: opts.images || [], text: opts.text || "", name: opts.name || "",
+      skipped: rawLines.length - limited.length, items: buildItems(limited, opts)
+    };
+    if (opts.forceAction) {
+      review.items.forEach(function (it) {
+        it.unchanged = false;
+        var top = it.candidates[0];
+        if (opts.forceAction === "task") setAction(it, "followup", "task", "", "pending");
+        else setAction(it, it.kind === "uncertain" ? "followup" : it.kind, "link", top ? top.taskId : "", "pending");
+      });
+    }
+    $("showUnchanged").checked = false;
     renderReview();
     $("reviewPanel").hidden = false;
     $("reviewPanel").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function renderReview() {
-    $("reviewList").innerHTML = proposals.map(function (p, i) {
-      var match = p.matchId ? findTask(p.matchId) : null;
-      var html = '<div class="review-item' + (p.include ? "" : " off") + '" data-i="' + i + '">' +
-        '<div class="review-top">' +
-          '<input type="checkbox" id="rv-inc-' + i + '" data-field="include"' + (p.include ? " checked" : "") + ' aria-label="Include this task">' +
-          '<input type="text" id="rv-desc-' + i + '" data-field="desc" maxlength="300" value="' + esc(p.desc) + '" aria-label="Task">' +
-        "</div>" +
-        '<div class="review-grid">' +
-          '<label>Customer<input type="text" id="rv-cust-' + i + '" data-field="customer" maxlength="60" autocapitalize="words" spellcheck="false"' + (p.customerSource === "guess" ? ' class="guess"' : "") + ' value="' + esc(p.customer) + '"></label>' +
-          '<label>Folder #<input type="text" id="rv-folder-' + i + '" data-field="folder" maxlength="30" autocapitalize="characters" spellcheck="false" value="' + esc(p.folder) + '"></label>' +
-          '<label>Category<select id="rv-cat-' + i + '" data-field="category">' + optionList(CATEGORIES, p.category) + "</select></label>" +
-          '<label>Estimator<input type="text" id="rv-est-' + i + '" data-field="estimator" list="estimatorList" maxlength="40" autocapitalize="words" spellcheck="false" value="' + esc(p.estimator) + '"></label>' +
-        "</div>";
-      if (match) {
-        html += '<label>Action<select id="rv-act-' + i + '" data-field="action">' +
-          '<option value="update" selected>Update existing task</option>' +
-          '<option value="new">Add as a new task</option></select></label>' +
-          '<p class="review-note match">Existing: ' + esc(match.desc) + "</p>";
+  function textToRawLines(text) {
+    var g = 0, out = [];
+    String(text || "").replace(/\r\n?/g, "\n").split("\n").forEach(function (l) {
+      if (!l.trim()) { g++; return; }
+      var tm = textMarks(l);
+      if (tm.text.replace(/[^a-z0-9]/gi, "").length < 2) return;
+      out.push({ text: tm.text.slice(0, MAX_LINE_LEN), raw: l.trim(), group: "t" + g, marks: tm.marks, ocrConf: null });
+    });
+    return out;
+  }
+
+  function readNotes() {
+    var text = $("notesInput").value;
+    if (!text.trim()) { showToast("Paste some notes first.", true); $("notesInput").focus(); return; }
+    var raw = textToRawLines(text);
+    if (!raw.length) { showToast("No notes found. Put each note on its own line.", true); return; }
+    startReview(raw, { src: "text", date: $("importDate").value || todayKey(), text: text.trim() });
+  }
+
+  // Review lines already on a page ("Suggest tasks", "Make it a task…").
+  function reviewLines(lines, date, forceAction) {
+    if (!lines.length) { showToast("Nothing on this page yet.", true); return; }
+    startReview(lines.map(function (l) {
+      return { text: l.text, raw: l.text, group: l.block, marks: [], ocrConf: null, lineId: l.id };
+    }), { src: "notebook", date: date, forceAction: forceAction });
+  }
+
+  /* Review screen */
+  function confLabel(level) { return { high: "High confidence", medium: "Medium confidence", low: "Low confidence" }[level] || ""; }
+
+  function actionsFor(it) {
+    var list = ["task", "link", "complete", "followup", "appt", "info", "note", "done"];
+    if (it.lineId) list.push("update");
+    list.push("skip");
+    if (!tasks.some(function (t) { return !t.done; })) list = list.filter(function (a) { return a !== "link" && a !== "complete"; });
+    return list;
+  }
+
+  function taskLabel(t) {
+    return [t.folder ? "#" + t.folder : "", t.customer].filter(Boolean).join(" · ") + (t.folder || t.customer ? " — " : "") + t.desc;
+  }
+
+  function cardHtml(it) {
+    var i = it.i, a = it.action, html = "";
+    var cls = ["rv", it.decision === "approve" && a !== "skip" ? "approved" : it.decision === "pending" ? "pending" : "skipped"];
+    var head = '<span class="chip-s k-' + it.kind + '">' + KIND_LABEL[it.kind] + "</span>";
+    if (it.kind === it.cls.kind && it.kind !== "uncertain") head += '<span class="conf ' + it.cls.conf + '">' + confLabel(it.cls.conf) + "</span>";
+    it.marks.forEach(function (m) {
+      head += '<span class="chip-s vis' + (m.level === "possible" ? " warn" : "") + '" title="' + esc(m.detail || "") + '">' +
+        MARK_LABEL[m.mark] + (m.level === "possible" ? " (unclear)" : " (likely)") + "</span>";
+    });
+    if (it.cls.done && !it.marks.length) head += '<span class="chip-s k-completion">Says done</span>';
+    if (it.ocrConf !== null && it.ocrConf < OCR_LOW_CONFIDENCE) head += '<span class="chip-s warn">Text unclear</span>';
+    if (it.lineId && review.src !== "notebook") head += '<span class="chip-s">Already in notes</span>';
+    if (it.decision === "pending") head += '<span class="chip-s warn">Needs your decision</span>';
+
+    html += '<div class="' + cls.join(" ") + '" data-i="' + i + '"><div class="rv-head">' + head + "</div>";
+    if (it.crop) html += '<img class="rv-crop" src="' + esc(it.crop) + '" alt="How this line looks in the screenshot">';
+    html += '<p class="rv-orig">Original: <q>' + esc(it.raw) + "</q></p>";
+    html += '<label>Note text' + (review.src === "image" ? " (fix any misread words)" : "") +
+      '<input type="text" data-f="text" maxlength="' + MAX_LINE_LEN + '" value="' + esc(it.text) + '"></label>';
+    html += '<div class="rv-row"><label>Type<select data-f="kind">' +
+      ["followup", "appointment", "reference", "completion", "uncertain"].map(function (k) {
+        return '<option value="' + k + '"' + (k === it.kind ? " selected" : "") + ">" + KIND_LABEL[k] + "</option>";
+      }).join("") + "</select></label>" +
+      '<label>Action<select data-f="action">' + actionsFor(it).map(function (k) {
+        return '<option value="' + k + '"' + (k === a ? " selected" : "") + ">" + ACTION_LABEL[k] + "</option>";
+      }).join("") + "</select></label></div>";
+
+    if (a === "link" || a === "complete" || (a === "task" && it.candidates.length)) {
+      var cands = it.candidates.slice();
+      if (it.chosenTask && !cands.some(function (c) { return c.taskId === it.chosenTask; })) {
+        cands.push({ taskId: it.chosenTask, level: "", reasons: ["Picked by you"] });
       }
-      if (p.customerSource === "guess") html += '<p class="review-note guess-note">Customer name guessed from the text. Check it.</p>';
-      if (p.duplicate) html += '<p class="review-note">Already on your list, so it\'s unchecked.</p>';
-      return html + "</div>";
+      var pickable = a !== "task";
+      html += '<fieldset class="rv-match"><legend>' + (a === "task" ? "Similar open tasks (check it isn't a repeat)" : a === "complete" ? "Which task is done?" : "Which task is this?") + "</legend>";
+      cands.forEach(function (c) {
+        var t = findTask(c.taskId);
+        if (!t) return;
+        var body = esc(taskLabel(t)) + "<small>" + (c.level ? '<span class="conf ' + c.level + '">' + confLabel(c.level) + "</span> " : "") +
+          esc(c.reasons.join(" · ")) + (c.ambiguous ? " · another task is just as close" : "") + "</small>";
+        html += pickable
+          ? '<label class="rv-cand"><input type="radio" name="rv-task-' + i + '" data-f="task" value="' + esc(t.id) + '"' + (it.chosenTask === t.id ? " checked" : "") + "><span>" + body + "</span></label>"
+          : '<div class="rv-cand"><span aria-hidden="true">&#8226;</span><span>' + body + "</span></div>";
+      });
+      if (pickable) {
+        html += '<label class="rv-cand"><input type="radio" name="rv-task-' + i + '" data-f="task" value=""' + (!it.chosenTask ? " checked" : "") + "><span>None of these</span></label>";
+        var open = tasks.filter(function (t) { return !t.done; }).sort(function (x, y) { return (x.folder || "~").localeCompare(y.folder || "~"); });
+        html += '<label>Or pick any open task<select data-f="taskAny"><option value="">—</option>' + open.map(function (t) {
+          return '<option value="' + esc(t.id) + '"' + (t.id === it.chosenTask ? " selected" : "") + ">" + esc(taskLabel(t).slice(0, 90)) + "</option>";
+        }).join("") + "</select></label>";
+      } else if (!cands.length) {
+        html += "<small>No similar open tasks.</small>";
+      }
+      html += "</fieldset>";
+    }
+    if (a === "task") {
+      var f = it.fields;
+      html += '<label>Task<input type="text" data-f="desc" maxlength="300" value="' + esc(f.desc) + '"></label>' +
+        '<div class="rv-row">' +
+        '<label>Customer<input type="text" data-f="customer" maxlength="60" autocapitalize="words" spellcheck="false"' + (f.customerGuess ? ' class="guess"' : "") + ' value="' + esc(f.customer) + '"></label>' +
+        '<label>Folder #<input type="text" data-f="folder" maxlength="30" autocapitalize="characters" spellcheck="false" value="' + esc(f.folder) + '"></label>' +
+        '<label>Category<select data-f="category">' + optionList(CATEGORIES, f.category) + "</select></label>" +
+        '<label>Estimator<input type="text" data-f="estimator" list="estimatorList" maxlength="40" autocapitalize="words" spellcheck="false" value="' + esc(f.estimator) + '"></label>' +
+        "</div><small>No due date needed. The task stays open until you mark it done.</small>";
+    }
+    if (a === "appt") {
+      var ap = it.appt || { date: "", time: "", confirmed: false };
+      html += '<div class="rv-row"><label>Appointment date<input type="date" data-f="apptDate" value="' + esc(ap.date) + '"></label>' +
+        '<label>Time<input type="time" step="300" data-f="apptTime" value="' + esc(ap.time) + '"></label></div>' +
+        '<label class="toggle"><input type="checkbox" data-f="apptOk"' + (ap.confirmed ? " checked" : "") + "> Date and time confirmed</label>" +
+        "<small>Saved in your notes only. Nothing is booked in Nexsyis, Body Shop Booster or any calendar.</small>";
+    }
+    if (it.notes.length) html += '<ul class="rv-notes">' + it.notes.map(function (n) { return "<li>" + esc(n) + "</li>"; }).join("") + "</ul>";
+    html += '<div class="rv-decide">' +
+      '<button type="button" data-d="approve" aria-pressed="' + (it.decision === "approve") + '">Approve</button>' +
+      '<button type="button" data-d="skip" aria-pressed="' + (it.decision === "skip") + '">Skip</button></div>';
+    return html + "</div>";
+  }
+
+  function renderReview() {
+    var r = review;
+    var main = r.items.filter(function (it) { return !it.unchanged; });
+    var same = r.items.filter(function (it) { return it.unchanged; });
+    var counts = {};
+    main.forEach(function (it) { counts[it.kind] = (counts[it.kind] || 0) + 1; });
+    var parts = ["followup", "appointment", "reference", "completion", "uncertain"].filter(function (k) { return counts[k]; })
+      .map(function (k) { return counts[k] + " " + KIND_LABEL[k].toLowerCase(); });
+    var pending = main.filter(function (it) { return it.decision === "pending"; }).length;
+    var where = r.src === "notebook" ? "on " + formatDate(r.date) + "'s page" : "for " + formatDate(r.date) + "'s notes";
+    var s = r.items.length + (r.items.length === 1 ? " line" : " lines") + " " + where + ". ";
+    if (parts.length) s += parts.join(", ") + ". ";
+    if (same.length) s += same.length + " already in your notes or already handled (no change). ";
+    if (pending) s += pending + " need" + (pending === 1 ? "s" : "") + " your decision. ";
+    if (r.skipped) s += "Only the first " + MAX_IMPORT_LINES + " lines were read. ";
+    s += "Nothing changes until you press Apply.";
+    $("reviewSummary").textContent = s;
+    $("reviewTitle").textContent = r.src === "notebook" ? "Suggestions for this page" : "Review imported notes";
+
+    $("reviewImages").innerHTML = r.images.map(function (im, k) {
+      return '<button type="button" data-img="' + k + '" aria-label="View screenshot ' + (k + 1) + '"><img src="' + esc(im.url) + '" alt=""></button>';
     }).join("");
+    $("reviewTextBox").hidden = r.src !== "image" || !r.text;
+    $("reviewText").textContent = r.text;
+
+    $("reviewList").innerHTML = main.length ? main.map(cardHtml).join("") : '<p class="empty">Nothing new to add. Everything here is already in your notes.</p>';
+    $("showUnchangedRow").hidden = !same.length;
+    $("showUnchangedText").textContent = "Show " + same.length + (same.length === 1 ? " line" : " lines") + " with no change";
+    $("reviewUnchanged").hidden = !$("showUnchanged").checked;
+    $("reviewUnchanged").innerHTML = $("showUnchanged").checked ? same.map(cardHtml).join("") : "";
     updateApplyLabel();
   }
 
-  function readReviewItem(el) {
-    function val(f) { var x = el.querySelector('[data-field="' + f + '"]'); return x ? x.value : ""; }
-    var p = proposals[Number(el.getAttribute("data-i"))];
-    return {
-      include: el.querySelector('[data-field="include"]').checked,
-      desc: val("desc").trim(),
-      customer: val("customer").trim(),
-      folder: val("folder").trim(),
-      category: val("category"),
-      estimator: val("estimator").trim(),
-      matchId: p.matchId,
-      action: p.matchId ? val("action") : "new"
-    };
+  function rerenderCard(it) {
+    var el = document.querySelector('.rv[data-i="' + it.i + '"]');
+    if (el) el.outerHTML = cardHtml(it);
+    updateApplyLabel();
   }
 
-  function willUpdate(r) {
-    if (r.action !== "update" || !r.matchId) return false;
-    var t = findTask(r.matchId);
-    if (!t || t.done) return false;
-    // If the folder # or customer was edited away from the match, treat it as new.
-    return r.folder ? sameKey(t.folder, r.folder) : (sameKey(t.customer, r.customer) || (!t.customer && !r.customer));
+  function approvedItems() {
+    return review ? review.items.filter(function (it) { return it.decision === "approve" && it.action !== "skip"; }) : [];
   }
 
   function updateApplyLabel() {
-    var add = 0, update = 0;
-    var items = $("reviewList").querySelectorAll(".review-item");
-    for (var i = 0; i < items.length; i++) {
-      var r = readReviewItem(items[i]);
-      if (!r.include) continue;
-      if (willUpdate(r)) update++; else add++;
-    }
-    var parts = [];
-    if (add) parts.push("Add " + add);
-    if (update) parts.push((add ? "update " : "Update ") + update);
-    $("applyNotesBtn").textContent = parts.length ? parts.join(", ") + (add + update === 1 ? " task" : " tasks") : "Nothing selected";
-    $("applyNotesBtn").disabled = !parts.length;
+    var n = approvedItems().length;
+    $("applyNotesBtn").textContent = n ? "Apply " + n + (n === 1 ? " change" : " changes") : "Nothing approved";
+    $("applyNotesBtn").disabled = !n;
   }
 
-  function applyProposals() {
-    var items = $("reviewList").querySelectorAll(".review-item");
-    var reviewed = [];
-    for (var i = 0; i < items.length; i++) {
-      var r = readReviewItem(items[i]);
-      if (!r.include) continue;
-      if (!r.desc) {
-        showToast("A checked task has no description. Fill it in or uncheck it.", true);
-        items[i].querySelector('[data-field="desc"]').focus();
-        return;
-      }
-      reviewed.push(r);
+  function onReviewInput(e) {
+    var el = e.target, card = el.closest(".rv");
+    if (!card || !review) return;
+    var it = review.items[Number(card.getAttribute("data-i"))];
+    var f = el.getAttribute("data-f");
+    if (!it || !f) return;
+    var structural = false;
+    if (f === "text") it.text = el.value;
+    else if (f === "kind") {
+      it.kind = el.value;
+      it.action = DEFAULT_ACTION[it.kind];
+      if ((it.action === "complete" || it.action === "link") && !it.chosenTask && it.candidates[0]) it.chosenTask = it.candidates[0].taskId;
+      if (it.kind === "appointment" && !it.appt) it.appt = parseAppt(it.text, review.date);
+      structural = true;
+    } else if (f === "action") {
+      it.action = el.value;
+      if ((it.action === "complete" || it.action === "link") && !it.chosenTask && it.candidates[0] && it.candidates[0].level !== "low") it.chosenTask = it.candidates[0].taskId;
+      if (it.action === "appt" && !it.appt) it.appt = parseAppt(it.text, review.date);
+      structural = true;
+    } else if (f === "task" || f === "taskAny") { it.chosenTask = el.value; structural = true; }
+    else if (f === "apptDate" || f === "apptTime" || f === "apptOk") {
+      it.appt = it.appt || { date: "", time: "", confirmed: false, notes: [] };
+      if (f === "apptDate") it.appt.date = el.value;
+      else if (f === "apptTime") it.appt.time = el.value;
+      else it.appt.confirmed = el.checked;
+    } else if (f in it.fields) {
+      it.fields[f] = el.value;
+      if (f === "customer") { it.fields.customerGuess = false; el.classList.remove("guess"); }
     }
+    if (structural && e.type === "change") rerenderCard(it);
+  }
 
-    var added = 0, updated = 0, now = new Date().toISOString();
-    reviewed.forEach(function (r) {
-      if (r.estimator) saveLastEstimator(r.estimator);
-      if (willUpdate(r)) {
-        var t = findTask(r.matchId);
-        if (t.desc.toLowerCase().indexOf(r.desc.toLowerCase()) === -1) t.desc = (t.desc + " | " + r.desc).slice(0, 300);
-        if (!t.customer && r.customer) t.customer = r.customer;
-        if (!t.folder && r.folder) t.folder = r.folder;
-        if (!t.estimator && r.estimator) t.estimator = r.estimator;
-        t.example = false;
-        updated++;
-      } else {
-        tasks.push({
-          id: makeId(), customer: r.customer, folder: r.folder, desc: r.desc, category: r.category,
-          estimator: r.estimator, createdAt: now, done: false, completedAt: null, example: false
-        });
-        added++;
-      }
+  function onReviewClick(e) {
+    var img = e.target.closest("[data-img]");
+    if (img) { openImage(Number(img.getAttribute("data-img"))); return; }
+    var b = e.target.closest("[data-d]");
+    if (!b || !review) return;
+    var it = review.items[Number(b.closest(".rv").getAttribute("data-i"))];
+    var d = b.getAttribute("data-d");
+    it.decision = it.decision === d ? "pending" : d;
+    rerenderCard(it);
+  }
+
+  function approveAll() {
+    if (!review) return;
+    var n = 0;
+    review.items.forEach(function (it) {
+      if (it.unchanged || it.action === "skip" || it.action === "complete" || it.decision === "approve") return;
+      if (it.decision === "skip") return;
+      it.decision = "approve"; n++;
     });
+    renderReview();
+    var left = review.items.filter(function (it) { return !it.unchanged && it.decision === "pending"; }).length;
+    showToast(n ? "Approved " + n + (left ? ". Task completions still need your own approval." : "") : "Nothing else to approve" + (left ? ". Task completions need your own approval." : ""));
+  }
 
-    saveTasks();
-    closeReview();
-    $("notesInput").value = "";
-    if (!editingId) $("fEstimator").value = loadLastEstimator();
-    render();
-    var msg = [];
-    if (added) msg.push("Added " + added);
-    if (updated) msg.push((added ? "updated " : "Updated ") + updated);
-    showToast(msg.join(", ") + (added + updated === 1 ? " task" : " tasks"));
+  function openImage(k) {
+    var im = review && review.images[k];
+    if (!im) return;
+    $("imageViewImg").src = im.url;
+    $("imageView").hidden = false;
+    $("imageViewClose").focus();
   }
 
   function closeReview() {
-    proposals = [];
+    if (review) review.images.forEach(function (im) { try { URL.revokeObjectURL(im.url); } catch (e) { /* ignore */ } });
+    review = null;
     $("reviewList").innerHTML = "";
+    $("reviewUnchanged").innerHTML = "";
+    $("reviewImages").innerHTML = "";
+    $("reviewText").textContent = "";
+    $("imageViewImg").removeAttribute("src");
     $("reviewPanel").hidden = true;
   }
 
-  /* ---------- 9. Read text from images ----------
-     Uses Tesseract.js, which runs inside this browser. The engine and
-     English language data (a few MB) download from jsDelivr the first
-     time; after that the browser usually has them cached. The image
-     itself is never uploaded anywhere. */
+  function reviewError(it, msg) {
+    showToast(msg, true);
+    var el = document.querySelector('.rv[data-i="' + it.i + '"]');
+    if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("flash"); setTimeout(function () { el.classList.remove("flash"); }, 1600); }
+  }
 
+  // Applies approved changes. Saved tasks and notes change only here.
+  function applyReview() {
+    var r = review;
+    if (!r) return;
+    var chosen = approvedItems();
+    for (var c = 0; c < chosen.length; c++) {
+      var it = chosen[c];
+      it.text = it.text.trim().slice(0, MAX_LINE_LEN);
+      if (!it.text) return reviewError(it, "An approved line has no text. Fill it in or skip it.");
+      if (it.action === "task" && !it.fields.desc.trim()) return reviewError(it, "An approved task has no description.");
+      if ((it.action === "link" || it.action === "complete") && !findTask(it.chosenTask)) {
+        return reviewError(it, "Pick which task this is, or choose a different action.");
+      }
+    }
+    var beforeTasks = JSON.stringify(tasks), beforeNotes = JSON.stringify(notebook);
+    var now = new Date().toISOString(), importId = r.src === "notebook" ? "" : makeId();
+    var blocks = {}, n = { lines: 0, tasks: 0, done: 0, linked: 0, updated: 0 };
+
+    chosen.forEach(function (it) {
+      var found = it.lineId ? findLine(it.lineId) : null;
+      var line = found && found.line, date = found ? found.date : r.date;
+      if (!line) {
+        if (!blocks[it.group]) blocks[it.group] = makeId();
+        line = newLine(it.text, blocks[it.group], r.src === "image" ? "image" : "text", importId);
+        if (it.raw && it.raw !== it.text) line.orig = it.raw.slice(0, MAX_LINE_LEN);
+        ensureDay(r.date).push(line);
+        n.lines++;
+      } else {
+        // Re-imports never overwrite what's already on the page; only lines
+        // being reviewed in place ("Suggest tasks") take the edited wording.
+        if (r.src === "notebook" && it.text !== line.text) { if (!line.orig) line.orig = line.text; line.text = it.text; line.editedAt = now; }
+        n.updated++;
+      }
+      // What the screenshot showed is kept separately from done / highlighted.
+      if (it.marks.length) {
+        var vis = line.vis.slice();
+        it.marks.forEach(function (m) {
+          if (!vis.some(function (v) { return v.mark === m.mark; })) vis.push({ mark: m.mark, level: m.level });
+        });
+        line.vis = normalizeVis(vis);
+      }
+      var hl = markOf(it, "highlight");
+      if (hl && hl.level === "likely" && (settings.highlightMeans === "important" ||
+          (settings.highlightMeans === "done" && (it.action === "done" || it.action === "complete" || it.action === "update")))) line.hl = true;
+
+      var kindFor = { task: "followup", link: "followup", followup: "followup", appt: "appointment", info: "reference" };
+      if (kindFor[it.action]) line.kind = kindFor[it.action];
+      else if ((it.action === "done" || it.action === "complete") && !line.kind && KINDS.indexOf(it.kind) !== -1) line.kind = it.kind;
+      if (it.action === "appt") line.appt = normalizeAppt(it.appt);
+      if (it.action === "done" || it.action === "complete") { if (!line.done) { line.done = true; line.doneAt = now; } }
+
+      var label = formatDate(date);
+      if (it.action === "task") {
+        var f = it.fields;
+        var t = normalizeTask({
+          id: makeId(), customer: f.customer.trim(), folder: f.folder.trim(), desc: f.desc.trim(), category: f.category,
+          estimator: f.estimator.trim(), createdAt: now, done: false, completedAt: null, example: false,
+          noteRef: { date: date, lineId: line.id }, log: []
+        });
+        tasks.push(t);
+        line.taskId = t.id;
+        if (t.estimator) saveLastEstimator(t.estimator);
+        n.tasks++;
+      } else if (it.action === "link" || it.action === "complete") {
+        var task = findTask(it.chosenTask);
+        line.taskId = task.id;
+        if (!task.noteRef) task.noteRef = { date: date, lineId: line.id };
+        if (it.action === "complete" && !task.done) {
+          task.done = true;
+          task.completedAt = now;
+          addLog(task, "Completed from daily notes (" + label + "): “" + line.text + "”");
+          n.done++;
+        } else {
+          addLog(task, "Linked to a note (" + label + "): “" + line.text + "”");
+          n.linked++;
+        }
+        task.example = false;
+      }
+    });
+
+    if (!saveTasks() || !saveNotebook()) {
+      tasks = JSON.parse(beforeTasks);
+      notebook = JSON.parse(beforeNotes);
+      saveTasks(); saveNotebook();
+      showToast("Couldn't save, so nothing was changed. Storage may be full.", true);
+      render();
+      return;
+    }
+    if (importId) {
+      importLog.unshift({ id: importId, at: now, date: r.date, src: r.src === "image" ? "image" : "text", name: r.name, text: r.text.slice(0, 20000), lines: n.lines });
+      importLog = importLog.slice(0, MAX_IMPORT_LOG);
+      saveImportLog();
+      $("notesInput").value = "";
+    }
+    var date = r.date;
+    closeReview();
+    if (!editingId) $("fEstimator").value = loadLastEstimator();
+    var msg = [];
+    if (n.lines) msg.push(n.lines + (n.lines === 1 ? " note" : " notes") + " added");
+    if (n.updated) msg.push(n.updated + (n.updated === 1 ? " note" : " notes") + " updated");
+    if (n.tasks) msg.push(n.tasks + (n.tasks === 1 ? " task" : " tasks") + " created");
+    if (n.done) msg.push(n.done + (n.done === 1 ? " task" : " tasks") + " completed");
+    if (n.linked) msg.push(n.linked + " linked");
+    if (settings.view === "notes" && date !== viewDate) viewDate = date;
+    render();
+    showToast(msg.join(", ") || "Done");
+  }
+
+  /* ---------- 11. Visual marks and reading images ----------
+     OCR reads letters only; it does not "see" highlighter or crossed-out
+     lines, and marked lines often come back garbled or missing. So before
+     OCR, the image is examined on a <canvas> on this device:
+       1. Find the page background color (most common color).
+       2. Sort every pixel into background, ink (dark/light text) or
+          marker color (bright, saturated: highlighter).
+       3. Find long horizontal strokes (strike-throughs, underlines, rules).
+       4. Build a clean black-on-white copy with marker color and long
+          strokes removed. That copy is what OCR reads.
+     After OCR, each text line's box is checked for marker color, a stroke
+     through its middle, or a filled checkbox to its left. Results are
+     "likely" or "possible" -- never certain -- and always shown for review. */
+  var Vision = (function () {
+    var MAX_PIXELS = 9000000;  // larger images are scaled down first
+
+    function lum(r, g, b) { return (r * 0.299 + g * 0.587 + b * 0.114) / 255; }
+
+    // Returns an analysis object, or throws.
+    function prepare(source) {
+      var W0 = source.naturalWidth || source.width, H0 = source.naturalHeight || source.height;
+      if (!W0 || !H0) throw new Error("empty image");
+      var scale = Math.min(1, Math.sqrt(MAX_PIXELS / (W0 * H0)));
+      var W = Math.max(1, Math.round(W0 * scale)), H = Math.max(1, Math.round(H0 * scale));
+      var c = document.createElement("canvas");
+      c.width = W; c.height = H;
+      var ctx = c.getContext("2d");
+      ctx.drawImage(source, 0, 0, W, H);
+      var img = ctx.getImageData(0, 0, W, H), d = img.data, n = W * H;
+
+      // 1. Background = most common color (quantized to 16 levels per channel).
+      var hist = new Uint32Array(4096), bestK = 0;
+      for (var i = 0; i < d.length; i += 4) {
+        var k = (d[i] >> 4) << 8 | (d[i + 1] >> 4) << 4 | (d[i + 2] >> 4);
+        if (++hist[k] > hist[bestK]) bestK = k;
+      }
+      var bg = [((bestK >> 8) & 15) * 16 + 8, ((bestK >> 4) & 15) * 16 + 8, (bestK & 15) * 16 + 8];
+      var bgL = lum(bg[0], bg[1], bg[2]), darkBg = bgL < 0.5;
+
+      // 2. Classify: 0 background, 1 ink, 2 marker color.
+      var cls = new Uint8Array(n);
+      for (var p = 0, j = 0; p < n; p++, j += 4) {
+        var r = d[j], g = d[j + 1], b = d[j + 2];
+        var mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+        var L = lum(r, g, b);
+        var dist = Math.abs(r - bg[0]) + Math.abs(g - bg[1]) + Math.abs(b - bg[2]);
+        var saturated = dist > 60 && mx - mn > 45 && (mx - mn) / mx > 0.25;
+        if (saturated && L > (darkBg ? 0.25 : 0.5)) cls[p] = 2;                       // highlighter color
+        else if (darkBg ? L > bgL + 0.3 : L < bgL - 0.3) cls[p] = 1;                  // text / pen
+        else cls[p] = 0;
+      }
+
+      // 3. Long horizontal strokes in the ink layer.
+      var strokes = findStrokes(cls, W, H);
+
+      // 4. Clean copy for OCR: ink black, everything else white, strokes erased.
+      var keep = new Uint8Array(n);
+      for (p = 0; p < n; p++) keep[p] = cls[p] === 1 ? 1 : 0;
+      // Where a letter crosses the stroke (ink just above and just below it),
+      // the pixels are kept so the letter isn't cut in half.
+      strokes.forEach(function (s) {
+        var top = {}, bot = {};
+        s.runs.forEach(function (run) {
+          for (var x = run[1]; x <= run[2]; x++) {
+            if (top[x] === undefined || run[0] < top[x]) top[x] = run[0];
+            if (bot[x] === undefined || run[0] > bot[x]) bot[x] = run[0];
+          }
+        });
+        Object.keys(top).forEach(function (k) {
+          var x = Number(k), t = top[x], u = bot[x];
+          var above = t > 1 && (cls[(t - 1) * W + x] === 1 || cls[(t - 2) * W + x] === 1);
+          var below = u < H - 2 && (cls[(u + 1) * W + x] === 1 || cls[(u + 2) * W + x] === 1);
+          if (above && below) return;
+          for (var y = t; y <= u; y++) keep[y * W + x] = 0;
+        });
+      });
+      for (p = 0, j = 0; p < n; p++, j += 4) {
+        var v = keep[p] ? 0 : 255;
+        d[j] = d[j + 1] = d[j + 2] = v; d[j + 3] = 255;
+      }
+      ctx.putImageData(img, 0, 0);
+
+      return { W: W, H: H, scale: scale, cls: cls, strokes: strokes, darkBg: darkBg, canvas: c };
+    }
+
+    // Horizontal runs of ink, chained across neighbouring rows so slightly
+    // slanted pen lines count too. Letters never form long chains because
+    // their vertical strokes break the runs.
+    function findStrokes(cls, W, H) {
+      var MIN_RUN = 6, minLen = Math.max(40, Math.round(W * 0.05));
+      var prev = [], strokes = [];
+      for (var y = 0; y < H; y++) {
+        var row = [], x = 0, base = y * W;
+        while (x < W) {
+          if (cls[base + x] !== 1) { x++; continue; }
+          var x0 = x, gap = 0;
+          while (x < W && gap <= 1) { if (cls[base + x] === 1) gap = 0; else gap++; x++; }
+          var x1 = x - gap - 1;
+          if (x1 - x0 + 1 >= MIN_RUN) row.push({ y: y, x0: x0, x1: x1, chain: null });
+        }
+        row.forEach(function (run) {
+          for (var i = 0; i < prev.length; i++) {
+            var pr = prev[i];
+            if (run.x0 <= pr.x1 + 2 && run.x1 >= pr.x0 - 2) {
+              if (!run.chain) { run.chain = pr.chain; }
+              else if (run.chain !== pr.chain) { mergeChain(run.chain, pr.chain); }
+            }
+          }
+          if (!run.chain) { run.chain = { runs: [], x0: run.x0, x1: run.x1, y0: y, y1: y, px: 0, dead: false }; strokes.push(run.chain); }
+          run.chain = live(run.chain);
+          var ch = run.chain;
+          ch.runs.push([y, run.x0, run.x1]);
+          ch.x0 = Math.min(ch.x0, run.x0); ch.x1 = Math.max(ch.x1, run.x1);
+          ch.y1 = Math.max(ch.y1, y); ch.px += run.x1 - run.x0 + 1;
+        });
+        prev = row;
+      }
+      return strokes.filter(function (s) {
+        if (s.dead) return false;
+        var w = s.x1 - s.x0 + 1, h = s.y1 - s.y0 + 1;
+        var thick = s.px / w;                     // average stroke thickness
+        return w >= minLen && thick <= 14 && h <= Math.max(16, w * 0.2);
+      }).map(function (s) { return { x0: s.x0, x1: s.x1, y0: s.y0, y1: s.y1, runs: s.runs }; });
+    }
+
+    function live(ch) { while (ch.into) ch = ch.into; return ch; }
+
+    function mergeChain(a, b) {
+      a = live(a); b = live(b);
+      if (a === b) return;
+      b.runs.forEach(function (r) { a.runs.push(r); });
+      a.x0 = Math.min(a.x0, b.x0); a.x1 = Math.max(a.x1, b.x1);
+      a.y0 = Math.min(a.y0, b.y0); a.y1 = Math.max(a.y1, b.y1); a.px += b.px;
+      b.dead = true; b.into = a; b.runs = [];
+    }
+
+    function count(an, x0, y0, x1, y1, want) {
+      x0 = Math.max(0, Math.floor(x0)); y0 = Math.max(0, Math.floor(y0));
+      x1 = Math.min(an.W - 1, Math.ceil(x1)); y1 = Math.min(an.H - 1, Math.ceil(y1));
+      var hit = 0, total = 0;
+      for (var y = y0; y <= y1; y++) for (var x = x0; x <= x1; x++) { total++; if (an.cls[y * an.W + x] === want) hit++; }
+      return total ? hit / total : 0;
+    }
+
+    var BOX_TOKEN = /^(?:[^a-z0-9]{1,2}|[oO0Q@©®eG]{1,2}|\[\s?\]|\(\s?\))$/;
+
+    // line: { bbox:{x0,y0,x1,y1}, words:[{text,bbox}] } in analysis pixels.
+    // Returns { highlight, strike, check, dropFirstWord } (each null or { level, detail }).
+    function marksForLine(an, line) {
+      var b = line.bbox, h = Math.max(4, b.y1 - b.y0), w = Math.max(1, b.x1 - b.x0);
+      var words = line.words || [];
+      var out = { highlight: null, strike: null, check: null, dropFirstWord: false };
+
+      // Checkbox: a junk first "word" (OCR's reading of a circle/box) or the area left of the text.
+      var first = words[0], box = null, textX0 = b.x0;
+      if (first && BOX_TOKEN.test(first.text.trim()) && words.length > 1 &&
+          first.bbox.x1 - first.bbox.x0 <= h * 1.8) {
+        box = first.bbox; out.dropFirstWord = true; textX0 = words[1].bbox.x0;
+      } else if (b.x0 > h * 0.6) {
+        box = { x0: b.x0 - h * 1.9, y0: b.y0, x1: b.x0 - h * 0.25, y1: b.y1 };
+      }
+      if (box) {
+        var colorFill = count(an, box.x0, box.y0, box.x1, box.y1, 2);
+        var inkFill = count(an, box.x0, box.y0, box.x1, box.y1, 1);
+        if (colorFill > 0.3) out.check = { level: "likely", detail: "filled checkbox" };
+        else if (colorFill > 0.15 || inkFill > 0.45) out.check = { level: "possible", detail: "filled mark beside the line" };
+      }
+
+      // Highlighter: marker color across the text.
+      var hl = count(an, textX0, b.y0 - h * 0.1, b.x1, b.y1 + h * 0.1, 2);
+      if (hl > 0.4) out.highlight = { level: "likely", detail: Math.round(hl * 100) + "% colored" };
+      else if (hl > 0.2) out.highlight = { level: "possible", detail: Math.round(hl * 100) + "% colored" };
+
+      // Strike-through: a long stroke through the middle band of the line.
+      var midTop = b.y0 + h * 0.2, midBot = b.y1 - h * 0.2, textW = Math.max(1, b.x1 - textX0);
+      var cover = 0;
+      an.strokes.forEach(function (s) {
+        var cy = (s.y0 + s.y1) / 2;
+        if (cy < midTop || cy > midBot) return;            // underline or a different line
+        var ov = Math.min(s.x1, b.x1) - Math.max(s.x0, textX0);
+        if (ov > 0) cover += ov / textW;
+      });
+      if (cover >= 0.6) out.strike = { level: "likely", detail: "line through " + Math.round(Math.min(cover, 1) * 100) + "% of the text" };
+      else if (cover >= 0.3) out.strike = { level: "possible", detail: "line through part of the text" };
+      return out;
+    }
+
+    return { prepare: prepare, marksForLine: marksForLine };
+  })();
+
+  /* Reading images. Tesseract.js runs inside this browser (a Web Worker).
+     The first time, the browser downloads the reader engine and English
+     data (several MB) from jsDelivr; after that they are usually cached.
+     The image itself is never uploaded, and is not saved: it is kept in
+     memory only while you review it. Only the text read from it is saved
+     (in Import history), and you can delete that. */
   var ocrLoad = null;   // promise for the script
   var ocrWorker = null; // promise for a ready worker
   var ocrBusy = false;
@@ -1687,6 +3638,8 @@
     ocrLoad = new Promise(function (resolve, reject) {
       var s = document.createElement("script");
       s.src = OCR_SCRIPT_URL;
+      s.integrity = OCR_SCRIPT_SRI;     // refuse the script if it was changed
+      s.crossOrigin = "anonymous";
       s.async = true;
       s.onload = function () { window.Tesseract ? resolve() : reject(new Error("missing")); };
       s.onerror = function () { reject(new Error("load")); };
@@ -1700,6 +3653,9 @@
     if (ocrWorker) return ocrWorker;
     ocrWorker = loadOcrScript().then(function () {
       return window.Tesseract.createWorker(OCR_LANGUAGE, 1, {
+        workerPath: OCR_PATHS.workerPath,
+        corePath: OCR_PATHS.corePath,
+        langPath: OCR_PATHS.langPath,
         logger: function (m) {
           if (m.status === "recognizing text") setOcrStatus("Reading text…", m.progress);
           else if (/load|initializ/i.test(m.status || "")) setOcrStatus("Getting the text reader ready…", m.progress);
@@ -1719,16 +3675,78 @@
     if (typeof progress === "number") $("ocrBar").firstChild.style.width = Math.round(progress * 100) + "%";
   }
 
-  function cleanOcrText(text) {
-    return String(text || "")
-      .split(/\r?\n/)
-      .map(function (l) { return l.replace(/[|_]{2,}/g, " ").replace(/\s{2,}/g, " ").trim(); })
-      .join("\n")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
+  function cleanOcrLine(l) {
+    return String(l || "").replace(/[|_]{2,}/g, " ").replace(/\s{2,}/g, " ").trim();
   }
 
-  // Reads one or more images, adds their text to the notes box, then opens the review.
+  function loadImage(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file);
+      var el = new Image();
+      el.onload = function () { resolve({ el: el, url: url }); };
+      el.onerror = function () { URL.revokeObjectURL(url); reject(new Error("image")); };
+      el.src = url;
+    });
+  }
+
+  // A small picture of one line (with room on the left for a checkbox), kept only during review.
+  function cropLine(img, an, b) {
+    try {
+      var s = an ? an.scale : 1, h = (b.y1 - b.y0) / s;
+      var x0 = Math.max(0, b.x0 / s - h * 2), y0 = Math.max(0, b.y0 / s - h * 0.35);
+      var x1 = Math.min(img.naturalWidth, b.x1 / s + h * 0.5), y1 = Math.min(img.naturalHeight, b.y1 / s + h * 0.35);
+      var w = x1 - x0, hh = y1 - y0;
+      if (w < 4 || hh < 4) return "";
+      var k = Math.min(1, 900 / w);
+      var c = document.createElement("canvas");
+      c.width = Math.round(w * k); c.height = Math.round(hh * k);
+      c.getContext("2d").drawImage(img, x0, y0, w, hh, 0, 0, c.width, c.height);
+      return c.toDataURL("image/jpeg", 0.8);
+    } catch (e) { return ""; }
+  }
+
+  function ocrLines(data) {
+    if (data && Array.isArray(data.lines) && data.lines.length) return data.lines;
+    var out = [];
+    ((data && data.blocks) || []).forEach(function (bl) {
+      (bl.paragraphs || []).forEach(function (p) { (p.lines || []).forEach(function (l) { out.push(l); }); });
+    });
+    return out;
+  }
+
+  // Turns one image's OCR result into review lines with their visual marks.
+  function collectLines(data, an, img, k) {
+    var lines = ocrLines(data).filter(function (l) { return l && l.bbox; });
+    var hs = lines.map(function (l) { return l.bbox.y1 - l.bbox.y0; }).sort(function (a, b) { return a - b; });
+    var medianH = hs.length ? hs[Math.floor(hs.length / 2)] : 20;
+    var out = [], prev = null, gi = 0, texts = [];
+    lines.forEach(function (l) {
+      var marks = an ? Vision.marksForLine(an, l) : null;
+      var words = (l.words || []).filter(function (w) { return w && w.text; });
+      var text = marks && marks.dropFirstWord && words.length > 1
+        ? words.slice(1).map(function (w) { return w.text; }).join(" ")
+        : String(l.text || "");
+      text = cleanOcrLine(text);
+      if (text.replace(/[^a-z0-9]/gi, "").length < 2) return;
+      if (prev && l.bbox.y0 - prev.y1 > medianH * 0.9) gi++;
+      prev = l.bbox;
+      texts.push(text);
+      var ml = [];
+      if (marks) ["highlight", "strike", "check"].forEach(function (m) {
+        if (marks[m]) ml.push({ mark: m, level: marks[m].level, detail: marks[m].detail });
+      });
+      var tm = textMarks(text);
+      tm.marks.forEach(function (m) { if (!ml.some(function (x) { return x.mark === m.mark; })) ml.push(m); });
+      out.push({
+        text: tm.text.slice(0, MAX_LINE_LEN), raw: text, group: "i" + k + ":" + gi, marks: ml,
+        ocrConf: typeof l.confidence === "number" ? l.confidence : null,
+        crop: cropLine(img, an, l.bbox), imageIdx: k
+      });
+    });
+    return { lines: out, text: texts.join("\n") };
+  }
+
+  // Reads one or more images, then opens the review.
   function readImages(files) {
     var images = Array.prototype.filter.call(files || [], function (f) { return f && /^image\//.test(f.type); });
     if (!images.length) { showToast("That isn't an image. Drop a screenshot, snippet or photo.", true); return; }
@@ -1737,34 +3755,47 @@
     if (tooBig.length) { showToast("That image is too large (over 15 MB).", true); return; }
 
     ocrBusy = true;
+    var date = $("importDate").value || todayKey();
+    var results = [], noMarks = 0;
     setOcrStatus("Getting the text reader ready…", 0);
-    var allText = [];
 
     getOcrWorker().then(function (worker) {
       var chain = Promise.resolve();
-      images.forEach(function (img, i) {
+      images.forEach(function (file, k) {
         chain = chain.then(function () {
-          setOcrStatus("Reading image " + (i + 1) + " of " + images.length + "…", 0);
-          return worker.recognize(img).then(function (res) {
-            var t = cleanOcrText(res && res.data && res.data.text);
-            if (t) allText.push(t);
+          setOcrStatus("Reading image " + (k + 1) + " of " + images.length + "…", 0);
+          return loadImage(file).then(function (img) {
+            var an = null;
+            try { an = Vision.prepare(img.el); } catch (e) { an = null; noMarks++; }
+            return worker.recognize(an ? an.canvas : file).then(function (res) {
+              var got = collectLines(res && res.data, an, img.el, k);
+              if (an) an.canvas.width = an.canvas.height = 0;   // free memory
+              results.push({ url: img.url, name: file.name || "screenshot", lines: got.lines, text: got.text });
+            });
           });
         });
       });
       return chain;
     }).then(function () {
       ocrBusy = false;
-      if (!allText.length) {
-        setOcrStatus("No text found in that image. Try a sharper or larger snippet.", null, true);
+      var raw = [];
+      results.forEach(function (r) { raw = raw.concat(r.lines); });
+      if (!raw.length) {
+        results.forEach(function (r) { URL.revokeObjectURL(r.url); });
+        setOcrStatus("No text found in that image. Try a sharper or larger screenshot.", null, true);
         return;
       }
-      setOcrStatus("");
-      var box = $("notesInput");
-      box.value = (box.value.trim() ? box.value.trim() + "\n\n" : "") + allText.join("\n\n");
-      readNotes();
+      setOcrStatus(noMarks ? "Read the text, but couldn't check the image for highlights or cross-outs." : "", null, !!noMarks);
+      startReview(raw, {
+        src: "image", date: date,
+        images: results.map(function (r) { return { url: r.url, name: r.name }; }),
+        text: results.map(function (r) { return r.text; }).join("\n\n"),
+        name: results.length === 1 ? results[0].name : results.length + " screenshots"
+      });
     }).catch(function (err) {
       ocrBusy = false;
-      var offline = err && /load|missing|fetch|network/i.test(String(err.message || err));
+      results.forEach(function (r) { URL.revokeObjectURL(r.url); });
+      var offline = err && /load|missing|fetch|network|integrity/i.test(String(err.message || err));
       setOcrStatus(offline
         ? "Couldn't load the text reader. It needs an internet connection the first time you read an image."
         : "Couldn't read that image. Try again, or paste the text instead.", null, true);
@@ -1783,7 +3814,7 @@
     return files;
   }
 
-  /* ---------- 10. Event wiring, keyboard shortcuts and startup ---------- */
+  /* ---------- 12. Event wiring, keyboard shortcuts and startup ---------- */
   function isTyping(el) {
     return el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable);
   }
@@ -1830,19 +3861,90 @@
       else if (action === "delete") deleteTask(id);
     });
 
-    // Notes, review
+    // Views
+    Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (b) {
+      b.addEventListener("click", function () {
+        var v = b.getAttribute("data-tab");
+        if (v === "notes" && settings.view !== "notes") viewDate = todayKey() >= viewDate ? viewDate : todayKey();
+        setView(v);
+      });
+    });
+
+    // Daily notes page
+    $("prevDayBtn").addEventListener("click", function () { var k = stepDay(viewDate, -1); if (k) goToDay(k); });
+    $("nextDayBtn").addEventListener("click", function () { var k = stepDay(viewDate, 1); if (k) goToDay(k); });
+    $("todayBtn").addEventListener("click", function () { goToDay(todayKey()); });
+    $("writeBtn").addEventListener("click", function () { $("noteEntry").focus(); $("noteEntry").scrollIntoView({ behavior: "smooth", block: "center" }); });
+    $("hlModeBtn").addEventListener("click", function () {
+      hlMode = !hlMode;
+      render();
+      showToast(hlMode ? "Highlighter on: tap lines to highlight them" : "Highlighter off");
+    });
+    $("hideDone").addEventListener("change", function (e) { settings.hideDone = e.target.checked; saveSettings(); render(); });
+    $("reviewPageBtn").addEventListener("click", function () { reviewLines(dayLines(viewDate), viewDate); });
+    $("addNoteBtn").addEventListener("click", addNoteFromEntry);
+    $("noteEntry").addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); addNoteFromEntry(); }
+    });
+    $("noteEntry").addEventListener("input", function () { clearTimeout(draftTimer); draftTimer = setTimeout(saveDraft, 400); });
+    $("noteEntry").addEventListener("blur", saveDraft);
+    [$("pageLines"), $("openView")].forEach(function (el) {
+      el.addEventListener("click", onLineAction);
+      el.addEventListener("keydown", function (e) {
+        if ((e.key === "Enter" || e.key === " ") && e.target.classList.contains("ltext")) { e.preventDefault(); onLineAction(e); }
+      });
+    });
+    $("pageLines").addEventListener("click", function (e) {
+      if (e.target.id === "showDoneBtn") { settings.hideDone = false; saveSettings(); render(); }
+    });
+    $("openShowInfo").addEventListener("change", renderOpenView);
+    $("dayList").addEventListener("click", onLineAction);
+    $("noteSearchResults").addEventListener("click", onLineAction);
+    $("dayPicker").addEventListener("change", function (e) { if (isDateKey(e.target.value)) goToDay(e.target.value); });
+    $("noteSearch").addEventListener("input", renderNoteSearch);
+    $("hlMeaning").addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-v]");
+      if (!b) return;
+      settings.highlightMeans = b.getAttribute("data-v");
+      saveSettings();
+      render();
+    });
+
+    // Line sheet
+    $("lineSheet").addEventListener("click", function (e) { if (e.target === $("lineSheet")) closeLineSheet(); else onSheetAction(e); });
+    $("lsCancel").addEventListener("click", closeLineSheet);
+    $("lsSave").addEventListener("click", saveLineSheet);
+    $("lsDelete").addEventListener("click", deleteLineFromSheet);
+
+    // Import and review
     $("readNotesBtn").addEventListener("click", readNotes);
     $("clearNotesBtn").addEventListener("click", function () { $("notesInput").value = ""; setOcrStatus(""); $("notesInput").focus(); });
-    $("applyNotesBtn").addEventListener("click", applyProposals);
-    $("cancelReviewBtn").addEventListener("click", closeReview);
-    $("reviewList").addEventListener("change", function (e) {
-      var item = e.target.closest(".review-item");
-      if (item && e.target.getAttribute("data-field") === "include") item.classList.toggle("off", !e.target.checked);
-      updateApplyLabel();
+    $("applyNotesBtn").addEventListener("click", applyReview);
+    $("approveAllBtn").addEventListener("click", approveAll);
+    $("cancelReviewBtn").addEventListener("click", function () {
+      if (!review) return;
+      askConfirm("Close the review? Nothing from it will be saved.", "Close review", closeReview);
     });
-    $("reviewList").addEventListener("input", updateApplyLabel);
+    ["reviewList", "reviewUnchanged"].forEach(function (id) {
+      $(id).addEventListener("input", onReviewInput);
+      $(id).addEventListener("change", onReviewInput);
+      $(id).addEventListener("click", onReviewClick);
+    });
+    $("reviewImages").addEventListener("click", onReviewClick);
+    $("showUnchanged").addEventListener("change", renderReview);
+    $("imageView").addEventListener("click", function (e) { if (e.target === $("imageView") || e.target === $("imageViewClose")) $("imageView").hidden = true; });
     $("notesInput").addEventListener("keydown", function (e) {
       if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); readNotes(); }
+    });
+    $("importHistoryList").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-forget]");
+      if (!b) return;
+      var id = b.getAttribute("data-forget");
+      askConfirm("Delete this import record? Notes and tasks made from it are kept.", "Delete record", function () {
+        importLog = importLog.filter(function (x) { return x.id !== id; });
+        saveImportLog();
+        render();
+      });
     });
 
     // Images: choose, paste, drag and drop
@@ -1885,7 +3987,7 @@
       }
       // Dragged text (e.g. selected from an email) dropped outside the notes box
       var text = e.dataTransfer && e.dataTransfer.getData("text/plain");
-      if (text && e.target !== $("notesInput")) {
+      if (text && e.target !== $("notesInput") && e.target !== $("noteEntry") && !isTyping(e.target)) {
         e.preventDefault();
         var box = $("notesInput");
         box.value = (box.value.trim() ? box.value.trim() + "\n" : "") + text.trim();
@@ -1898,25 +4000,34 @@
     $("exportBtn").addEventListener("click", exportBackup);
     $("importBtn").addEventListener("click", function () { $("importFile").click(); });
     $("importFile").addEventListener("change", function (e) { importBackup(e.target.files[0]); e.target.value = ""; });
+    $("undoRestoreBtn").addEventListener("click", undoRestore);
 
     // Keyboard shortcuts (desktop)
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") {
         if (closeConfirm) { closeConfirm(false); return; }
-        if (!$("reviewPanel").hidden) { closeReview(); return; }
+        if (!$("imageView").hidden) { $("imageView").hidden = true; return; }
+        if (!$("lineSheet").hidden) { closeLineSheet(); return; }
+        if (hlMode) { hlMode = false; render(); return; }
         if (editingId) { resetForm(); render(); return; }
         if (isTyping(document.activeElement)) document.activeElement.blur();
         return;
       }
-      if (closeConfirm || isTyping(document.activeElement) || e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key === "n" || e.key === "N") { e.preventDefault(); $("fDesc").focus(); }
-      else if (e.key === "/") { e.preventDefault(); $("search").focus(); }
+      if (closeConfirm || !$("lineSheet").hidden || isTyping(document.activeElement) || e.ctrlKey || e.metaKey || e.altKey) return;
+      var onBoard = settings.view === "tasks";
+      if (e.key === "n" || e.key === "N") { e.preventDefault(); (onBoard ? $("fDesc") : $("noteEntry")).focus(); }
+      else if (e.key === "/") { e.preventDefault(); (onBoard ? $("search") : $("noteSearch")).focus(); }
     });
 
     // If the app stays open past midnight, refresh when you come back.
     var lastDay = todayKey();
     function checkDayChange() {
-      if (todayKey() !== lastDay) { lastDay = todayKey(); render(); }
+      if (todayKey() !== lastDay) {
+        if (viewDate === lastDay) viewDate = todayKey();   // follow "today" past midnight
+        lastDay = todayKey();
+        if (!review) $("importDate").value = viewDate;
+        render();
+      }
     }
     document.addEventListener("visibilitychange", function () { if (!document.hidden) checkDayChange(); });
     setInterval(checkDayChange, 60000);
@@ -1926,20 +4037,31 @@
     $("fCategory").innerHTML = optionList(CATEGORIES, CATEGORIES[0]);
     $("statStaleLabel").textContent = "Waiting " + STALE_DAYS + "+ days";
     renderCategoryChips();
-    tasks = loadTasks();
+    tasks = loadTasks();          // before migrating, so a brand-new install still gets the examples
+    migrateStorage();
+    notebook = loadNotebook();
+    settings = loadSettings();
+    importLog = loadImportLog();
+    viewDate = todayKey();
+    $("importDate").value = viewDate;
+    $("noteEntry").value = storageGet(DRAFT_KEY) || "";
     resetForm();
     wireEvents();
-    render();
+    setView(settings.view);
   }
 
   window.addEventListener("error", function () {
-    showToast("Something went wrong. Your saved tasks are safe; try refreshing.", true);
+    showToast("Something went wrong. Your saved notes and tasks are safe; try refreshing.", true);
   });
 
   init();
 
-  // Read-only hook for automated tests of the notes reader.
-  window.RepairPlannerTest = { parseNotes: parseNotes, analyzeLine: analyzeLine };
+  // Read-only hook for automated tests. Nothing here changes saved data.
+  window.RepairPlannerTest = {
+    parseNotes: parseNotes, analyzeLine: analyzeLine, classifyText: classifyText, parseAppt: parseAppt,
+    matchTasks: matchTasks, lineSim: lineSim, textMarks: textMarks, Vision: Vision, parseBackup: parseBackup,
+    review: function () { return review; }
+  };
 })();
 </script>
 </body>
