@@ -1,4 +1,4 @@
-/* Browser tests for Repair Advisor Planner v1.3.
+/* Browser tests for Repair Advisor Planner v1.3 and v1.4 (v1.4 sections: capture-tests.js).
    All customers and folder numbers are fictional.
 
    Setup (once):   cd tests && npm install && npx playwright install chromium
@@ -35,6 +35,10 @@ const KEYS = {
   schema: "repairAdvisorPlanner.schemaVersion",
   preV13: "repairAdvisorPlanner.tasks.v1.beforeV1_3",
   imports: "repairAdvisorPlanner.imports.v1",
+  captures: "repairAdvisorPlanner.captures.v1",
+  stickers: "repairAdvisorPlanner.stickers.v1",
+  snapshot: "repairAdvisorPlanner.dailySnapshot",
+  preV14: "repairAdvisorPlanner.notebook.v1.beforeV1_4",
   undo: "repairAdvisorPlanner.beforeRestore"
 };
 
@@ -357,7 +361,7 @@ async function imageImport(page, buffers, date) {
     const cl = day.find((l) => /10518/.test(l.text));
     const newTask = tasks.find((t) => t.folder === "10518");
     check("Note line and new task are linked both ways", cl.taskId === newTask.id && newTask.noteRef.lineId === cl.id);
-    check("Import recorded in history (text only)", (await store(page, KEYS.imports)).length === 1);
+    check("Import recorded as one capture (text only)", (await store(page, KEYS.captures)).items.length === 1);
     check("Appointment shows in Thursday's 'appointments' box", await (async () => { await page.fill("#dayPicker", "2026-11-05"); await page.dispatchEvent("#dayPicker", "change"); return /Smith called/.test(await page.textContent("#apptBox")); })());
 
     // Approve a completion this time.
@@ -368,7 +372,7 @@ async function imageImport(page, buffers, date) {
     tasks = await store(page, KEYS.tasks);
     const br = findTaskIn(tasks, "t-bracket");
     check("Approved completion marks the task done", br.done && br.completedAt);
-    check("Completion is logged on the task", /Completed from daily notes/.test(br.log[br.log.length - 1].text));
+    check("Completion is logged on the task", /^Completed from/.test(br.log[br.log.length - 1].text));
     check("Unrelated task in same folder untouched", !findTaskIn(tasks, "t-rental").done);
     check("No page errors", page.errors.length === 0, page.errors);
     await page.context().close();
@@ -465,8 +469,8 @@ async function imageImport(page, buffers, date) {
     const mline = day.find((l) => /mirror/.test(l.text));
     check("Crossed-out line saved as done, with the mark recorded", mline && mline.done && mline.vis.some((v) => v.mark === "strike"));
     check("Image itself not stored anywhere", !JSON.stringify(await page.evaluate(() => Object.assign({}, localStorage))).includes("data:image"));
-    const imp = await store(page, KEYS.imports);
-    check("Import history has the extracted text", imp.length === 1 && imp[0].src === "image" && /mirror/.test(imp[0].text));
+    const imp = (await store(page, KEYS.captures)).items;
+    check("Capture keeps the extracted text, no image", imp.length === 1 && imp[0].src === "image" && /mirror/.test(imp[0].text) && !imp[0].thumb);
 
     // Second screenshot later in the day: same lines + a new one
     const png2 = await notesScreenshot(browser, lines.concat([{ text: "10777 Lee - send supplement photos to adjuster" }]));
@@ -490,7 +494,7 @@ async function imageImport(page, buffers, date) {
     // Blank / unreadable image
     const blank = await notesScreenshot(browser, [{ text: " " }]);
     await page.setInputFiles("#imageFile", [{ name: "blank.png", mimeType: "image/png", buffer: blank }]);
-    await page.waitForFunction(() => /No text found/.test(document.getElementById("ocrStatusText").textContent), null, { timeout: 60000 });
+    await page.waitForFunction(() => /No readable text/.test(document.getElementById("ocrStatusText").textContent), null, { timeout: 60000 });
     check("Blank image: clear message, no review", await page.isHidden("#reviewPanel"));
     check("No page errors", page.errors.length === 0, page.errors);
     await page.context().close();
@@ -565,7 +569,7 @@ async function imageImport(page, buffers, date) {
     check("v1.2 tasks kept", tasks.length === 2 && tasks[0].desc === "Call adjuster about supplement" && tasks[1].done);
     check("No example tasks added for an existing user", !tasks.some((t) => t.example));
     check("Copy of v1.2 tasks kept before migrating", await page.evaluate((k) => localStorage.getItem(k), KEYS.preV13) === raw);
-    check("Storage version recorded", await page.evaluate((k) => localStorage.getItem(k), KEYS.schema) === "3");
+    check("Storage version recorded", await page.evaluate((k) => localStorage.getItem(k), KEYS.schema) === "4");
     check("Empty notebook created", JSON.stringify(await store(page, KEYS.notebook)) === JSON.stringify({ version: 1, days: {} }));
     await page.click('.tab[data-tab="tasks"]');
     check("Board shows the old tasks", (await page.$$("#carriedList .task")).length === 1 && (await page.$$("#completedList .task")).length === 1);
@@ -603,7 +607,7 @@ async function imageImport(page, buffers, date) {
     const file = path.join(OUT, "backup-v3.json");
     await dl.saveAs(file);
     const backup = JSON.parse(fs.readFileSync(file, "utf8"));
-    check("Backup has version 3, tasks, notebook and settings", backup.version === 3 && backup.tasks.length === 4 && backup.notebook.days["2026-11-02"].lines.length === 2 && backup.settings);
+    check("Backup has version 4, tasks, notebook, captures and settings", backup.version === 4 && backup.tasks.length === 4 && backup.notebook.days["2026-11-02"].lines.length === 2 && backup.settings && Array.isArray(backup.captures));
 
     // Wipe, then restore
     await page.evaluate(() => { localStorage.setItem("repairAdvisorPlanner.tasks.v1", "[]"); localStorage.setItem("repairAdvisorPlanner.notebook.v1", JSON.stringify({ version: 1, days: {} })); });
@@ -611,7 +615,7 @@ async function imageImport(page, buffers, date) {
     await page.click('.tab[data-tab="tasks"]');
     await page.setInputFiles("#importFile", file);
     await page.waitForSelector("#confirmBox:not([hidden])");
-    check("Restore asks first and names what's replaced", /0 tasks and 0 note lines/.test(await page.textContent("#confirmText")));
+    check("Restore asks first and names what's replaced", /0 tasks, 0 note lines and 0 captures/.test(await page.textContent("#confirmText")));
     await page.click("#confirmOk");
     check("Restore brings back tasks and notes", (await store(page, KEYS.tasks)).length === 4 && (await store(page, KEYS.notebook)).days["2026-11-02"].lines.length === 2);
     check("Restored notes visible", (await page.click('.tab[data-tab="notes"]'), (await lineTexts(page)).length === 2));
@@ -688,6 +692,8 @@ async function imageImport(page, buffers, date) {
       await page.context().close();
     }
   }
+
+  await require("./capture-tests.js")({ browser, open, check, section, store, cards, card, decide, apply, imageImport, KEYS, BASE_TASKS, task, OUT });
 
   await browser.close();
   console.log("\n" + passes + " passed, " + failures + " failed");
