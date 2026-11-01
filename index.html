@@ -283,6 +283,47 @@
   .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; visibility: visible; }
   .toast.error { background: var(--red); }
 
+  /* ---------- Add from notes ---------- */
+  textarea {
+    width: 100%;
+    min-height: 130px;
+    padding: 10px 12px;
+    border: 1.5px solid var(--gray-300);
+    border-radius: 10px;
+    background: var(--white);
+    font-size: 17px;
+    line-height: 1.4;
+    resize: vertical;
+  }
+  textarea:focus { border-color: var(--black); outline: none; }
+
+  .review { margin-bottom: 16px; border: 2px solid var(--black); }
+  .review-list { display: grid; gap: 10px; margin-bottom: 14px; }
+  .review-item {
+    border: 1.5px solid var(--gray-300);
+    border-radius: 10px;
+    padding: 10px;
+    display: grid;
+    gap: 8px;
+  }
+  .review-item.off { opacity: 0.5; }
+  .review-top { display: flex; gap: 10px; align-items: center; }
+  .review-top input[type="checkbox"] {
+    flex: none; width: 28px; height: 28px; margin: 0;
+    accent-color: var(--red);
+  }
+  .review-top input[type="text"] { flex: 1; min-width: 0; }
+  .review-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px;
+  }
+  .review-item label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--gray-700); }
+  .review-item label input, .review-item label select { min-height: 44px; min-width: 0; max-width: 100%; }
+  .review-grid > label { min-width: 0; }
+  .review-note { margin: 0; font-size: 14px; color: var(--gray-700); overflow-wrap: anywhere; }
+  .review-note.match { color: var(--ink); }
+
   /* ---------- Confirm box ---------- */
   .modal-backdrop {
     position: fixed; inset: 0; z-index: 20;
@@ -375,6 +416,19 @@
         </form>
       </section>
 
+      <section class="card" aria-labelledby="notesTitle">
+        <h2 id="notesTitle">Add from notes or photo</h2>
+        <p class="small">On iPad or iPhone: open the photo or screenshot, press and hold on the text (or tap the Live Text button), tap <strong>Select All</strong>, then <strong>Copy</strong>. Paste it below, one task per line. A folder # on its own line applies to the lines under it, up to the next blank line. You'll review everything before it's added.</p>
+        <div class="field">
+          <label for="notesInput" class="visually-hidden">Notes to turn into tasks</label>
+          <textarea id="notesInput" rows="5" spellcheck="false" placeholder="RO 90452 call adjuster re supplement asap&#10;90461 bumper on backorder, ETA Fri&#10;Sublet alignment for 90470 tomorrow"></textarea>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-dark" id="readNotesBtn">Read notes</button>
+          <button type="button" class="btn" id="clearNotesBtn">Clear</button>
+        </div>
+      </section>
+
       <section class="card" aria-labelledby="backupTitle">
         <h2 id="backupTitle">Backup</h2>
         <p class="small">Tasks are saved only in this browser on this device. Export a backup file regularly.</p>
@@ -389,6 +443,16 @@
 
     <!-- ===== Right column: filters and task lists ===== -->
     <div class="main-col">
+
+      <section class="card review" id="reviewPanel" aria-labelledby="reviewTitle" hidden>
+        <h2 id="reviewTitle">Review before adding</h2>
+        <p class="small" id="reviewSummary"></p>
+        <div class="review-list" id="reviewList"></div>
+        <div class="btn-row">
+          <button type="button" class="btn btn-primary" id="applyNotesBtn">Add tasks</button>
+          <button type="button" class="btn" id="cancelReviewBtn">Cancel</button>
+        </div>
+      </section>
 
       <div class="examples-banner" id="examplesBanner" hidden>
         <span>Showing fictional <strong>example tasks</strong> for demonstration.</span>
@@ -452,6 +516,7 @@
      5. Rendering
      6. Actions (add, edit, complete, delete)
      7. Backup (export / import)
+     7b. Add from notes (text copied from a photo)
      8. Event wiring and startup
    ============================================================== */
 (function () {
@@ -464,6 +529,19 @@
   var PRIORITIES = ["Normal", "High", "Urgent"];
   var CATEGORIES = ["Parts", "Supplements", "Sublet", "Customer", "Scheduling", "Delivery", "Other"];
   var PRIORITY_RANK = { Urgent: 0, High: 1, Normal: 2 };
+
+  // Words that point a pasted note to a category ("Add from notes").
+  // The category with the most matching words wins; ties go to the one
+  // listed first. Add your shop's own shorthand here. Lowercase only.
+  var CATEGORY_KEYWORDS = {
+    Supplements: ["supplement", "supplements", "supp", "adjuster", "appraiser", "insurance", "ins", "claim", "estimate", "approval", "approved", "reinspect", "re-inspect", "teardown", "hidden damage", "rates"],
+    Sublet: ["sublet", "alignment", "align", "glass", "windshield", "calibrate", "calibration", "adas", "tow", "towing", "mechanical", "mechanic", "a/c", "pdr", "upholstery"],
+    Parts: ["part", "parts", "order", "ordered", "backorder", "backordered", "back order", "back-order", "eta", "bumper", "fender", "hood", "headlamp", "headlight", "mirror", "grille", "quarter panel", "return", "core", "vendor", "dealer", "oem", "aftermarket", "shipped", "arrived"],
+    Delivery: ["deliver", "delivery", "delivered", "pickup", "pick up", "picked up", "release", "ready", "wash", "invoice", "payment", "paid", "keys"],
+    Scheduling: ["schedule", "scheduled", "reschedule", "appointment", "appt", "drop off", "drop-off", "dropoff", "book", "booked", "start date", "booth"],
+    Customer: ["call", "called", "text", "texted", "customer", "cust", "owner", "voicemail", "vm", "left message", "email", "update", "rental"]
+  };
+  var MAX_NOTE_LINES = 50;
 
   /* ---------- 2. Date helpers (local time, "YYYY-MM-DD") ---------- */
   function pad(n) { return (n < 10 ? "0" : "") + n; }
@@ -958,6 +1036,290 @@
     reader.readAsText(file);
   }
 
+  /* ---------- 7b. Add from notes (text copied from a photo) ----------
+     Everything here runs on the device. Nothing is sent anywhere.
+     parseNotes() turns pasted text into proposed tasks; the user reviews
+     them, then applyProposals() creates new tasks or updates matching
+     open tasks (same folder number and category). */
+
+  var WEEKDAYS = { sunday: 0, monday: 1, mon: 1, tuesday: 2, tue: 2, tues: 2, wednesday: 3, wed: 3,
+                   thursday: 4, thu: 4, thur: 4, thurs: 4, friday: 5, fri: 5, saturday: 6 };
+  var PHONE_RE = /\(?\b\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}\b|\b\d{3}[-.]\d{4}\b/g;
+  var DATE_RE = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2}|\d{4}))?\b/;
+  var FOLDER_PREFIX_RE = /(?:\b(?:folder|fldr|ro|r\/o|job|file|wo|w\/o)\b\s*(?:#|no\.?|number)?\s*[:#-]?|#)\s*([a-z0-9][a-z0-9-]{1,14})/i;
+  var FOLDER_BARE_RE = /(?:^|[\s(,;:])(\d{4,7})(?=$|[\s),.;:])/;
+
+  function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&"); }
+
+  // Precompiled keyword patterns: whole words / phrases only.
+  var KEYWORD_PATTERNS = {};
+  Object.keys(CATEGORY_KEYWORDS).forEach(function (cat) {
+    KEYWORD_PATTERNS[cat] = CATEGORY_KEYWORDS[cat].map(function (k) {
+      return new RegExp("(^|[^a-z0-9])" + escapeRegex(k) + "(?=$|[^a-z0-9])", "i");
+    });
+  });
+
+  function detectCategory(line) {
+    var best = "Other", bestScore = 0;
+    Object.keys(KEYWORD_PATTERNS).forEach(function (cat) {
+      var score = KEYWORD_PATTERNS[cat].filter(function (re) { return re.test(line); }).length;
+      if (score > bestScore) { best = cat; bestScore = score; }
+    });
+    return best;
+  }
+
+  function detectPriority(line) {
+    if (/\b(urgent|asap|a\.s\.a\.p|immediately|rush|emergency)\b|!!/i.test(line)) return "Urgent";
+    if (/\b(high|important|priority|hot)\b|!/i.test(line)) return "High";
+    return "Normal";
+  }
+
+  // Returns { due, explicit }. Default is today; "explicit" means the line named a date.
+  function detectDue(line, today) {
+    var lower = line.toLowerCase();
+    if (/\b(today|eod|tonight)\b/.test(lower)) return { due: today, explicit: true };
+    if (/\b(tomorrow|tmrw|tmw|tmrrw)\b/.test(lower)) return { due: addDays(today, 1), explicit: true };
+
+    var m = line.replace(PHONE_RE, " ").match(DATE_RE);
+    if (m) {
+      var month = Number(m[1]), day = Number(m[2]);
+      var year = m[3] ? Number(m[3].length === 2 ? "20" + m[3] : m[3]) : Number(today.slice(0, 4));
+      var key = year + "-" + pad(month) + "-" + pad(day);
+      if (isValidDateKey(key)) {
+        // "3/2" written in the fall most likely means next year.
+        if (!m[3] && daysBetween(key, today) > 60) key = (year + 1) + "-" + pad(month) + "-" + pad(day);
+        if (isValidDateKey(key)) return { due: key, explicit: true };
+      }
+    }
+
+    var w = lower.match(/\b(monday|mon|tuesday|tues|tue|wednesday|wed|thursday|thurs|thur|thu|friday|fri|saturday|sunday)\b/);
+    if (w) {
+      var diff = (WEEKDAYS[w[1]] - parseDateKey(today).getDay() + 7) % 7;
+      return { due: addDays(today, diff), explicit: true };
+    }
+    return { due: today, explicit: false };
+  }
+
+  // Finds a folder number. Returns { folder, text } where text is the matched
+  // piece to remove from the description, or null.
+  function detectFolder(line) {
+    var scan = line.replace(PHONE_RE, " ").replace(new RegExp(DATE_RE.source, "g"), " ");
+    var m = scan.match(FOLDER_PREFIX_RE);
+    if (m && /\d/.test(m[1])) return { folder: m[1].toUpperCase(), text: m[0].trim() };
+    m = scan.match(FOLDER_BARE_RE);
+    if (m) {
+      var n = Number(m[1]);
+      var looksLikeYear = m[1].length === 4 && n >= 1980 && n <= 2039;
+      if (!looksLikeYear) return { folder: m[1], text: m[1] };
+    }
+    return null;
+  }
+
+  function cleanDescription(s) {
+    return s
+      .replace(/^\s*(?:[-*•·▪◦>]+|\(?\d{1,2}[.)])\s+/, "")  // bullets and "1." numbering
+      .replace(/\s{2,}/g, " ")
+      .replace(/^[\s\-–—:;,.|]+|[\s\-–—:;,|]+$/g, "")
+      .trim();
+  }
+
+  function parseNotes(text, today, existing) {
+    var lines = String(text || "").split(/\r?\n/);
+    var proposals = [];
+    var currentFolder = "";   // a line that is only a folder # applies to the lines under it, until a blank line
+    var skipped = 0;
+
+    for (var i = 0; i < lines.length; i++) {
+      var raw = lines[i].trim();
+      if (!raw) { currentFolder = ""; continue; }  // a blank line ends a folder group
+      if (raw.length < 3) continue;
+      if (proposals.length >= MAX_NOTE_LINES) { skipped++; continue; }
+
+      var found = detectFolder(raw);
+      var desc = raw;
+      if (found) desc = desc.replace(found.text, " ");
+      desc = cleanDescription(desc);
+
+      if (found && !desc) { currentFolder = found.folder; continue; }  // header line
+      if (!desc || !/[a-z]/i.test(desc)) continue;
+
+      var folder = found ? found.folder : currentFolder;
+      var due = detectDue(raw, today);
+      var p = {
+        include: true,
+        folder: folder,
+        desc: desc.charAt(0).toUpperCase() + desc.slice(1),
+        category: detectCategory(raw),
+        priority: detectPriority(raw),
+        due: due.due,
+        dueExplicit: due.explicit,
+        matchId: null,
+        duplicate: false
+      };
+
+      var lowerDesc = p.desc.toLowerCase();
+      for (var j = 0; j < existing.length; j++) {
+        var t = existing[j];
+        if (t.done) continue;
+        if (t.desc.toLowerCase() === lowerDesc) { p.duplicate = true; p.include = false; break; }
+        if (folder && t.folder.toLowerCase() === folder.toLowerCase() && t.category === p.category) {
+          // Prefer the most recently created match.
+          var current = p.matchId ? findTask(p.matchId) : null;
+          if (!current || (t.createdAt || "") > (current.createdAt || "")) p.matchId = t.id;
+        }
+      }
+      proposals.push(p);
+    }
+    return { proposals: proposals, skipped: skipped };
+  }
+
+  var proposals = [];
+
+  function optionList(values, selected) {
+    return values.map(function (v) {
+      return '<option value="' + esc(v) + '"' + (v === selected ? " selected" : "") + ">" + esc(v) + "</option>";
+    }).join("");
+  }
+
+  function readNotes() {
+    var text = $("notesInput").value;
+    if (!text.trim()) { showToast("Paste some notes first.", true); $("notesInput").focus(); return; }
+    var result = parseNotes(text, todayKey(), tasks);
+    proposals = result.proposals;
+    if (!proposals.length) { showToast("No tasks found. Put each task on its own line.", true); return; }
+
+    var matches = proposals.filter(function (p) { return p.matchId; }).length;
+    var dupes = proposals.filter(function (p) { return p.duplicate; }).length;
+    var summary = "Found " + proposals.length + " task" + (proposals.length === 1 ? "" : "s") + ".";
+    if (matches) summary += " " + matches + " match" + (matches === 1 ? "es an open task" : " open tasks") + " and will update it unless you change the action.";
+    if (dupes) summary += " " + dupes + " already on your list (unchecked).";
+    if (result.skipped) summary += " Only the first " + MAX_NOTE_LINES + " lines were read.";
+    summary += " Check the details, then add.";
+    $("reviewSummary").textContent = summary;
+
+    renderReview();
+    $("reviewPanel").hidden = false;
+    $("reviewPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function renderReview() {
+    $("reviewList").innerHTML = proposals.map(function (p, i) {
+      var match = p.matchId ? findTask(p.matchId) : null;
+      var html = '<div class="review-item' + (p.include ? "" : " off") + '" data-i="' + i + '">' +
+        '<div class="review-top">' +
+          '<input type="checkbox" id="rv-inc-' + i + '" data-field="include"' + (p.include ? " checked" : "") + ' aria-label="Include this task">' +
+          '<input type="text" id="rv-desc-' + i + '" data-field="desc" maxlength="300" value="' + esc(p.desc) + '" aria-label="Task description">' +
+        "</div>" +
+        '<div class="review-grid">' +
+          '<label>Folder #<input type="text" id="rv-folder-' + i + '" data-field="folder" maxlength="30" autocapitalize="characters" spellcheck="false" value="' + esc(p.folder) + '"></label>' +
+          '<label>Category<select id="rv-cat-' + i + '" data-field="category">' + optionList(CATEGORIES, p.category) + "</select></label>" +
+          '<label>Priority<select id="rv-pri-' + i + '" data-field="priority">' + optionList(PRIORITIES, p.priority) + "</select></label>" +
+          '<label>Due<input type="date" id="rv-due-' + i + '" data-field="due" value="' + esc(p.due) + '"></label>' +
+        "</div>";
+      if (match) {
+        html += '<label>Action<select id="rv-act-' + i + '" data-field="action">' +
+          '<option value="update" selected>Update existing task</option>' +
+          '<option value="new">Add as a new task</option></select></label>' +
+          '<p class="review-note match">Existing: ' + esc(match.desc) + "</p>";
+      }
+      if (p.duplicate) html += '<p class="review-note">Already on your list, so it\'s unchecked.</p>';
+      return html + "</div>";
+    }).join("");
+    updateApplyLabel();
+  }
+
+  function readReviewItem(el) {
+    function val(f) { var x = el.querySelector('[data-field="' + f + '"]'); return x ? x.value : ""; }
+    var p = proposals[Number(el.getAttribute("data-i"))];
+    return {
+      include: el.querySelector('[data-field="include"]').checked,
+      desc: val("desc").trim(),
+      folder: val("folder").trim(),
+      category: val("category"),
+      priority: val("priority"),
+      due: val("due"),
+      dueChanged: val("due") !== p.due,
+      dueExplicit: p.dueExplicit,
+      matchId: p.matchId,
+      action: p.matchId ? val("action") : "new"
+    };
+  }
+
+  // Counts what "Add" will do, so the button can say it.
+  function plannedChanges() {
+    var add = 0, update = 0;
+    var items = $("reviewList").querySelectorAll(".review-item");
+    for (var i = 0; i < items.length; i++) {
+      var r = readReviewItem(items[i]);
+      if (!r.include) continue;
+      if (willUpdate(r)) update++; else add++;
+    }
+    return { add: add, update: update };
+  }
+
+  function willUpdate(r) {
+    if (r.action !== "update" || !r.matchId) return false;
+    var t = findTask(r.matchId);
+    // If the folder # was edited away from the match, treat it as new.
+    return !!t && !t.done && t.folder.toLowerCase() === r.folder.toLowerCase();
+  }
+
+  function updateApplyLabel() {
+    var c = plannedChanges();
+    var parts = [];
+    if (c.add) parts.push("Add " + c.add);
+    if (c.update) parts.push((c.add ? "update " : "Update ") + c.update);
+    $("applyNotesBtn").textContent = parts.length ? parts.join(", ") + (c.add + c.update === 1 ? " task" : " tasks") : "Nothing selected";
+    $("applyNotesBtn").disabled = !parts.length;
+  }
+
+  function applyProposals() {
+    var items = $("reviewList").querySelectorAll(".review-item");
+    var reviewed = [];
+    for (var i = 0; i < items.length; i++) {
+      var r = readReviewItem(items[i]);
+      if (!r.include) continue;
+      if (!r.desc) { showToast("A checked task has no description. Fill it in or uncheck it.", true); items[i].querySelector('[data-field="desc"]').focus(); return; }
+      if (!isValidDateKey(r.due)) { showToast("A checked task has no valid due date.", true); items[i].querySelector('[data-field="due"]').focus(); return; }
+      reviewed.push(r);
+    }
+
+    var added = 0, updated = 0, now = new Date().toISOString();
+    reviewed.forEach(function (r) {
+      if (willUpdate(r)) {
+        var t = findTask(r.matchId);
+        if (t.desc.toLowerCase().indexOf(r.desc.toLowerCase()) === -1) {
+          t.desc = (t.desc + " | " + r.desc).slice(0, 300);
+        }
+        if (PRIORITY_RANK[r.priority] < PRIORITY_RANK[t.priority]) t.priority = r.priority;
+        if (r.dueExplicit || r.dueChanged) t.due = r.due;
+        t.example = false;
+        updated++;
+      } else {
+        tasks.push({
+          id: makeId(), folder: r.folder, desc: r.desc, priority: r.priority, due: r.due,
+          category: r.category, done: false, completedAt: null, createdAt: now, example: false
+        });
+        added++;
+      }
+    });
+
+    saveTasks();
+    closeReview();
+    $("notesInput").value = "";
+    render();
+    var msg = [];
+    if (added) msg.push("Added " + added);
+    if (updated) msg.push("updated " + updated);
+    showToast(msg.join(", ") + (added + updated === 1 ? " task" : " tasks"));
+  }
+
+  function closeReview() {
+    proposals = [];
+    $("reviewList").innerHTML = "";
+    $("reviewPanel").hidden = true;
+  }
+
   /* ---------- 8. Event wiring and startup ---------- */
   function wireEvents() {
     $("taskForm").addEventListener("submit", handleSubmit);
@@ -1002,6 +1364,18 @@
       }
     });
 
+    // Add from notes
+    $("readNotesBtn").addEventListener("click", readNotes);
+    $("clearNotesBtn").addEventListener("click", function () { $("notesInput").value = ""; $("notesInput").focus(); });
+    $("applyNotesBtn").addEventListener("click", applyProposals);
+    $("cancelReviewBtn").addEventListener("click", closeReview);
+    $("reviewList").addEventListener("change", function (e) {
+      var item = e.target.closest(".review-item");
+      if (item && e.target.getAttribute("data-field") === "include") item.classList.toggle("off", !e.target.checked);
+      updateApplyLabel();
+    });
+    $("reviewList").addEventListener("input", updateApplyLabel);
+
     $("deleteExamplesBtn").addEventListener("click", deleteExamples);
     $("exportBtn").addEventListener("click", exportBackup);
     $("importBtn").addEventListener("click", function () { $("importFile").click(); });
@@ -1037,6 +1411,9 @@
   });
 
   init();
+
+  // Read-only hook for automated tests of the notes reader.
+  window.RepairPlannerTest = { parseNotes: parseNotes };
 })();
 </script>
 </body>
