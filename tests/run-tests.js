@@ -695,6 +695,8 @@ async function imageImport(page, buffers, date) {
 
   await require("./capture-tests.js")({ browser, open, check, section, store, cards, card, decide, apply, imageImport, KEYS, BASE_TASKS, task, OUT });
 
+  await require("./workflow-tests.js")({ browser, open, check, section, store, cards, card, decide, apply, KEYS, OUT });
+
   await browser.close();
   console.log("\n" + passes + " passed, " + failures + " failed");
   console.log("Screenshots and backup files: " + OUT);

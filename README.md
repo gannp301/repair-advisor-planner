@@ -2,9 +2,28 @@
 
 A simple, private daily notebook and task board for a collision repair advisor.
 
-**Version 1.4 — Smart Capture & Strawberry Cottage** · one file (`index.html`) · HTML, CSS and plain JavaScript · no accounts, no server, no tracking.
+**Version 1.5 — Repair & polish** (on top of 1.4 Smart Capture & Strawberry Cottage) · one file (`index.html`) · HTML, CSS and plain JavaScript · no accounts, no server, no tracking.
 
 Write notes the way you already do, all day long, and capture everything else: sticky notes, notebook pages, scraps of paper, Teams chats, emails. When you have a minute, let the planner suggest what's a follow-up, what's an appointment, what's just information, and what looks finished. Nothing changes until you approve it.
+
+## New in 1.5 (repair & polish)
+
+- **Phone layout fixed.** On an iPhone the task lists used to sit about 2,600px down, under the Capture, Appearance and Backup cards. Now each tab starts with its working area (notes page, task summary + add box + lists, inbox); those cards moved to the bottom. The four tabs fit on one row.
+- **Follow-up date and "Waiting on"** (both optional, under *Details*). The board now shows what **needs you**, what is **overdue**, and what is **waiting on others**:
+  - *Overdue* = the follow-up date has passed, or no date and open 3+ days. A task that is waiting on someone isn't counted as overdue until its follow-up date passes.
+  - *Today* = added today, or follow-up date today or earlier. *Carried over* lists overdue first, waiting and later-dated last.
+  - The summary tiles (**Needs you / Overdue / Waiting on others**) and the status chips filter the board. **Tomorrow** on a card sets the follow-up to the next workday.
+  - Typing `waiting on parts`, `tomorrow`, `Fri` or `11/20` in the task box fills these in (shown in the "Filled in" note; change anything that's wrong).
+- **Fast entry:** on phones the add form is one box and one button; the optional fields fold away.
+- **Search** on the task board now also matches words in the task, the estimator and "waiting on" (it used to match only folder # and customer).
+- **Smart reader fixes:**
+  - A **claim #, policy #, PO, VIN or dollar amount is no longer mistaken for a folder #**.
+  - `10452 Jones lvm x2` and `Patel p/u Fri 4pm` now pick up the customer (as a guess, outlined in red).
+  - `b/o ETA 11/20` is parts status info, not an appointment; a bare date no longer makes a line an appointment.
+  - "needs photos", "wants a call when…" count as follow-ups; "lvm / no answer" as contact notes.
+  - `cb`, `ext`, `thurs` are expanded; "order clips for 10600" no longer leaves a dangling "for".
+- Nothing about stored data changed shape: tasks gain two optional fields (`followUp`, `waitingOn`) that older versions ignore. No migration.
+- Verified against the live site: the page loads and the screenshot reader downloads and runs from its real address.
 
 ## New in 1.4
 
