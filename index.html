@@ -10,7 +10,7 @@
 <title>Repair Advisor Planner</title>
 <style>
   /* ============================================================
-     Repair Advisor Planner v1.4 — styles
+     Repair Advisor Planner v1.5 — styles
      Palette: red / white / black. Change colors here only.
      ============================================================ */
   :root {
@@ -731,6 +731,67 @@
   body[data-theme="strawberry"] .chip-s.k-followup { border-color: #B33A62; color: #8E2A4C; }
   body[data-theme="strawberry"] .seg button[aria-pressed="true"], body[data-theme="strawberry"] .chip[aria-pressed="true"] { background: #70514B; border-color: #70514B; color: #FFF8EE; }
 
+
+  /* ============ v1.5: repair & polish ============ */
+  /* Summary tiles double as filters. */
+  button.stat { background: var(--white); font: inherit; color: inherit; min-height: var(--tap); }
+  button.stat[aria-pressed="true"] { border-color: var(--black); box-shadow: 0 0 0 2px var(--black) inset; }
+  .card h2 .hint { font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--gray-500); float: right; }
+  .stat .lbl { line-height: 1.2; }
+
+  /* Optional task details fold away so adding a task is one box and one button. */
+  .more-fields { margin-bottom: 12px; }
+  .more-fields > summary { cursor: pointer; font-weight: 700; font-size: 14px; min-height: 44px; display: flex; align-items: center; gap: 6px; color: var(--gray-700); }
+  .more-fields[open] > summary { margin-bottom: 4px; }
+
+  /* Compact task cards with clear status. */
+  .task { padding: 10px 12px; gap: 10px; }
+  .task .desc { margin-bottom: 4px; }
+  .task.parked { border-left-color: var(--blue); }
+  .task.parked .desc { color: var(--gray-700); }
+  .badge.wait.due { background: var(--hl); border-color: var(--hl-edge); color: var(--ink); }
+  .badge.later, .badge.waiting-on { border-color: var(--blue); color: var(--blue); text-transform: none; letter-spacing: 0; }
+  .badge.age { text-transform: none; letter-spacing: 0; }
+  .meta-bottom { font-size: 13px; }
+  .task-actions { margin-top: 6px; flex-wrap: wrap; }
+  .task-actions .btn { min-height: 40px; padding: 6px 12px; font-size: 14px; }
+  #statusChips { margin-bottom: 2px; }
+
+  .t-short { display: none; }
+
+  /* Phones: the working area comes first; capture, appearance and backup move to the bottom. */
+  @media (max-width: 759px) {
+    .side, .main-col { display: contents; }
+    .layout > * > * { order: 5; }
+    .layout .card + .card { margin-top: 0; }
+    .layout { gap: 12px; }
+    #notesPage, #inboxView, #openView { order: 1; }
+    [aria-labelledby="summaryTitle"] { order: 1; }
+    #formCard { order: 2; }
+    #reviewPanel { order: 0; }
+    #examplesBanner, .card.filters { order: 3; margin-bottom: 0; }
+    .sections { order: 4; }
+    body[data-view="inbox"] #notesCard { order: 2; }
+    #notesCard { order: 6; } #lookCard { order: 8; } [aria-labelledby="backupTitle"] { order: 9; } .shortcuts { order: 10; }
+    [aria-labelledby="daysTitle"] { order: 6; } [aria-labelledby="hlTitle"] { order: 7; }
+    main { padding: 12px 12px calc(28px + env(safe-area-inset-bottom)); }
+    .card { padding: 12px; }
+    .card .summary { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .stat { padding: 8px 2px; }
+    .stat .num { font-size: 22px; }
+    .stat .lbl { font-size: 11px; }
+    .app-header { padding-bottom: 10px; }
+    .brand h1 { font-size: 18px; }
+    .today-date { display: none; }
+    .tabs { width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+    .tab { padding: 6px 4px; font-size: 14px; white-space: nowrap; }
+    .t-long { display: none; } .t-short { display: inline; }
+    .section { margin-bottom: 14px; }
+  }
+  @media (max-width: 420px) { .summary { grid-template-columns: repeat(4, 1fr); } }
+  body[data-theme="strawberry"] .task { border-radius: 14px; }
+  body[data-theme="strawberry"] .task.stale { background: #FDE3EA; }
+
   /* ---------- Keyboard hint (mouse/keyboard devices only) ---------- */
   .shortcuts { display: none; font-size: 13px; color: var(--gray-700); margin-top: 16px; text-align: center; }
   kbd {
@@ -777,10 +838,10 @@
       <span class="header-decor decor" id="headerDecor" aria-hidden="true"></span>
     </div>
     <nav class="tabs" aria-label="Views">
-      <button type="button" class="tab" data-tab="notes" aria-pressed="true">Daily notes</button>
-      <button type="button" class="tab" data-tab="inbox" aria-pressed="false">Capture Inbox <span class="tab-count" id="inboxTabCount"></span></button>
-      <button type="button" class="tab" data-tab="open" aria-pressed="false">Unresolved <span class="tab-count" id="openTabCount"></span></button>
-      <button type="button" class="tab" data-tab="tasks" aria-pressed="false">Task board <span class="tab-count" id="taskTabCount"></span></button>
+      <button type="button" class="tab" data-tab="notes" aria-pressed="true"><span class="t-long">Daily notes</span><span class="t-short">Notes</span></button>
+      <button type="button" class="tab" data-tab="inbox" aria-pressed="false"><span class="t-long">Capture Inbox</span><span class="t-short">Inbox</span> <span class="tab-count" id="inboxTabCount"></span></button>
+      <button type="button" class="tab" data-tab="open" aria-pressed="false"><span class="t-long">Unresolved</span><span class="t-short">Open</span> <span class="tab-count" id="openTabCount"></span></button>
+      <button type="button" class="tab" data-tab="tasks" aria-pressed="false"><span class="t-long">Task board</span><span class="t-short">Tasks</span> <span class="tab-count" id="taskTabCount"></span></button>
     </nav>
     <div class="today-date" id="todayLabel"></div>
   </div>
@@ -793,11 +854,11 @@
     <div class="side">
 
       <section class="card" aria-labelledby="summaryTitle" data-view="tasks">
-        <h2 id="summaryTitle">Daily summary</h2>
+        <h2 id="summaryTitle">Today at a glance <span class="hint" id="statOpenNote"></span></h2>
         <div class="summary">
-          <div class="stat" id="statOpen"><span class="num">0</span><span class="lbl">Open</span></div>
-          <div class="stat" id="statToday"><span class="num">0</span><span class="lbl">Added today</span></div>
-          <div class="stat" id="statStale"><span class="num">0</span><span class="lbl" id="statStaleLabel">Waiting 3+ days</span></div>
+          <button type="button" class="stat" id="statAttention" data-status="attention" aria-pressed="false"><span class="num">0</span><span class="lbl">Needs you</span></button>
+          <button type="button" class="stat" id="statStale" data-status="overdue" aria-pressed="false"><span class="num">0</span><span class="lbl">Overdue</span></button>
+          <button type="button" class="stat" id="statWaiting" data-status="waiting" aria-pressed="false"><span class="num">0</span><span class="lbl">Waiting on others</span></button>
           <div class="stat" id="statDone"><span class="num">0</span><span class="lbl">Done today</span></div>
         </div>
       </section>
@@ -814,6 +875,19 @@
           </div>
           <p class="autofill-note" id="autofillNote" aria-live="polite" hidden></p>
 
+          <details class="more-fields" id="moreFields">
+          <summary>Details <span class="hint">(optional)</span></summary>
+          <div class="row-2">
+            <div class="field">
+              <label for="fFollowUp">Follow up on</label>
+              <input type="date" id="fFollowUp">
+            </div>
+            <div class="field">
+              <label for="fWaitingOn">Waiting on</label>
+              <input type="text" id="fWaitingOn" list="waitingList" maxlength="40" autocapitalize="words" placeholder="e.g. parts, adjuster">
+            </div>
+          </div>
+          <datalist id="waitingList"><option value="Parts"></option><option value="Adjuster"></option><option value="Customer"></option><option value="Estimator"></option><option value="Technician"></option><option value="Sublet vendor"></option><option value="Insurance approval"></option></datalist>
           <div class="row-2">
             <div class="field">
               <label for="fCustomer">Customer</label>
@@ -841,6 +915,7 @@
             <span id="dateLineLabel">Date added</span>
             <strong id="dateLineValue"></strong>
           </div>
+          </details>
 
           <div class="btn-row">
             <button type="submit" class="btn btn-primary" id="submitBtn">Add task</button>
@@ -1037,13 +1112,19 @@
       <section class="card filters" aria-label="Filters" data-view="tasks">
         <div class="filter-row" id="filterRow">
           <div>
-            <label for="search" class="visually-hidden">Find by folder number or customer</label>
-            <input type="search" id="search" placeholder="Find folder # or customer" spellcheck="false">
+            <label for="search" class="visually-hidden">Find by folder number, customer or words</label>
+            <input type="search" id="search" placeholder="Find folder #, customer or words" spellcheck="false">
           </div>
           <div id="estimatorFilterWrap" hidden>
             <label for="estimatorFilter" class="visually-hidden">Filter by estimator</label>
             <select id="estimatorFilter"></select>
           </div>
+        </div>
+        <div class="chips" id="statusChips" role="group" aria-label="Filter by status">
+          <button type="button" class="chip" data-status="all" aria-pressed="true">All open</button>
+          <button type="button" class="chip" data-status="attention" aria-pressed="false">Needs you</button>
+          <button type="button" class="chip" data-status="overdue" aria-pressed="false">Overdue</button>
+          <button type="button" class="chip" data-status="waiting" aria-pressed="false">Waiting on others</button>
         </div>
         <div class="chips" id="categoryChips" role="group" aria-label="Filter by category"></div>
         <div class="filter-note" id="filterNote" hidden>
@@ -1059,7 +1140,7 @@
         </section>
 
         <section class="section" aria-labelledby="carriedTitle">
-          <div class="section-head"><h2 id="carriedTitle">Carried over</h2><span class="count" id="carriedCount">0</span><span class="sub">oldest first</span></div>
+          <div class="section-head"><h2 id="carriedTitle">Carried over</h2><span class="count" id="carriedCount">0</span><span class="sub">overdue first</span></div>
           <ul class="task-list" id="carriedList"></ul>
         </section>
 
@@ -1140,7 +1221,7 @@
 
 <script>
 /* ==============================================================
-   Repair Advisor Planner v1.4
+   Repair Advisor Planner v1.5
    Single-file app. No backend, no accounts, no tracking.
    Notes and tasks live in this browser's localStorage.
 
@@ -1559,6 +1640,9 @@
       done: done,
       completedAt: done ? (isValidIso(t.completedAt) ? t.completedAt : new Date().toISOString()) : null,
       example: t.example === true,
+      // v1.5 (optional): the day to follow up, and who or what the task is waiting on.
+      followUp: isDateKey(t.followUp) ? t.followUp : "",
+      waitingOn: cleanText(t.waitingOn, 40),
       // v1.3: where a task came from in the daily notes, and a short history.
       noteRef: t.noteRef && isDateKey(t.noteRef.date) && typeof t.noteRef.lineId === "string"
         ? { date: t.noteRef.date, lineId: t.noteRef.lineId.slice(0, 40) } : null,
@@ -1583,6 +1667,29 @@
 
   function daysWaiting(t, today) { return daysBetween(addedKey(t), today); }
 
+  /* Where an open task stands today:
+       "overdue"  follow-up date has passed, or no date and open 3+ days (and not waiting on anyone)
+       "due"      follow-up date is today
+       "later"    follow-up date is in the future
+       "waiting"  waiting on someone else, no follow-up date due yet
+       "open"     everything else
+     "Needs you" = overdue, due or open. */
+  function taskState(t, today) {
+    if (t.done) return "done";
+    if (t.followUp) return t.followUp < today ? "overdue" : t.followUp === today ? "due" : (t.waitingOn ? "waiting" : "later");
+    if (t.waitingOn) return "waiting";
+    return daysWaiting(t, today) >= STALE_DAYS ? "overdue" : "open";
+  }
+  function needsYou(state) { return state === "overdue" || state === "due" || state === "open"; }
+
+  // "waiting on parts", "waiting for adjuster approval" -> "Parts", "Adjuster approval". Only what's written.
+  function detectWaitingOn(text) {
+    var m = String(text || "").match(/\b(?:waiting|wtg|holding)\s+(?:on|for)\s+(?:the\s+)?([a-z][a-z'\/-]*(?:\s+[a-z][a-z'\/-]*)?)/i);
+    if (!m) return "";
+    var w = m[1].replace(/\s+(?:to|for|from|on|re|about|before|until|and|at|by|in|asap|eod|today|tonight|tomorrow|tmrw|tmw|mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun|\w+day)$/i, "").trim();
+    return w ? (w.charAt(0).toUpperCase() + w.slice(1)).slice(0, 40) : "";
+  }
+
   function completedToday(t, today) {
     return t.done && t.completedAt && toDateKey(new Date(t.completedAt)) === today;
   }
@@ -1597,7 +1704,7 @@
   }
 
   /* ---------- 5. Rendering ---------- */
-  var filters = { category: "All", search: "", estimator: "" };
+  var filters = { category: "All", search: "", estimator: "", status: "all" };
   var editingId = null;
 
   function $(id) { return document.getElementById(id); }
@@ -1613,7 +1720,14 @@
     if (filters.estimator && t.estimator.toLowerCase() !== filters.estimator.toLowerCase()) return false;
     if (filters.search) {
       var q = filters.search.toLowerCase();
-      if (t.folder.toLowerCase().indexOf(q) === -1 && t.customer.toLowerCase().indexOf(q) === -1) return false;
+      var hay = (t.folder + " " + t.customer + " " + t.desc + " " + t.estimator + " " + t.waitingOn).toLowerCase();
+      if (hay.indexOf(q) === -1) return false;
+    }
+    if (filters.status !== "all") {
+      var st = taskState(t, todayKey());
+      if (filters.status === "attention" && !needsYou(st)) return false;
+      if (filters.status === "overdue" && st !== "overdue") return false;
+      if (filters.status === "waiting" && st !== "waiting" && st !== "later") return false;
     }
     return true;
   }
@@ -1643,14 +1757,23 @@
     renderEstimatorControls();
 
     var visible = tasks.filter(matchesFilters);
-    var todayTasks = visible.filter(function (t) { return !t.done && addedKey(t) === today; })
-      .sort(function (a, b) { return b.createdAt.localeCompare(a.createdAt); });            // newest first
-    var carried = visible.filter(function (t) { return !t.done && addedKey(t) < today; })
-      .sort(function (a, b) { return a.createdAt.localeCompare(b.createdAt); });            // oldest first
+    // Today: added today, or a follow-up date that is today or has passed.
+    function isToday(t) { return addedKey(t) === today || (t.followUp && t.followUp <= today); }
+    var rank = { overdue: 0, due: 1, open: 2, waiting: 3, later: 4 };
+    function byUrgency(a, b) {
+      var d = rank[taskState(a, today)] - rank[taskState(b, today)];
+      return d || a.createdAt.localeCompare(b.createdAt);                                   // then oldest first
+    }
+    var todayTasks = visible.filter(function (t) { return !t.done && isToday(t); })
+      .sort(function (a, b) {
+        var d = rank[taskState(a, today)] - rank[taskState(b, today)];
+        return d || b.createdAt.localeCompare(a.createdAt);                                 // then newest first
+      });
+    var carried = visible.filter(function (t) { return !t.done && !isToday(t); }).sort(byUrgency);
     var completed = visible.filter(function (t) { return t.done; })
       .sort(function (a, b) { return (b.completedAt || "").localeCompare(a.completedAt || ""); });
 
-    renderList("todayList", "todayCount", todayTasks, today, "Nothing added today yet.");
+    renderList("todayList", "todayCount", todayTasks, today, "Nothing new or due today yet.");
     renderList("carriedList", "carriedCount", carried, today, "Nothing carried over. Nice work.");
     renderList("completedList", "completedCount", completed, today, "No completed tasks yet.");
 
@@ -1660,11 +1783,16 @@
 
   function renderSummary(today) {
     var open = tasks.filter(function (t) { return !t.done; });
-    setStat("statOpen", open.length, false);
-    setStat("statToday", open.filter(function (t) { return addedKey(t) === today; }).length, false);
-    var stale = open.filter(function (t) { return daysWaiting(t, today) >= STALE_DAYS; }).length;
-    setStat("statStale", stale, stale > 0);
+    var states = open.map(function (t) { return taskState(t, today); });
+    var overdue = states.filter(function (x) { return x === "overdue"; }).length;
+    setStat("statAttention", states.filter(needsYou).length, false);
+    setStat("statStale", overdue, overdue > 0);
+    setStat("statWaiting", states.filter(function (x) { return x === "waiting" || x === "later"; }).length, false);
     setStat("statDone", tasks.filter(function (t) { return completedToday(t, today); }).length, false);
+    $("statOpenNote").textContent = open.length + " open";
+    Array.prototype.forEach.call(document.querySelectorAll("[data-status]"), function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-status") === filters.status));
+    });
   }
 
   function setStat(id, value, alert) {
@@ -1700,10 +1828,12 @@
 
   function taskHtml(t, today) {
     var waited = daysWaiting(t, today);
-    var stale = !t.done && waited >= STALE_DAYS;
+    var state = taskState(t, today);
+    var stale = state === "overdue";
     var classes = ["task"];
     if (!t.done && waited > 0) classes.push("carried");
     if (stale) classes.push("stale");
+    if (state === "waiting" || state === "later") classes.push("parked");
     if (t.done) classes.push("done");
 
     var who = [];
@@ -1713,20 +1843,31 @@
 
     var badges = '<span class="badge">' + esc(t.category) + "</span>";
     if (t.estimator) badges += '<span class="badge estimator">' + esc(t.estimator) + "</span>";
-    if (!t.done && waited > 0) badges += '<span class="badge wait' + (stale ? " stale" : "") + '">Waiting ' + waited + (waited === 1 ? " day" : " days") + "</span>";
+    if (!t.done) {
+      if (t.followUp) {
+        badges += t.followUp < today ? '<span class="badge wait stale">Overdue \u00b7 was due ' + esc(formatDate(t.followUp)) + "</span>"
+          : t.followUp === today ? '<span class="badge wait due">Follow up today</span>'
+          : '<span class="badge later">Follow up ' + esc(formatDate(t.followUp)) + "</span>";
+      } else if (stale) {
+        badges += '<span class="badge wait stale">Overdue \u00b7 open ' + waited + " days</span>";
+      }
+      if (t.waitingOn) badges += '<span class="badge waiting-on">Waiting on ' + esc(t.waitingOn) + "</span>";
+      if (waited > 0 && !stale) badges += '<span class="badge age">Open ' + waited + (waited === 1 ? " day" : " days") + "</span>";
+    }
     if (t.example) badges += '<span class="badge example">Example</span>';
 
     var dateText = "Added " + esc(formatDate(addedKey(t)));
     if (t.done) dateText += " · Completed " + esc(formatDate(toDateKey(new Date(t.completedAt))));
     var srcHtml = "";
-    if (t.noteRef) srcHtml += '<div class="task-src">From daily notes, ' + esc(formatDate(t.noteRef.date)) + "</div>";
     var lastLog = t.log && t.log.length ? t.log[t.log.length - 1] : null;
-    if (lastLog) srcHtml += '<div class="task-src">' + esc(lastLog.text) + "</div>";
+    if (lastLog) srcHtml += '<div class="task-src">' + esc(lastLog.text) + "</div>";          // one line: the latest history
+    else if (t.noteRef) srcHtml += '<div class="task-src">From daily notes, ' + esc(formatDate(t.noteRef.date)) + "</div>";
 
     var id = esc(t.id);
     var actions = t.done
       ? '<button type="button" class="btn" data-action="toggle" data-id="' + id + '">Reopen</button>'
-      : '<button type="button" class="btn" data-action="edit" data-id="' + id + '">Edit</button>';
+      : '<button type="button" class="btn" data-action="edit" data-id="' + id + '">Edit</button>' +
+        '<button type="button" class="btn" data-action="tomorrow" data-id="' + id + '" title="Set the follow-up date to the next workday">Tomorrow</button>';
     actions += '<button type="button" class="btn btn-danger" data-action="delete" data-id="' + id + '">Delete</button>';
 
     return '<li class="' + classes.join(" ") + '">' +
@@ -1741,12 +1882,13 @@
     "</li>";
   }
 
-  function filtersActive() { return filters.category !== "All" || filters.search !== "" || filters.estimator !== ""; }
+  function filtersActive() { return filters.category !== "All" || filters.search !== "" || filters.estimator !== "" || filters.status !== "all"; }
 
   function renderFilterNote(visibleCount) {
     var note = $("filterNote");
     if (!filtersActive()) { note.hidden = true; return; }
     var parts = [];
+    if (filters.status !== "all") parts.push({ attention: "Needs you", overdue: "Overdue", waiting: "Waiting on others" }[filters.status]);
     if (filters.category !== "All") parts.push(filters.category);
     if (filters.estimator) parts.push(filters.estimator);
     if (filters.search) parts.push('"' + filters.search + '"');
@@ -1809,6 +1951,7 @@
     $("taskForm").reset();
     $("fCategory").value = CATEGORIES[0];
     $("fEstimator").value = loadLastEstimator();
+    $("moreFields").open = window.matchMedia("(min-width: 760px)").matches;   // phones: one box and a button
     $("formTitle").textContent = "Add task";
     $("submitBtn").textContent = "Add task";
     $("cancelEditBtn").hidden = true;
@@ -1832,7 +1975,9 @@
       folder: $("fFolder").value.trim(),
       desc: desc,
       category: $("fCategory").value,
-      estimator: $("fEstimator").value.trim()
+      estimator: $("fEstimator").value.trim(),
+      followUp: isDateKey($("fFollowUp").value) ? $("fFollowUp").value : "",
+      waitingOn: $("fWaitingOn").value.trim().slice(0, 40)
     };
     if (!desc) { showFormError("Please enter what needs to be done."); $("fDesc").focus(); return; }
 
@@ -1851,14 +1996,15 @@
       if (!t) { showToast("That task no longer exists.", true); resetForm(); render(); return; }
       t.customer = values.customer; t.folder = values.folder; t.desc = values.desc;
       t.category = values.category; t.estimator = values.estimator;
+      t.followUp = values.followUp; t.waitingOn = values.waitingOn;
       t.example = false; // once edited, it's yours
       saveTasks();
       showToast("Task updated");
     } else {
       tasks.push({
         id: makeId(), customer: values.customer, folder: values.folder, desc: values.desc,
-        category: values.category, estimator: values.estimator,
-        createdAt: new Date().toISOString(), done: false, completedAt: null, example: false
+        category: values.category, estimator: values.estimator, followUp: values.followUp, waitingOn: values.waitingOn,
+        createdAt: new Date().toISOString(), done: false, completedAt: null, example: false, noteRef: null, log: []
       });
       saveTasks();
       showToast("Task added");
@@ -1877,6 +2023,9 @@
     $("fDesc").value = t.desc;
     $("fCategory").value = t.category;
     $("fEstimator").value = t.estimator;
+    $("fFollowUp").value = t.followUp || "";
+    $("fWaitingOn").value = t.waitingOn || "";
+    $("moreFields").open = true;
     $("formTitle").textContent = "Edit task";
     $("submitBtn").textContent = "Save changes";
     $("cancelEditBtn").hidden = false;
@@ -1895,6 +2044,22 @@
     t.completedAt = t.done ? new Date().toISOString() : null;
     saveTasks();
     showToast(t.done ? "Marked done" : "Reopened");
+    render();
+  }
+
+  // Next workday (Mon-Fri) after today.
+  function nextWorkday() {
+    var k = addDays(todayKey(), 1);
+    while (!isWorkday(k)) k = addDays(k, 1);
+    return k;
+  }
+
+  function followUpTomorrow(id) {
+    var t = findTask(id);
+    if (!t || t.done) return;
+    t.followUp = nextWorkday();
+    saveTasks();
+    showToast("Follow-up set for " + formatDate(t.followUp));
     render();
   }
 
@@ -2076,6 +2241,8 @@
 
   var PHONE_RE = /\(?\b\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}\b|\b\d{3}[-.]\d{4}\b/g;
   var DATE_RE = /\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/g;
+  // Numbers that belong to something else: "claim # 55-1234-A9", "PO 88123", "VIN 1HG…". Never a folder #.
+  var OTHER_NUMBER_RE = /\b(?:claim|policy|pol|po|p\.o\.|vin|invoice|inv|conf(?:irmation)?|tracking|order|ext|part)\s*(?:#|no\.?|number)?\s*[:#-]?\s*[a-z0-9][a-z0-9-]{2,}/gi;
   var FOLDER_PREFIX_RE = /(?:\b(?:folder|fldr|ro|r\/o|job|file|wo)\b\s*(?:#|no\.?|number)?\s*[:#-]?|#)\s*([a-z0-9][a-z0-9-]{1,14})/i;
   var FOLDER_BARE_RE = /(?:^|[\s(,;:])(\d{4,7})(?=$|[\s),.;:])/;
   // "Cust: Rivera", "CUSTOMER - ANN LEE", "Owner: Lee"
@@ -2091,6 +2258,7 @@
   var NOT_NAMES = toSet(
     // everyday words
     "a an the and or but if then than so to too of in on at by for from with without into onto about above after again against all am any are as be because been before being below between both can could did do does doing down during each few further had has have having he her here hers him his how i is it its just me more most my no nor not now off once only other our out over own same she should some such that their them there these they this those through under until up very was we were what when where which while who whom why will would you your yes ok okay please thanks thank need needs needed still also back left right front rear new old next last first today tomorrow yesterday tonight morning afternoon night week weekend asap eod am pm call text email order get got send sent check checked confirm confirmed follow followup up see waiting wait waiting done ready set make made let lets will hold holding job car truck van suv vehicle vin ro eta oem adas pdr lkq ccc one mitchell audatex cccone note notes info re fyi per via vs pt pts part parts tech techs shop body paint frame team boss manager office desk dept department hi hello hey he she they him her them his hers it" + " " +
+    "pay total loss photos pics clips rental paint detail approval supplement estimate tow towing wife husband son daughter mom dad" + " " +
     // days and months
     "mon monday tue tues tuesday wed wednesday thu thur thurs thursday fri friday sat saturday sun sunday jan january feb february mar march apr april may jun june jul july aug august sep sept september oct october nov november dec december" + " " +
     // vehicle makes and common models
@@ -2108,7 +2276,7 @@
   // Shop shorthand expanded when building the task text. Add your own.
   var SHORTHAND = [
     ["supp", "supplement"], ["supps", "supplements"], ["appt", "appointment"], ["appts", "appointments"],
-    ["vm", "voicemail"], ["lvm", "left voicemail"], ["lm", "left message"], ["b/o", "back-ordered"],
+    ["vm", "voicemail"], ["lvm", "left voicemail"], ["cb", "call back"], ["ext", "extension"], ["thurs", "Thursday"], ["lm", "left message"], ["b/o", "back-ordered"],
     ["p/u", "pick up"], ["d/o", "drop off"], ["f/u", "follow up"], ["txt", "text"], ["msg", "message"],
     ["cust", "customer"], ["cx", "customer"], ["adj", "adjuster"], ["reinsp", "reinspection"],
     ["calib", "calibration"], ["recal", "recalibration"], ["pls", "please"], ["plz", "please"],
@@ -2151,7 +2319,7 @@
 
   // Finds a folder number. Returns { folder, text } or null.
   function detectFolder(line) {
-    var scan = line.replace(PHONE_RE, " ").replace(DATE_RE, " ");
+    var scan = line.replace(PHONE_RE, " ").replace(DATE_RE, " ").replace(OTHER_NUMBER_RE, " ").replace(/\$\s?[\d,]+(?:\.\d+)?/g, " ");
     var m = scan.match(FOLDER_PREFIX_RE);
     if (m && /\d/.test(m[1])) return { folder: m[1].toUpperCase(), text: m[0].trim() };
     m = scan.match(FOLDER_BARE_RE);
@@ -2278,7 +2446,10 @@
     var desc = raw;
 
     var f = detectFolder(raw);
-    if (f) { out.folder = f.folder; desc = desc.replace(f.text, " "); }
+    if (f) {
+      out.folder = f.folder;
+      desc = desc.replace(f.text, " ").replace(/\b(?:for|on|of|about)\s+(?=(?:by|before|asap|eod|today|tomorrow|tmrw)\b|\s*$)/i, "");
+    }
 
     var lab = desc.match(CUSTOMER_LABEL_RE);
     if (lab && isNameWord(lab[1].split(/\s+/)[0])) {
@@ -2304,6 +2475,20 @@
         out.customer = knownD || titleCase(dash[1]);
         out.customerSource = knownD ? "known" : (f ? "header" : "guess");
         desc = cleanDescription(dash[2]);
+      }
+    }
+
+    // "10452 Jones lvm x2", "Patel p/u Fri 4pm": a capitalized name at the start, then what happened. A guess (shown in red).
+    if (!out.customer && /[a-z]/.test(desc)) {
+      // Without a folder # only shop shorthand counts ("Patel p/u"); "Derek confirmed…" may be a co-worker.
+      var lead = desc.match(f
+        ? /^([A-Z][a-z'-]+)\s+(?=(?:lvm|lm|vm|cb|p\/u|d\/o|pick(?:ed|ing)?|drop(?:ped|ping)?|appt|estimate|rental|called|wants|said|says|needs|approved|denied|will|is|was|has|asked|texted|emailed|confirmed)\b)/
+        : /^([A-Z][a-z'-]+)\s+(?=(?:lvm|lm|vm|cb|p\/u|d\/o|pick(?:ed|ing)? up|drop(?:ped|ping)? off|appt|rental)\b)/);
+      if (lead && isNameWord(lead[1]) && !findKnown(lead[1], ctx.knownEstimators)) {
+        var knownL = findKnown(lead[1], ctx.knownCustomers);
+        out.customer = knownL || lead[1];
+        out.customerSource = knownL ? "known" : "guess";
+        out.nameInText = out.customer;
       }
     }
 
@@ -2423,6 +2608,7 @@
         filled.push(label);
       } else if (autoFilled[key]) {
         el.value = key === "category" ? CATEGORIES[0] : (key === "estimator" ? loadLastEstimator() : "");
+        // (follow-up and waiting-on simply clear)
         autoFilled[key] = false;
       }
     }
@@ -2431,6 +2617,12 @@
     setField("folder", "fFolder", a && a.folder, "Folder #");
     setField("category", "fCategory", a && a.categoryScore ? a.category : "", "Category");
     if (a && a.estimator) setField("estimator", "fEstimator", a.estimator, "Estimator");
+    // Only what the text says: "waiting on parts", "tomorrow", "Friday", "11/20".
+    var w = a ? detectWaitingOn(text) : "";
+    setField("waitingOn", "fWaitingOn", w, "Waiting on " + w);
+    var when = a ? parseAppt(text.replace(a.folder || "\u0000", " "), todayKey()).date : "";
+    if (when && when < todayKey()) when = "";
+    setField("followUp", "fFollowUp", when, when ? "Follow-up " + formatDate(when) : "");
 
     $("fCustomer").classList.toggle("guess", !!(autoFilled.customer && a && a.customerSource === "guess"));
     $("autofillNote").hidden = !filled.length;
@@ -2934,7 +3126,7 @@
   }
 
   function showTaskOnBoard(t) {
-    filters = { category: "All", search: t.folder || t.customer || "", estimator: "" };
+    filters = { category: "All", search: t.folder || t.customer || "", estimator: "", status: "all" };
     $("search").value = filters.search;
     renderCategoryChips();
     setView("tasks");
@@ -2958,8 +3150,8 @@
 
   // Words at the start of a note that make it a to-do.
   var FOLLOWUP_START = /^(?:call|phone|text|txt|email|e-mail|check|chk|verify|confirm|follow[\s-]?up|f\/u|order|reorder|send|submit|get|ask|remind|find out|look into|look up|look at|needs? to|have to|must|make sure|don'?t forget|remember to|schedule|sched|book|reschedule|update|tell|notify|let \w+ know|return|request|pick up|p\/u|call back|cb|chase|research|quote|price|review|write|print|scan|upload|set up|setup|arrange|contact|reach out|reply|respond|pay|invoice|bill|move|bring|fix|cancel|refund|recheck|re-check|see if|see about|find|req|pls|please)\b/i;
-  var FOLLOWUP_ANY = /\b(?:needs? to|have to|has to|gotta|must|remember to|don'?t forget|make sure|to ?do|follow[\s-]?up|f\/u|waiting (?:on|for)|pending|asap|call back|eod|by (?:mon|tue|wed|thu|fri|today|tomorrow|tmrw|eod|noon)\w*|when (?:will|is|does)|check (?:on|status|with))\b/i;
-  var APPT_WORDS = /\b(?:appt|appointment|schedul\w*|booked|estimate|drop[\s-]?off|dropping off|d\/o|pick[\s-]?up|picking up|p\/u|coming in|come in|bring(?:ing)? (?:it|the car|the vehicle|car|vehicle|truck) in|in for|inspection|reinspect\w*|walk[\s-]?in)\b/i;
+  var FOLLOWUP_ANY = /\b(?:needs? to|have to|has to|gotta|must|remember to|don'?t forget|make sure|to ?do|follow[\s-]?up|f\/u|waiting (?:on|for)|pending|asap|call back|needs?|wants? (?:a )?(?:call|text|update|callback)|call when|eod|by (?:mon|tue|wed|thu|fri|today|tomorrow|tmrw|eod|noon)\w*|when (?:will|is|does)|check (?:on|status|with))\b/i;
+  var APPT_WORDS = /\b(?:appt|appointment|schedul\w*|booked|estimate|drop[\s-]?off|dropping off|d\/o|pick[\s-]?up|picking up|p\/u|coming in|come in|bring(?:ing)? (?:it|the car|the vehicle|car|vehicle|truck) in|in for|inspection|reinspect\w*|walk[\s-]?in|tow(?:ed|ing)? in)\b/i;
   var DAY_WORDS = /\b(?:today|tomorrow|tmrw|tmw|tonight|mon(?:day)?|tue(?:s|sday)?|wed(?:s|nesday)?|thu(?:r|rs|rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?|next week)\b|\b\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/i;
   var TIME_WORDS = /\b\d{1,2}:[0-5]\d\b|\b\d{1,2}\s*[ap]\.?m\b|\b\d{1,2}[ap]\b|\bnoon\b|\b(?:at|@)\s*\d{1,2}\b(?![\/:\d])/i;
   var REF_WORDS = /\b(?:said|says|states?|stated|told (?:me|us)|per (?:cust|customer|him|her|adj|adjuster|ins)|accident|rear[\s-]?ended|backed into|t-?boned|deer|hit (?:a|by|the|him|her)|struck|collision|claim|policy|deductible|vin|mileage|miles|injur\w*|police|report(?:ed)?|insured|fyi|info|color|paint code|was|were|already|arrived|came in|received|rcvd|delivered|approved|denied|total(?:ed)?|towed|left (?:vm|voicemail|message)|lvm|no answer)\b/gi;
@@ -2968,7 +3160,7 @@
   var TOPIC_LABEL = { accident: "Accident details", concern: "Customer concern", parts: "Parts", supplement: "Supplement", status: "Repair status", appointment: "Appointment", general: "" };
   var ACCIDENT_RE = /\b(?:accident|rear[\s-]?ended|hit (?:a|by|the|him|her|from)|struck|collision|crash(?:ed)?|t-?boned|side-?swiped|backed into|deer|stop ?light|intersection|airbags?|ran a red|police report|other driver|at fault|totall?ed)\b/i;
   var CONCERN_RE = /\b(?:won'?t (?:close|open|start|latch|lock)|doesn'?t (?:close|open|work|latch)|noise|rattl\w*|squeak\w*|leak\w*|pulls? (?:left|right|to)|smell\w*|vibrat\w*|worried|concern\w*|upset|unhappy|complain\w*|not happy|wants to know|asked about|paint (?:doesn'?t|does not|not) match)\b/i;
-  var STATUS_RE = /\b(?:confirmed|ordered|shipped|arrived|received|rcvd|approved|denied|delivered|picked up|in paint|in the booth|on the frame|in assembly|in detail|ready for|completed|finished|on backorder|back-?ordered)\b/i;
+  var STATUS_RE = /\b(?:confirmed|ordered|shipped|arrived|received|rcvd|approved|denied|delivered|picked up|in paint|in the booth|on the frame|in assembly|in detail|ready for|completed|finished|on backorder|back-?ordered|b\/o|eta|lvm|left (?:vm|voicemail|message)|no answer)\b/i;
   var LEAD_PERSON_RE = /^([A-Z][a-z'-]+)\s+(?:confirmed|said|says|called|texted|emailed|ordered|wants|asked|replied|mentioned|told|checked|got|sent|will|is|was|has|approved|denied)\b/;
 
   function topicOf(text, a, kind) {
@@ -2998,13 +3190,14 @@
     if (start) fu += 3;
     if (FOLLOWUP_ANY.test(raw)) fu += 2;
     if (/\?\s*$/.test(raw)) fu += 1;
+    if (/\bwants? (?:a )?(?:call|text|update|callback)\b|\bcall when\b/i.test(raw)) fu += 1.5;   // "wants a call when it's in paint"
 
     var noPhone = raw.replace(PHONE_RE, " ");
     var hasDay = DAY_WORDS.test(noPhone), hasTime = TIME_WORDS.test(noPhone), apw = APPT_WORDS.test(raw);
     if (apw) ap += 1;
     if (hasDay) ap += 1.5;
     if (hasTime) ap += 1.5;
-    if (!apw && !(hasDay && hasTime)) ap = Math.min(ap, 1.5);   // a day or time alone isn't an appointment
+    if (!apw && !(hasDay && hasTime)) ap = Math.min(ap, 0.5);   // a day or time alone ("ETA 11/20") isn't an appointment
     if (/\b(?:called|texted|emailed|wants|would like|asked) to (?:schedule|book|set up|come in|drop)/i.test(raw) && (hasDay || hasTime)) ap += 1.5;
     if (start && apw) fu += 1.5;   // "call Smith to schedule…" is a to-do about an appointment
 
@@ -3801,7 +3994,7 @@
         var t = normalizeTask({
           id: makeId(), customer: f.customer.trim(), folder: f.folder.trim(), desc: f.desc.trim(), category: f.category,
           estimator: f.estimator.trim(), createdAt: now, done: false, completedAt: null, example: false,
-          noteRef: { date: date, lineId: line.id }, log: []
+          waitingOn: detectWaitingOn(it.text), noteRef: { date: date, lineId: line.id }, log: []
         });
         if (cap) addLog(t, "Added from a capture (" + from + ", " + label + ")");
         tasks.push(t);
@@ -5094,7 +5287,7 @@
     });
     $("fDesc").addEventListener("blur", function () { clearTimeout(autoTimer); autoFillForm(); });
     // Once you type in a box yourself, the smart reader leaves it alone.
-    [["customer", "fCustomer"], ["folder", "fFolder"], ["category", "fCategory"], ["estimator", "fEstimator"]].forEach(function (pair) {
+    [["customer", "fCustomer"], ["folder", "fFolder"], ["category", "fCategory"], ["estimator", "fEstimator"], ["followUp", "fFollowUp"], ["waitingOn", "fWaitingOn"]].forEach(function (pair) {
       $(pair[1]).addEventListener("input", function () { touched[pair[0]] = true; $(pair[1]).classList.remove("guess"); });
       $(pair[1]).addEventListener("change", function () { touched[pair[0]] = true; });
     });
@@ -5107,9 +5300,19 @@
       render();
     });
     $("search").addEventListener("input", function (e) { filters.search = e.target.value.trim(); render(); });
+    function onStatus(e) {
+      var b = e.target.closest("[data-status]");
+      if (!b) return;
+      var v = b.getAttribute("data-status");
+      filters.status = filters.status === v && b.classList.contains("stat") ? "all" : v;   // tap a tile again to clear
+      render();
+      if (b.classList.contains("stat")) $("todayList").closest(".sections").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    $("statusChips").addEventListener("click", onStatus);
+    document.querySelector(".summary").addEventListener("click", onStatus);
     $("estimatorFilter").addEventListener("change", function (e) { filters.estimator = e.target.value; render(); });
     $("clearFiltersBtn").addEventListener("click", function () {
-      filters = { category: "All", search: "", estimator: "" };
+      filters = { category: "All", search: "", estimator: "", status: "all" };
       $("search").value = "";
       renderCategoryChips();
       render();
@@ -5123,6 +5326,7 @@
       var action = b.getAttribute("data-action");
       if (action === "toggle") toggleDone(id);
       else if (action === "edit") startEdit(id);
+      else if (action === "tomorrow") followUpTomorrow(id);
       else if (action === "delete") deleteTask(id);
     });
 
@@ -5324,7 +5528,6 @@
 
   function init() {
     $("fCategory").innerHTML = optionList(CATEGORIES, CATEGORIES[0]);
-    $("statStaleLabel").textContent = "Waiting " + STALE_DAYS + "+ days";
     renderCategoryChips();
     tasks = loadTasks();          // before migrating, so a brand-new install still gets the examples
     migrateStorage();
